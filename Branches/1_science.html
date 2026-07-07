@@ -1,0 +1,229 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شعبة العلوم التجريبية - BacOrbit</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#0d0d0d;
+color:white;
+min-height:100vh;
+}
+
+header{
+text-align:center;
+padding:30px;
+border-bottom:1px solid #1aff66;
+background:#111;
+}
+
+.logo{
+font-size:40px;
+font-weight:bold;
+color:#1aff66;
+letter-spacing:2px;
+}
+
+.hero{
+text-align:center;
+padding:70px 20px;
+}
+
+.hero h1{
+font-size:48px;
+margin-bottom:15px;
+}
+
+.hero p{
+font-size:18px;
+color:#bdbdbd;
+}
+
+.subjects{
+max-width:1200px;
+margin:auto;
+padding:30px;
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+gap:25px;
+align-items:start;
+}
+
+.card{
+background:#161616;
+border:2px solid #1aff66;
+border-radius:20px;
+padding:35px;
+text-align:center;
+cursor:pointer;
+transition:.3s;
+}
+
+.card:hover{
+transform:translateY(-8px);
+box-shadow:0 0 25px rgba(26,255,102,.5);
+}
+
+.card h2{
+color:#1aff66;
+font-size:24px;
+}
+
+.subject-content{
+display:none;
+margin-top:20px;
+}
+
+.mini-card{
+background:#161616;
+border:2px solid #1aff66;
+border-radius:15px;
+padding:15px;
+margin-top:12px;
+color:white;
+font-weight:bold;
+transition:.3s;
+}
+
+.mini-card:hover{
+transform:translateY(-5px);
+box-shadow:0 0 20px rgba(26,255,102,.4);
+}
+
+.back{
+display:block;
+width:250px;
+margin:40px auto;
+padding:15px;
+text-align:center;
+background:#1aff66;
+color:black;
+font-weight:bold;
+text-decoration:none;
+border-radius:12px;
+}
+
+footer{
+text-align:center;
+padding:25px;
+color:#888;
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+<div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1>شعبة العلوم التجريبية</h1>
+<p>اختر المادة التي تريد دراستها</p>
+</section>
+
+<section class="subjects">
+
+<div class="card" onclick="toggleContent(this)">
+<h2>الرياضيات</h2>
+<div class="subject-content">
+<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>الفيزياء</h2>
+<div class="subject-content">
+<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>العلوم الطبيعية</h2>
+<div class="subject-content">
+<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>اللغة العربية</h2>
+<div class="subject-content">
+<div class="mini-card" onclick="window.location.href='L_Arabic.html'">
+📝 دروس و ملخصات
+</div>
+<div class="mini-card" onclick="window.location.href='S_Arabic.html'">
+📄 مواضيع البكالوريا مع الحل النموذجي
+</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>اللغة الفرنسية</h2>
+<div class="subject-content">
+<div class="mini-card">📝 دروس و ملخصات</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>اللغة الإنجليزية</h2>
+<div class="subject-content">
+<div class="mini-card">📝 دروس و ملخصات</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>العلوم الإسلامية</h2>
+<div class="subject-content">
+<div class="mini-card">📝 دروس و ملخصات</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>الاجتماعيات</h2>
+<div class="subject-content">
+<div class="mini-card">📝 دروس و ملخصات</div>
+<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+</section>
+
+<a class="back" href="../index.html">العودة للرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<script>
+function toggleContent(card){
+const content = card.querySelector(".subject-content");
+
+if(content.style.display==="block"){
+content.style.display="none";
+}else{
+content.style.display="block";
+}
+}
+</script>
+
+</body>
+</html>
+```

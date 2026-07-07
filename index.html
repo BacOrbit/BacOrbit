@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BacOrbit</title>
+
+```
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        background: #0d0d0d;
+        color: white;
+        min-height: 100vh;
+    }
+
+    header {
+        text-align: center;
+        padding: 30px;
+        border-bottom: 1px solid #1aff66;
+    }
+
+    .logo {
+        font-size: 40px;
+        font-weight: bold;
+        color: #1aff66;
+    }
+
+    .hero {
+        text-align: center;
+        padding: 80px 20px 50px;
+    }
+
+    .hero h1 {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .hero p {
+        color: #bdbdbd;
+        font-size: 18px;
+    }
+
+    .branches {
+        max-width: 1200px;
+        margin: auto;
+        padding: 30px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 25px;
+    }
+
+    .card {
+        background: #161616;
+        border: 2px solid #1aff66;
+        border-radius: 20px;
+        padding: 35px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 0 25px rgba(26, 255, 102, 0.5);
+    }
+
+    .card h2 {
+        color: #1aff66;
+        margin-bottom: 15px;
+    }
+
+    .card p {
+        color: #cfcfcf;
+    }
+
+    footer {
+        text-align: center;
+        margin-top: 80px;
+        padding: 25px;
+        color: #888;
+    }
+</style>
+```
+
+</head>
+
+<body>
+
+```
+<header>
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+    <h1>اختر شعبتك الدراسية</h1>
+    <p>ابدأ رحلتك نحو البكالوريا من خلال اختيار الشعبة المناسبة</p>
+</section>
+
+<section class="branches">
+
+    <div class="card" onclick="window.location.href='Branches/1_science.html'">
+        <h2>علوم تجريبية</h2>
+        <p>الدخول إلى شعبة العلوم التجريبية</p>
+    </div>
+
+    <div class="card" onclick="window.location.href='Branches/1_math.html'">
+        <h2>رياضيات</h2>
+        <p>الدخول إلى شعبة الرياضيات</p>
+    </div>
+
+    <div class="card" onclick="window.location.href='Branches/1_technical.html'">
+        <h2>تقني رياضي</h2>
+        <p>الدخول إلى شعبة التقني رياضي</p>
+    </div>
+
+    <div class="card" onclick="window.location.href='Branches/1_economy.html'">
+        <h2>تسيير واقتصاد</h2>
+        <p>الدخول إلى شعبة تسيير واقتصاد</p>
+    </div>
+
+</section>
+
+<footer>
+    © 2026 BacOrbit
+</footer>
+```
+
+</body>
+
+</html>
