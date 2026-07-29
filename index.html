@@ -21,7 +21,52 @@
         color: white;
         min-height: 100vh;
     }
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #111;
+    border-bottom: 1px solid #1aff66;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 25px;
+    z-index: 1000;
+    transition: transform .3s ease;
+}
 
+.top-bar.hide {
+    transform: translateY(-100%);
+}
+
+.top-link{
+    color:#1aff66;
+    text-decoration:none;
+    font-size:18px;
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:.25s;
+}
+
+.top-link:hover{
+    color:white;
+}
+
+.notification-dot{
+    width:9px;
+    height:9px;
+    background:#ff2d2d;
+    border-radius:50%;
+    display:inline-block;
+    box-shadow:0 0 10px #ff2d2d;
+}
+
+header{
+    margin-top:55px;
+}
     header {
         text-align: center;
         padding: 30px;
@@ -94,7 +139,17 @@
 </head>
 
 <body>
+<div class="top-bar" id="topBar">
 
+    <a href="support.html" class="top-link">
+        🎧 الدعم
+    </a>
+
+    <a href="forum.html" class="top-link">
+        📚 المنتدى
+    </a>
+
+</div>
 ```
 <header>
     <div class="logo">BacOrbit</div>
@@ -133,7 +188,31 @@
     © 2026 BacOrbit
 </footer>
 ```
+<script>
 
+let lastScroll = 0;
+const topBar = document.getElementById("topBar");
+
+window.addEventListener("scroll", () => {
+
+    const current = window.pageYOffset;
+
+    if(current <= 0){
+        topBar.classList.remove("hide");
+        return;
+    }
+
+    if(current > lastScroll){
+        topBar.classList.add("hide");
+    }else{
+        topBar.classList.remove("hide");
+    }
+
+    lastScroll = current;
+
+});
+
+</script>
 </body>
 
 </html>
