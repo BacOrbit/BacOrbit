@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنتدى - BacOrbit</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+html{
+scroll-behavior:smooth;
+}
+
+body{
+background:#0d0d0d;
+color:#fff;
+min-height:100vh;
+overflow-x:hidden;
+}
+
+header{
+text-align:center;
+padding:30px;
+border-bottom:1px solid #1aff66;
+background:#111;
+}
+
+.logo{
+font-size:40px;
+font-weight:bold;
+color:#1aff66;
+letter-spacing:2px;
+}
+
+.hero{
+text-align:center;
+padding:60px 20px 35px;
+}
+
+.hero h1{
+font-size:44px;
+color:#1aff66;
+margin-bottom:15px;
+}
+
+.hero p{
+font-size:18px;
+color:#bdbdbd;
+line-height:1.8;
+}
+
+.wrap{
+max-width:800px;
+margin:auto;
+padding:0 20px 40px;
+}
+
+/* --- new post box --- */
+
+.new-post{
+background:#161616;
+border:2px solid #1aff66;
+border-radius:20px;
+padding:25px;
+margin-bottom:40px;
+}
+
+.new-post h3{
+color:#1aff66;
+margin-bottom:15px;
+font-size:20px;
+}
+
+.new-post input[type="text"],
+.new-post textarea{
+width:100%;
+background:#0d0d0d;
+border:2px solid #333;
+border-radius:12px;
+padding:12px 14px;
+color:#fff;
+font-size:15px;
+margin-bottom:14px;
+resize:vertical;
+transition:.25s;
+}
+
+.new-post input[type="text"]:focus,
+.new-post textarea:focus{
+outline:none;
+border-color:#1aff66;
+}
+
+.new-post textarea{
+min-height:100px;
+}
+
+.file-row{
+display:flex;
+align-items:center;
+gap:12px;
+flex-wrap:wrap;
+margin-bottom:16px;
+}
+
+.file-label{
+display:inline-flex;
+align-items:center;
+gap:8px;
+background:#0d0d0d;
+border:2px dashed #1aff66;
+border-radius:12px;
+padding:10px 16px;
+color:#1aff66;
+cursor:pointer;
+font-weight:bold;
+font-size:14px;
+transition:.25s;
+}
+
+.file-label:hover{
+background:#1aff6620;
+}
+
+.file-name{
+color:#bdbdbd;
+font-size:13px;
+}
+
+.img-preview{
+max-width:160px;
+max-height:160px;
+border-radius:10px;
+border:2px solid #1aff66;
+display:none;
+margin-bottom:14px;
+}
+
+.submit-btn{
+display:block;
+width:100%;
+padding:14px;
+background:#1aff66;
+color:#000;
+font-weight:bold;
+font-size:16px;
+border:none;
+border-radius:12px;
+cursor:pointer;
+transition:.25s;
+}
+
+.submit-btn:hover{
+transform:scale(1.02);
+box-shadow:0 0 20px rgba(26,255,102,.4);
+}
+
+/* --- posts --- */
+
+.post{
+background:#161616;
+border:2px solid #1aff66;
+border-radius:20px;
+padding:22px;
+margin-bottom:25px;
+transition:.3s;
+}
+
+.post:hover{
+box-shadow:0 0 20px rgba(26,255,102,.2);
+}
+
+.post-head{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+flex-wrap:wrap;
+gap:8px;
+}
+
+.post-author{
+color:#1aff66;
+font-weight:bold;
+font-size:16px;
+}
+
+.post-date{
+color:#777;
+font-size:13px;
+}
+
+.post-text{
+color:#e6e6e6;
+font-size:15px;
+line-height:1.8;
+white-space:pre-wrap;
+word-wrap:break-word;
+margin-bottom:12px;
+}
+
+.post-img{
+max-width:100%;
+border-radius:14px;
+border:1px solid #1aff66;
+margin-bottom:12px;
+display:block;
+}
+
+.post-actions{
+display:flex;
+gap:14px;
+}
+
+.action-btn{
+background:none;
+border:1px solid #1aff66;
+color:#1aff66;
+padding:6px 16px;
+border-radius:10px;
+cursor:pointer;
+font-size:13px;
+font-weight:bold;
+transition:.25s;
+}
+
+.action-btn:hover{
+background:#1aff6620;
+}
+
+.del-btn{
+border-color:#ff4d4d;
+color:#ff4d4d;
+}
+
+.del-btn:hover{
+background:#ff4d4d20;
+}
+
+/* --- replies --- */
+
+.replies{
+margin-top:16px;
+padding-right:22px;
+border-right:2px solid #1aff6650;
+}
+
+.reply{
+background:#0d0d0d;
+border:1px solid #2a2a2a;
+border-radius:14px;
+padding:14px 16px;
+margin-top:12px;
+}
+
+.reply .post-author{
+font-size:14px;
+}
+
+.reply .post-text{
+font-size:14px;
+margin-bottom:8px;
+}
+
+.reply .post-img{
+max-width:220px;
+}
+
+/* --- reply form --- */
+
+.reply-form{
+display:none;
+margin-top:14px;
+background:#0d0d0d;
+border:1px solid #333;
+border-radius:14px;
+padding:14px;
+}
+
+.reply-form.open{
+display:block;
+}
+
+.reply-form input[type="text"],
+.reply-form textarea{
+width:100%;
+background:#161616;
+border:2px solid #333;
+border-radius:10px;
+padding:10px 12px;
+color:#fff;
+font-size:14px;
+margin-bottom:10px;
+resize:vertical;
+}
+
+.reply-form textarea{
+min-height:70px;
+}
+
+.reply-form input[type="text"]:focus,
+.reply-form textarea:focus{
+outline:none;
+border-color:#1aff66;
+}
+
+.empty-state{
+text-align:center;
+color:#888;
+padding:40px 20px;
+font-size:16px;
+}
+
+.back{
+display:block;
+width:250px;
+margin:20px auto 40px;
+padding:15px;
+text-align:center;
+background:#1aff66;
+color:black;
+font-weight:bold;
+text-decoration:none;
+border-radius:12px;
+transition:.25s;
+}
+
+.back:hover{
+transform:scale(1.03);
+}
+
+footer{
+text-align:center;
+padding:25px;
+color:#888;
+border-top:1px solid #222;
+}
+
+@media(max-width:600px){
+.hero h1{
+font-size:32px;
+}
+.wrap{
+padding:0 12px 30px;
+}
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+<div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1>منتدى التلاميذ</h1>
+<p>اطرح سؤالك، شارك ملاحظاتك، وساعد زملاءك 🎓</p>
+</section>
+
+<div class="wrap">
+
+<div class="new-post">
+<h3>✏️ اكتب سؤالاً أو ملاحظة</h3>
+<input type="text" id="authorInput" placeholder="اسمك (اختياري)" maxlength="40">
+<textarea id="textInput" placeholder="اكتب سؤالك أو تعليقك هنا..." maxlength="1500"></textarea>
+
+<div class="file-row">
+<label class="file-label" for="imgInput">📷 إضافة صورة</label>
+<input type="file" id="imgInput" accept="image/*" style="display:none">
+<span class="file-name" id="fileName"></span>
+</div>
+<img id="imgPreview" class="img-preview">
+
+<button class="submit-btn" onclick="submitPost()">نشر</button>
+</div>
+
+<div id="postsContainer"></div>
+
+<div id="emptyState" class="empty-state">لا توجد أسئلة بعد، كن أول من يشارك! 🙌</div>
+
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<script>
+
+const STORAGE_KEY = "bacorbit_forum_posts";
+let pendingImage = "";
+
+// ---------- helpers ----------
+
+function escapeHtml(str){
+return str
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function loadPosts(){
+try{
+const raw = localStorage.getItem(STORAGE_KEY);
+return raw ? JSON.parse(raw) : [];
+}catch(e){
+return [];
+}
+}
+
+function savePosts(posts){
+try{
+localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+}catch(e){
+alert("تعذر حفظ البيانات، ربما الصورة كبيرة جداً. جرّب صورة أصغر.");
+}
+}
+
+function formatDate(ts){
+const d = new Date(ts);
+return d.toLocaleDateString("ar-DZ",{day:"2-digit",month:"2-digit",year:"numeric"}) +
+" - " +
+d.toLocaleTimeString("ar-DZ",{hour:"2-digit",minute:"2-digit"});
+}
+
+function genId(){
+return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+// ---------- image handling ----------
+
+document.getElementById("imgInput").addEventListener("change", function(e){
+const file = e.target.files[0];
+if(!file){
+pendingImage = "";
+document.getElementById("fileName").textContent = "";
+document.getElementById("imgPreview").style.display = "none";
+return;
+}
+
+if(file.size > 4 * 1024 * 1024){
+alert("حجم الصورة كبير جداً، الرجاء اختيار صورة أصغر من 4MB");
+e.target.value = "";
+return;
+}
+
+document.getElementById("fileName").textContent = file.name;
+
+const reader = new FileReader();
+reader.onload = function(ev){
+pendingImage = ev.target.result;
+const preview = document.getElementById("imgPreview");
+preview.src = pendingImage;
+preview.style.display = "block";
+};
+reader.readAsDataURL(file);
+});
+
+// ---------- submit new post ----------
+
+function submitPost(){
+const authorInput = document.getElementById("authorInput");
+const textInput = document.getElementById("textInput");
+
+const author = authorInput.value.trim() || "تلميذ مجهول";
+const text = textInput.value.trim();
+
+if(!text && !pendingImage){
+alert("اكتب نصاً أو أضف صورة قبل النشر");
+return;
+}
+
+const posts = loadPosts();
+
+posts.unshift({
+id: genId(),
+author: author,
+text: text,
+image: pendingImage,
+date: Date.now(),
+replies: []
+});
+
+savePosts(posts);
+
+authorInput.value = "";
+textInput.value = "";
+pendingImage = "";
+document.getElementById("imgInput").value = "";
+document.getElementById("fileName").textContent = "";
+document.getElementById("imgPreview").style.display = "none";
+
+renderPosts();
+}
+
+// ---------- reply handling ----------
+
+let pendingReplyImage = {};
+
+function toggleReplyForm(postId){
+const form = document.getElementById("reply-form-" + postId);
+form.classList.toggle("open");
+}
+
+function handleReplyImage(postId, input){
+const file = input.files[0];
+if(!file){
+pendingReplyImage[postId] = "";
+return;
+}
+if(file.size > 4 * 1024 * 1024){
+alert("حجم الصورة كبير جداً، الرجاء اختيار صورة أصغر من 4MB");
+input.value = "";
+return;
+}
+const reader = new FileReader();
+reader.onload = function(ev){
+pendingReplyImage[postId] = ev.target.result;
+const preview = document.getElementById("reply-preview-" + postId);
+preview.src = ev.target.result;
+preview.style.display = "block";
+};
+reader.readAsDataURL(file);
+}
+
+function submitReply(postId){
+const authorInput = document.getElementById("reply-author-" + postId);
+const textInput = document.getElementById("reply-text-" + postId);
+
+const author = authorInput.value.trim() || "تلميذ مجهول";
+const text = textInput.value.trim();
+const image = pendingReplyImage[postId] || "";
+
+if(!text && !image){
+alert("اكتب رداً أو أضف صورة قبل النشر");
+return;
+}
+
+const posts = loadPosts();
+const post = posts.find(p => p.id === postId);
+if(!post) return;
+
+post.replies.push({
+id: genId(),
+author: author,
+text: text,
+image: image,
+date: Date.now()
+});
+
+savePosts(posts);
+
+pendingReplyImage[postId] = "";
+renderPosts();
+}
+
+// ---------- delete ----------
+
+function deletePost(postId){
+if(!confirm("هل تريد حذف هذا المنشور؟")) return;
+let posts = loadPosts();
+posts = posts.filter(p => p.id !== postId);
+savePosts(posts);
+renderPosts();
+}
+
+function deleteReply(postId, replyId){
+if(!confirm("هل تريد حذف هذا الرد؟")) return;
+const posts = loadPosts();
+const post = posts.find(p => p.id === postId);
+if(!post) return;
+post.replies = post.replies.filter(r => r.id !== replyId);
+savePosts(posts);
+renderPosts();
+}
+
+// ---------- render ----------
+
+function renderPosts(){
+const container = document.getElementById("postsContainer");
+const emptyState = document.getElementById("emptyState");
+const posts = loadPosts();
+
+container.innerHTML = "";
+
+if(posts.length === 0){
+emptyState.style.display = "block";
+return;
+}
+emptyState.style.display = "none";
+
+posts.forEach(post => {
+
+let repliesHtml = "";
+if(post.replies && post.replies.length > 0){
+repliesHtml = '<div class="replies">' + post.replies.map(r => `
+<div class="reply">
+<div class="post-head">
+<span class="post-author">💬 ${escapeHtml(r.author)}</span>
+<span class="post-date">${formatDate(r.date)}</span>
+</div>
+${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
+${r.image ? `<img class="post-img" src="${r.image}">` : ""}
+<div class="post-actions">
+<button class="action-btn del-btn" onclick="deleteReply('${post.id}','${r.id}')">🗑 حذف</button>
+</div>
+</div>
+`).join("") + '</div>';
+}
+
+const postEl = document.createElement("div");
+postEl.className = "post";
+postEl.innerHTML = `
+<div class="post-head">
+<span class="post-author">👤 ${escapeHtml(post.author)}</span>
+<span class="post-date">${formatDate(post.date)}</span>
+</div>
+${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
+${post.image ? `<img class="post-img" src="${post.image}">` : ""}
+<div class="post-actions">
+<button class="action-btn" onclick="toggleReplyForm('${post.id}')">↩ رد</button>
+<button class="action-btn del-btn" onclick="deletePost('${post.id}')">🗑 حذف</button>
+</div>
+
+<div class="reply-form" id="reply-form-${post.id}">
+<input type="text" id="reply-author-${post.id}" placeholder="اسمك (اختياري)" maxlength="40">
+<textarea id="reply-text-${post.id}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
+<div class="file-row">
+<label class="file-label" for="reply-img-${post.id}">📷 صورة</label>
+<input type="file" id="reply-img-${post.id}" accept="image/*" style="display:none" onchange="handleReplyImage('${post.id}', this)">
+</div>
+<img id="reply-preview-${post.id}" class="img-preview">
+<button class="submit-btn" onclick="submitReply('${post.id}')">نشر الرد</button>
+</div>
+
+${repliesHtml}
+`;
+
+container.appendChild(postEl);
+});
+}
+
+renderPosts();
+
+</script>
+
+</body>
+</html>
