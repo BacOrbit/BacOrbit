@@ -127,6 +127,21 @@ header{
         color: #cfcfcf;
     }
 
+    .card-empty {
+        border-color: #333;
+        cursor: default;
+        opacity: .6;
+    }
+
+    .card-empty:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .card-empty h2 {
+        color: #666;
+    }
+
     footer {
         text-align: center;
         margin-top: 80px;
@@ -141,11 +156,11 @@ header{
 <body>
 <div class="top-bar" id="topBar">
 
-    <a href="https://www.facebook.com/profile.php?id=61578551271585" class="top-link" target="_blank" rel="noopener noreferrer">
+    <a href="support.html" class="top-link">
         🎧 الدعم
     </a>
 
-    <a href="chat.html" class="top-link">
+    <a href="forum.html" class="top-link">
         📚 المنتدى
     </a>
 
@@ -173,13 +188,18 @@ header{
     </div>
 
     <div class="card" onclick="window.location.href='Branches/1_technical.html'">
-        <h2>تقني رياضي</h2>
-        <p>الدخول إلى شعبة التقني رياضي</p>
+        <h2>الهندسة(تقني رياضي)</h2>
+        <p>الدخول إلى شعبة الهندسة</p>
     </div>
 
     <div class="card" onclick="window.location.href='Branches/1_economy.html'">
         <h2>تسيير واقتصاد</h2>
         <p>الدخول إلى شعبة تسيير واقتصاد</p>
+    </div>
+
+    <div class="card card-empty">
+        <h2>الإعلام الآلي</h2>
+        <p>قريباً</p>
     </div>
 
 </section>
