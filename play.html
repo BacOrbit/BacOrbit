@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التذكير بالمكتسبات - BacOrbit</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#0d0d0d;
+color:#fff;
+min-height:100vh;
+overflow-x:hidden;
+}
+
+header{
+text-align:center;
+padding:30px;
+border-bottom:1px solid #1aff66;
+background:#111;
+}
+
+.logo{
+font-size:40px;
+font-weight:bold;
+color:#1aff66;
+letter-spacing:2px;
+}
+
+.hero{
+text-align:center;
+padding:50px 20px 25px;
+}
+
+.hero h1{
+font-size:40px;
+margin-bottom:12px;
+color:#1aff66;
+}
+
+.hero p{
+font-size:17px;
+color:#bdbdbd;
+}
+
+.score-bar{
+max-width:650px;
+margin:0 auto 20px;
+display:flex;
+justify-content:space-between;
+padding:0 10px;
+color:#bdbdbd;
+font-size:15px;
+font-weight:bold;
+}
+
+.score-bar span{
+color:#1aff66;
+}
+
+.quiz-wrap{
+max-width:650px;
+margin:auto;
+padding:10px 20px 60px;
+}
+
+.quiz-card{
+background:#161616;
+border:3px solid #1aff66;
+border-radius:22px;
+padding:35px;
+transition:.25s;
+box-shadow:0 12px 35px rgba(0,0,0,.45);
+}
+
+.quiz-card.shake{
+animation:shake .4s;
+}
+
+.quiz-card.flash-red{
+border-color:#ff4d4d;
+box-shadow:0 0 30px rgba(255,77,77,.5);
+}
+
+.quiz-card.flash-green{
+border-color:#1aff66;
+box-shadow:0 0 30px rgba(26,255,102,.55);
+}
+
+@keyframes shake{
+0%{transform:translateX(0);}
+20%{transform:translateX(-10px);}
+40%{transform:translateX(10px);}
+60%{transform:translateX(-8px);}
+80%{transform:translateX(8px);}
+100%{transform:translateX(0);}
+}
+
+.badge{
+display:inline-block;
+background:#0d0d0d;
+border:1px solid #1aff66;
+color:#1aff66;
+font-size:13px;
+font-weight:bold;
+padding:6px 16px;
+border-radius:20px;
+margin-bottom:18px;
+}
+
+.question-text{
+font-size:20px;
+line-height:1.7;
+margin-bottom:28px;
+min-height:60px;
+}
+
+.options{
+display:flex;
+flex-direction:column;
+gap:14px;
+}
+
+.option-btn{
+background:#0d0d0d;
+border:2px solid #333;
+color:#fff;
+padding:15px 18px;
+border-radius:14px;
+font-size:16px;
+text-align:right;
+cursor:pointer;
+transition:.2s;
+font-family:inherit;
+}
+
+.option-btn:hover:not(:disabled){
+border-color:#1aff66;
+transform:translateY(-3px);
+}
+
+.option-btn:disabled{
+cursor:default;
+}
+
+.option-btn.correct-answer{
+border-color:#1aff66;
+background:#0f2b1a;
+color:#1aff66;
+font-weight:bold;
+}
+
+.option-btn.wrong-answer{
+border-color:#ff4d4d;
+background:#2b0f0f;
+color:#ff4d4d;
+font-weight:bold;
+}
+
+.back{
+display:block;
+width:250px;
+margin:10px auto 40px;
+padding:15px;
+text-align:center;
+background:#1aff66;
+color:black;
+font-weight:bold;
+text-decoration:none;
+border-radius:12px;
+transition:.25s;
+}
+
+.back:hover{
+transform:scale(1.03);
+}
+
+footer{
+text-align:center;
+padding:25px;
+color:#888;
+}
+
+/* --- banner --- */
+
+.banner-overlay{
+position:fixed;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+pointer-events:none;
+z-index:2000;
+}
+
+.banner{
+padding:22px 45px;
+border-radius:20px;
+font-size:32px;
+font-weight:bold;
+text-align:center;
+opacity:0;
+transform:scale(.7);
+transition:transform .25s, opacity .25s;
+box-shadow:0 0 40px rgba(0,0,0,.6);
+}
+
+.banner.show{
+opacity:1;
+transform:scale(1);
+}
+
+.banner.win{
+background:#0f2b1a;
+border:3px solid #1aff66;
+color:#1aff66;
+}
+
+.banner.lose{
+background:#2b0f0f;
+border:3px solid #ff4d4d;
+color:#ff4d4d;
+}
+
+@media(max-width:600px){
+.hero h1{
+font-size:30px;
+}
+.quiz-card{
+padding:24px;
+}
+.question-text{
+font-size:18px;
+}
+.banner{
+font-size:24px;
+padding:16px 28px;
+}
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+<div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1>🧠 التذكير بالمكتسبات</h1>
+<p>أجب عن الأسئلة في الرياضيات والفيزياء والعلوم الطبيعية وتحدَّ نفسك</p>
+</section>
+
+<div class="score-bar">
+<div>السؤال: <span id="qIndex">1</span> / <span id="qTotal">60</span></div>
+<div>النقاط: <span id="scoreVal">0</span></div>
+</div>
+
+<div class="quiz-wrap">
+<div class="quiz-card" id="quizCard">
+<div class="badge" id="subjectBadge">الرياضيات</div>
+<div class="question-text" id="questionText">...</div>
+<div class="options" id="optionsWrap"></div>
+</div>
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<div class="banner-overlay">
+<div class="banner" id="banner"></div>
+</div>
+
+<script>
+
+const questions = [
+
+/* ---------- الرياضيات ---------- */
+{subject:"الرياضيات", q:"تكون x₀ جذراً لكثير الحدود P(x) إذا وفقط إذا كان:", options:["P(x₀) = 0","P(x₀) > 0","P′(x₀) = 0"], correct:0},
+{subject:"الرياضيات", q:"مميز المعادلة من الدرجة الثانية ax² + bx + c = 0 يُحسب بالعلاقة:", options:["Δ = b² + 4ac","Δ = b² - 4ac","Δ = a² - 4bc"], correct:1},
+{subject:"الرياضيات", q:"إذا كان المميز Δ > 0 فإن المعادلة تقبل:", options:["حلاً مضاعفاً واحداً","حلين متمايزين","لا تقبل حلولاً في ℝ"], correct:1},
+{subject:"الرياضيات", q:"العدد المشتق للدالة f عند x₀ يمثل بيانياً:", options:["إحداثيات ذروة المنحنى","معامل توجيه مماس المنحنى عند النقطة ذات الفاصلة x₀","نقطة تقاطع المنحنى مع محور الفواصل"], correct:1},
+{subject:"الرياضيات", q:"مشتقة الدالة f(x) = x² هي:", options:["f′(x) = 2x","f′(x) = x","f′(x) = 2"], correct:0},
+{subject:"الرياضيات", q:"مشتقة حاصل قسمة دالتين (u/v)′ هي:", options:["u′/v′","(u′v - uv′)/v²","(u′v + uv′)/v"], correct:1},
+{subject:"الرياضيات", q:"إذا كانت مشتقة الدالة f سالبة تماماً على مجال I فإن الدالة f تكون:", options:["متزايدة تماماً على I","متناقصة تماماً على I","ثابتة على I"], correct:1},
+{subject:"الرياضيات", q:"الدالة f(x) = 1/x معرفة على:", options:["ℝ","]0 ; +∞[","ℝ \\ {0}"], correct:2},
+{subject:"الرياضيات", q:"الدالة المرجعية f(x) = √x قابلة للاشتقاق على:", options:["[0 ; +∞[","]0 ; +∞[","ℝ"], correct:1},
+{subject:"الرياضيات", q:"إذا كان uₙ = 2n + 3 فإن المتتالية (uₙ) هي متتالية:", options:["هندسية أساسها 3","حسابية أساسها 2","حسابية أساسها 3"], correct:1},
+{subject:"الرياضيات", q:"عبارة الحد العام لمتتالية حسابية (uₙ) حدها الأول u₀ وأساسها r هي:", options:["uₙ = u₀ · rⁿ","uₙ = u₀ + n·r","uₙ = u₀ + rⁿ"], correct:1},
+{subject:"الرياضيات", q:"عبارة الحد العام لمتتالية هندسية (vₙ) حدها الأول v₀ وأساسها q هي:", options:["vₙ = v₀ · qⁿ","vₙ = v₀ + n·q","vₙ = v₀ · n · q"], correct:0},
+{subject:"الرياضيات", q:"مرجح النقطتين المثقلتين (A, α) و (B, β) يكون موجوداً إذا وفقط إذا كان:", options:["α = β","α + β ≠ 0","α + β = 0"], correct:1},
+{subject:"الرياضيات", q:"التحاكي الذي مركزه O ونسبته k يحول النقطة M إلى M′ بحيث:", options:["OM′⃗ = k · OM⃗","OM′ = k + OM","OM⃗ = k · OM′⃗"], correct:0},
+{subject:"الرياضيات", q:"قياس الزاوية الموجهة (u⃗ ,v⃗) = θ يعطي القياس الرئيسي في المجال:", options:["[0 ; 2π]","]−π ; π]","[−π/2 ; π/2]"], correct:1},
+{subject:"الرياضيات", q:"مجموعة نقاط المستوي التي تحقق MA⃗ · MB⃗ = 0 هي:", options:["دائرة قطرها [AB]","مستقيم عمودي على [AB]","قطعة المستقيم [AB]"], correct:0},
+{subject:"الرياضيات", q:"عبارة الجداء السلمي للشعاعين u⃗(x, y) و v⃗(x′, y′) في مستوٍ منسوب لمعلم متعامد ومتجانس هي:", options:["u⃗ · v⃗ = xx′ - yy′","u⃗ · v⃗ = xx′ + yy′","u⃗ · v⃗ = xy′ + x′y"], correct:1},
+{subject:"الرياضيات", q:"شفعية الدالة f(x) = x³ هي أنها دالة:", options:["زوجية","فردية","لا زوجية ولا فردية"], correct:1},
+{subject:"الرياضيات", q:"نقطة التناظر لمنحنى دالة f عند النقطة Ω(a, b) تحقق القانون:", options:["f(2a - x) + f(x) = 2b","f(a - x) = f(a + x)","f(a + x) + f(a - x) = b"], correct:0},
+{subject:"الرياضيات", q:"محور التناظر لمنحنى دالة عند المستقيم ذي المعادلة x = a يحقق القانون:", options:["f(2a - x) = f(x)","f(a - x) = -f(a + x)","f(a + x) + f(a - x) = 0"], correct:0},
+
+/* ---------- الفيزياء ---------- */
+{subject:"الفيزياء", q:"الطاقة الحركية لجسم صلب في حركة انسحابية تعبر بالعلاقة:", options:["Ec = m·v²","Ec = ½·m·v²","Ec = m·g·h"], correct:1},
+{subject:"الفيزياء", q:"طاقة المرونة لنابض مشوه بمقدار استطالة x وثابت صلابة k هي:", options:["Epe = ½·k·x²","Epe = k·x","Epe = ½·k²·x"], correct:0},
+{subject:"الفيزياء", q:"عمل قوة ثابتة F⃗ ينقل مركز عطالتها من A إلى B هو:", options:["W(AB)(F⃗) = F·AB·sin(α)","W(AB)(F⃗) = F·AB·cos(α)","W(AB)(F⃗) = F·AB"], correct:1},
+{subject:"الفيزياء", q:"يكون عمل قوة الثقل W(P⃗) محركاً عندما يكون الجسم:", options:["صاعداً","نازلاً","ساكناً"], correct:1},
+{subject:"الفيزياء", q:"مبدأ حفظ الطاقة لجملة ما يعبر عنه بـ:", options:["الطاقة الابتدائية + الطاقة المكتسبة - الطاقة الضائعة = الطاقة النهائية","الطاقة الابتدائية = الطاقة الضائعة فقط","الطاقة النهائية = الطاقة المكتسبة فقط"], correct:0},
+{subject:"الفيزياء", q:"الطاقة الداخلية للجملة Ei تتغير بتبادل:", options:["عمل ميكانيكي فقط","تحويل حراري Q أو عمل W أو إشعاع Er","تغير الارتفاع h فقط"], correct:1},
+{subject:"الفيزياء", q:"كمية الحرارة Q اللازمة لتغيير درجة حرارة جسم كتلته m بمقدار ΔT هي:", options:["Q = m·c·ΔT","Q = (m·c)/ΔT","Q = m·L"], correct:0},
+{subject:"الفيزياء", q:"الناقلية الكهربائية G لجزء من محلول شاردي تساوي:", options:["G = U/I","G = I/U","G = I·U"], correct:1},
+{subject:"الفيزياء", q:"الناقلية النوعية σ لمحلول شاردي تعطى بقانون كولروش:", options:["σ = Σ λᵢ·[Xᵢ]","σ = λᵢ/[Xᵢ]","σ = G·S"], correct:0},
+{subject:"الفيزياء", q:"ثابت الخلية K لخلية قياس الناقلية هو:", options:["K = L/S","K = S/L","K = S·L"], correct:1},
+{subject:"الفيزياء", q:"الثنائية أكسدة/إرجاع يُرمز لها بـ:", options:["Red/Ox","Ox/Red","Ox·Red"], correct:1},
+{subject:"الفيزياء", q:"المؤكسد Ox هو كل فرد كيميائي قادر على:", options:["اكتساب إلكترون أو أكثر","فقدان إلكترون أو أكثر","فقدان بروتون H⁺"], correct:0},
+{subject:"الفيزياء", q:"المرجع Red هو كل فرد كيميائي قادر على:", options:["اكتساب بروتون H⁺","فقدان إلكترون أو أكثر","اكتساب إلكترون أو أكثر"], correct:1},
+{subject:"الفيزياء", q:"نقطة التكافؤ في التفاعل الحمضي-الأساسي أو الأكسدة-إرجاع هي النقطة التي يكون عندها المزيج:", options:["حمضياً جداً","بمقادير ستوكيومترية","يحتوي على المؤكسد فقط"], correct:1},
+{subject:"الفيزياء", q:"معامل التمديد F يساوي:", options:["F = C₀/C₁ = V₁/V₀","F = C₁/C₀ = V₀/V₁","F = C₀·V₀"], correct:0},
+{subject:"الفيزياء", q:"الصيغة المجملة للألكانات هي:", options:["CₙH₂ₙ","CₙH₂ₙ₊₂","CₙH₂ₙ₋₂"], correct:1},
+{subject:"الفيزياء", q:"المجموعة الفعالة للكحولات تتميز بوجود زمرة:", options:["هيدروكسيل OH","كربوكسيل COOH","كربونيل CHO"], correct:0},
+{subject:"الفيزياء", q:"الألدهيدات والكيتونات تحتويان على المجموعة الفعالة:", options:["الكربوكسيل","الكربونيل C=O","الأمين NH₂"], correct:1},
+{subject:"الفيزياء", q:"العزم الميكانيكي لقوة F بالنسبة لمحور دوران Δ هو:", options:["M = F·d","M = F/d","M = F+d"], correct:0},
+{subject:"الفيزياء", q:"شرط توازن جسم صلب خاضع لثلاث قوى غير متوازية هو:", options:["المجموع الشعاعي للقوى معدوم وتتقاطع في نقطة واحدة","القوى متساوية في الشدة فقط","القوى متعامدة فيما بينها"], correct:0},
+
+/* ---------- العلوم الطبيعية ---------- */
+{subject:"العلوم الطبيعية", q:"المنعكس العضلي هو:", options:["استجابة إرادية لتقلص العضلة","لاإرادي يؤدي إلى تقلص العضلة استجابة لتمددها","حركة إرادية منسقة بواسطة المخ"], correct:1},
+{subject:"العلوم الطبيعية", q:"المغزل العصبي العضلي يعتبر في المنعكس العضلي:", options:["منفذاً حركياً","مستقبلاً حسياً يتأثر بالتمدد","مركزاً عصبياً"], correct:1},
+{subject:"العلوم الطبيعية", q:"اللوحة المحركة هي منطقة التواصل بين:", options:["عصبون حسي وعصبون حركي","ليف عصبي حركي وليف عضلي","مستقبلين حسيين"], correct:1},
+{subject:"العلوم الطبيعية", q:"المركز العصبي المسؤول عن المنعكسات النخاعية هو:", options:["المخ","النخاع الشوكي","المخيخ"], correct:1},
+{subject:"العلوم الطبيعية", q:"المشبك التثبيطي يتميز بإفراز مبلغ عصبي يؤدي إلى:", options:["زوال استقطاب الغشاء بعد المشبكي PPSE","فرط استقطاب الغشاء بعد المشبكي PPSI","عدم التأثير على الغشاء"], correct:1},
+{subject:"العلوم الطبيعية", q:"المبلغ العصبي المشهور في المشابك التثبيطية بالمخ والنخاع هو:", options:["الاستيل كولين","الغابا GABA","الأدرينالين"], correct:1},
+{subject:"العلوم الطبيعية", q:"هرمون الأنسولين يفرز من طرف:", options:["خلايا ألفا لجزر لانجرهانس بالبنكرياس","خلايا بيتا لجزر لانجرهانس بالبنكرياس","الغدة الدرقية"], correct:1},
+{subject:"العلوم الطبيعية", q:"دور الأنسولين في العضوية هو:", options:["خفض نسبة السكر في الدم","رفع نسبة السكر في الدم","زيادة إفراز الغلوكوز من الكبد"], correct:0},
+{subject:"العلوم الطبيعية", q:"هرمون الغلوكاجون يفرز عند:", options:["الإفراط السكري","القصور السكري","بذل جهد عضلي متوسط فقط"], correct:1},
+{subject:"العلوم الطبيعية", q:"الخلية المستهدفة لهرمون ما هي خلية تحتوي على:", options:["نواة كبيرة فقط","مستقبلات غشائية نوعية خاصة بهذا الهرمون","كمية كبيرة من ADN"], correct:1},
+{subject:"العلوم الطبيعية", q:"الجزيئة الحاملة للمعلومة الوراثية في جميع الكائنات الحية هي:", options:["ARN","ADN","البروتين"], correct:1},
+{subject:"العلوم الطبيعية", q:"يتكون النيوكليوتيد في ADN من:", options:["حمض الفسفور + سكر ريبوز منقوص الأكسجين + قاعدة آزوتية","سكر ريبوز عادي + قاعدة آزوتية فقط","أحماض أمينية + فسفور"], correct:0},
+{subject:"العلوم الطبيعية", q:"القواعد النيتروجينية المتكاملة في جزيئة ADN ترتبط بالشكل التالي:", options:["A مع C و T مع G","A مع T برابطتين و C مع G بـ3 روابط","A مع U و C مع G"], correct:1},
+{subject:"العلوم الطبيعية", q:"البنية ثنائية الحلزون لـ ADN اكتشفت من طرف العالمين:", options:["مندل ومورغان","واتسون وكريك","باستور وكوخ"], correct:1},
+{subject:"العلوم الطبيعية", q:"الانقسام المنصف يختزل عدد الصبغيات من:", options:["n إلى 2n","2n صيغة صبغية إلى n صيغة صبغية","لا يغير عدد الصبغيات"], correct:1},
+{subject:"العلوم الطبيعية", q:"ظاهرة العبور الصبغي تحدث خلال:", options:["المرحلة التمهيدية الأولى من الانقسام المنصف","المرحلة الاستوائية الثانية","الانقسام الخيطي المتساوي"], correct:0},
+{subject:"العلوم الطبيعية", q:"الظاهرة التي تسمح بإعادة دمج الأليلات وتنوع الأعراس هي:", options:["التمايز الخلوي","الاختلاط بين الصبغي والداخل صبغي","الاستنساخ"], correct:1},
+{subject:"العلوم الطبيعية", q:"النمط الظاهري للكائن الحي هو:", options:["مجموع الجينات والأليلات التي يحملها","مجموع الصفات الملاحظة على المستوى المورفولوجي، الخلوي والجزيئي","شكل الصبغيات فقط"], correct:1},
+{subject:"العلوم الطبيعية", q:"النمط الوراثي يعبر عن:", options:["مجموع الأليلات المحددة للصفات","شكل الكائن من الخارج فقط","نوع البروتينات المفرزة فقط"], correct:0},
+{subject:"العلوم الطبيعية", q:"الطفرة الوراثية هي:", options:["تغير فجائي وتلقائي أو مستحدث في تسلسل النيوكليوتيدات في ADN","التغذية السيئة للخلية","زيادة عدد الصبغيات فقط"], correct:0}
+
+];
+
+/* ---------- shuffle ---------- */
+function shuffle(arr){
+const a = arr.slice();
+for(let i = a.length - 1; i > 0; i--){
+const j = Math.floor(Math.random() * (i + 1));
+[a[i], a[j]] = [a[j], a[i]];
+}
+return a;
+}
+
+let order = shuffle(questions.map((_, i) => i));
+let current = 0;
+let score = 0;
+let locked = false;
+
+document.getElementById("qTotal").textContent = questions.length;
+
+const quizCard = document.getElementById("quizCard");
+const subjectBadge = document.getElementById("subjectBadge");
+const questionText = document.getElementById("questionText");
+const optionsWrap = document.getElementById("optionsWrap");
+const banner = document.getElementById("banner");
+const qIndexEl = document.getElementById("qIndex");
+const scoreValEl = document.getElementById("scoreVal");
+
+function loadQuestion(){
+
+if(current >= order.length){
+order = shuffle(questions.map((_, i) => i));
+current = 0;
+}
+
+locked = false;
+quizCard.classList.remove("flash-red","flash-green","shake");
+
+const item = questions[order[current]];
+
+subjectBadge.textContent = item.subject;
+questionText.textContent = item.q;
+qIndexEl.textContent = current + 1;
+
+optionsWrap.innerHTML = "";
+
+item.options.forEach((opt, idx) => {
+const btn = document.createElement("button");
+btn.className = "option-btn";
+btn.textContent = opt;
+btn.onclick = () => handleAnswer(idx, item, btn);
+optionsWrap.appendChild(btn);
+});
+
+}
+
+function showBanner(text, type){
+banner.textContent = text;
+banner.className = "banner show " + type;
+setTimeout(() => {
+banner.classList.remove("show");
+}, 1100);
+}
+
+function handleAnswer(idx, item, btn){
+
+if(locked) return;
+locked = true;
+
+const allBtns = optionsWrap.querySelectorAll(".option-btn");
+allBtns.forEach(b => b.disabled = true);
+
+if(idx === item.correct){
+
+score++;
+scoreValEl.textContent = score;
+btn.classList.add("correct-answer");
+quizCard.classList.add("flash-green");
+showBanner("زعيييم، كمل فيها 💪", "win");
+
+}else{
+
+btn.classList.add("wrong-answer");
+quizCard.classList.add("flash-red","shake");
+allBtns[item.correct].classList.add("correct-answer");
+showBanner("زير روحك 😅", "lose");
+
+}
+
+setTimeout(() => {
+current++;
+loadQuestion();
+}, 1500);
+
+}
+
+loadQuestion();
+
+</script>
+
+</body>
+</html>

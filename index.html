@@ -99,8 +99,40 @@ header{
         margin: auto;
         padding: 30px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 25px;
+    }
+
+    .card-featured {
+        grid-column: 1 / -1;
+        padding: 55px 35px;
+        background: linear-gradient(135deg, #161616, #0f2b1a);
+        border-width: 3px;
+    }
+
+    .card-featured h2 {
+        font-size: 30px;
+    }
+
+    .card-featured p {
+        font-size: 16px;
+        margin-top: 6px;
+    }
+
+    .card-bottom {
+        grid-column: 1 / -1;
+        max-width: 380px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    @media (max-width: 700px) {
+        .branches {
+            grid-template-columns: 1fr;
+        }
+        .card-bottom {
+            max-width: 100%;
+        }
     }
 
     .card {
@@ -177,9 +209,9 @@ header{
 
 <section class="branches">
 
-    <div class="card" onclick="window.location.href='Branches/1_science.html'">
-        <h2>علوم تجريبية</h2>
-        <p>الدخول إلى شعبة العلوم التجريبية</p>
+    <div class="card card-featured" onclick="window.location.href='play.html'">
+        <h2>🧠 التذكير بالمكتسبات</h2>
+        <p>اختبر معلوماتك في الرياضيات والفيزياء والعلوم الطبيعية</p>
     </div>
 
     <div class="card" onclick="window.location.href='Branches/1_math.html'">
@@ -187,8 +219,13 @@ header{
         <p>الدخول إلى شعبة الرياضيات</p>
     </div>
 
+    <div class="card" onclick="window.location.href='Branches/1_science.html'">
+        <h2>علوم تجريبية</h2>
+        <p>الدخول إلى شعبة العلوم التجريبية</p>
+    </div>
+
     <div class="card" onclick="window.location.href='Branches/1_technical.html'">
-        <h2>الهندسة(تقني رياضي)</h2>
+        <h2>الهندسة (تقني رياضي)</h2>
         <p>الدخول إلى شعبة الهندسة</p>
     </div>
 
@@ -197,7 +234,7 @@ header{
         <p>الدخول إلى شعبة تسيير واقتصاد</p>
     </div>
 
-    <div class="card card-empty">
+    <div class="card card-empty card-bottom">
         <h2>الإعلام الآلي</h2>
         <p>قريباً</p>
     </div>

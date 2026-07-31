@@ -1,4 +1,4 @@
-```html
+<html>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -101,6 +101,17 @@ transform:translateY(-5px);
 box-shadow:0 0 20px rgba(26,255,102,.4);
 }
 
+.mini-card.disabled-card{
+opacity:.45;
+cursor:default;
+pointer-events:none;
+}
+
+.mini-card.disabled-card:hover{
+transform:none;
+box-shadow:none;
+}
+
 .back{
 display:block;
 width:250px;
@@ -140,24 +151,24 @@ color:#888;
 <div class="card" onclick="toggleContent(this)">
 <h2>الرياضيات</h2>
 <div class="subject-content">
-<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 <div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+<div class="mini-card disabled-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 </div>
 </div>
 
 <div class="card" onclick="toggleContent(this)">
 <h2>التسيير المحاسبي والمالي</h2>
 <div class="subject-content">
-<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 <div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+<div class="mini-card disabled-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 </div>
 </div>
 
 <div class="card" onclick="toggleContent(this)">
 <h2>القانون</h2>
 <div class="subject-content">
-<div class="mini-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 <div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+<div class="mini-card disabled-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
 </div>
 </div>
 
@@ -225,4 +236,3 @@ content.style.display="block";
 
 </body>
 </html>
-```
