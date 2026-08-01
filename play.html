@@ -5,272 +5,115 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>التذكير بالمكتسبات - BacOrbit</title>
-
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
-body{
-background:#0d0d0d;
-color:#fff;
-min-height:100vh;
-overflow-x:hidden;
-}
-
-header{
-text-align:center;
-padding:30px;
-border-bottom:1px solid #1aff66;
-background:#111;
-}
-
-.logo{
-font-size:40px;
-font-weight:bold;
-color:#1aff66;
-letter-spacing:2px;
-}
-
-.hero{
-text-align:center;
-padding:50px 20px 25px;
-}
-
-.hero h1{
-font-size:40px;
-margin-bottom:12px;
-color:#1aff66;
-}
-
-.hero p{
-font-size:17px;
-color:#bdbdbd;
-}
-
-.score-bar{
-max-width:650px;
-margin:0 auto 20px;
-display:flex;
-justify-content:space-between;
-padding:0 10px;
-color:#bdbdbd;
-font-size:15px;
-font-weight:bold;
-}
-
-.score-bar span{
-color:#1aff66;
-}
-
-.quiz-wrap{
-max-width:650px;
-margin:auto;
-padding:10px 20px 60px;
-}
-
-.quiz-card{
-background:#161616;
-border:3px solid #1aff66;
-border-radius:22px;
-padding:35px;
-transition:.25s;
-box-shadow:0 12px 35px rgba(0,0,0,.45);
-}
-
-.quiz-card.shake{
-animation:shake .4s;
-}
-
-.quiz-card.flash-red{
-border-color:#ff4d4d;
-box-shadow:0 0 30px rgba(255,77,77,.5);
-}
-
-.quiz-card.flash-green{
-border-color:#1aff66;
-box-shadow:0 0 30px rgba(26,255,102,.55);
-}
-
-@keyframes shake{
-0%{transform:translateX(0);}
-20%{transform:translateX(-10px);}
-40%{transform:translateX(10px);}
-60%{transform:translateX(-8px);}
-80%{transform:translateX(8px);}
-100%{transform:translateX(0);}
-}
-
-.badge{
-display:inline-block;
-background:#0d0d0d;
-border:1px solid #1aff66;
-color:#1aff66;
-font-size:13px;
-font-weight:bold;
-padding:6px 16px;
-border-radius:20px;
-margin-bottom:18px;
-}
-
-.question-text{
-font-size:20px;
-line-height:1.7;
-margin-bottom:28px;
-min-height:60px;
-}
-
-.options{
-display:flex;
-flex-direction:column;
-gap:14px;
-}
-
-.option-btn{
-background:#0d0d0d;
-border:2px solid #333;
-color:#fff;
-padding:15px 18px;
-border-radius:14px;
-font-size:16px;
-text-align:right;
-cursor:pointer;
-transition:.2s;
-font-family:inherit;
-}
-
-.option-btn:hover:not(:disabled){
-border-color:#1aff66;
-transform:translateY(-3px);
-}
-
-.option-btn:disabled{
-cursor:default;
-}
-
-.option-btn.correct-answer{
-border-color:#1aff66;
-background:#0f2b1a;
-color:#1aff66;
-font-weight:bold;
-}
-
-.option-btn.wrong-answer{
-border-color:#ff4d4d;
-background:#2b0f0f;
-color:#ff4d4d;
-font-weight:bold;
-}
-
-.back{
-display:block;
-width:250px;
-margin:10px auto 40px;
-padding:15px;
-text-align:center;
-background:#1aff66;
-color:black;
-font-weight:bold;
-text-decoration:none;
-border-radius:12px;
-transition:.25s;
-}
-
-.back:hover{
-transform:scale(1.03);
-}
-
-footer{
-text-align:center;
-padding:25px;
-color:#888;
-}
-
-/* --- banner --- */
-
-.banner-overlay{
-position:fixed;
-inset:0;
-display:flex;
-align-items:center;
-justify-content:center;
-pointer-events:none;
-z-index:2000;
-}
-
-.banner{
-padding:22px 45px;
-border-radius:20px;
-font-size:32px;
-font-weight:bold;
-text-align:center;
-opacity:0;
-transform:scale(.7);
-transition:transform .25s, opacity .25s;
-box-shadow:0 0 40px rgba(0,0,0,.6);
-}
-
-.banner.show{
-opacity:1;
-transform:scale(1);
-}
-
-.banner.win{
-background:#0f2b1a;
-border:3px solid #1aff66;
-color:#1aff66;
-}
-
-.banner.lose{
-background:#2b0f0f;
-border:3px solid #ff4d4d;
-color:#ff4d4d;
-}
-
-@media(max-width:600px){
-.hero h1{
-font-size:30px;
-}
-.quiz-card{
-padding:24px;
-}
-.question-text{
-font-size:18px;
-}
-.banner{
-font-size:24px;
-padding:16px 28px;
-}
-}
-</style>
-
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
 </head>
 
 <body>
 
-<header>
-<div class="logo">BacOrbit</div>
+<div class="top-bar" id="topBar">
+
+    <a href="support.html" class="top-link">
+        🎧 الدعم
+    </a>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+    <a href="forum.html" class="top-link">
+        📚 المنتدى
+    </a>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
 </header>
 
-<section class="hero">
+<section class="hero game-hero">
 <h1>🧠 التذكير بالمكتسبات</h1>
-<p>أجب عن الأسئلة في الرياضيات والفيزياء والعلوم الطبيعية وتحدَّ نفسك</p>
+<p>ثلاث مراحل: الرياضيات، الفيزياء والكيمياء، والعلوم الطبيعية</p>
 </section>
 
 <div class="score-bar">
-<div>السؤال: <span id="qIndex">1</span> / <span id="qTotal">60</span></div>
-<div>النقاط: <span id="scoreVal">0</span></div>
+<div id="stageLabel" dir="auto">المرحلة 1 من 3 · الرياضيات</div>
+<div id="progressLabel" dir="ltr">1 / 20</div>
+<div>النقاط: <span id="scoreVal" dir="ltr">0</span></div>
+</div>
+
+<div class="progress-track">
+<div class="progress-outer">
+<div class="progress-inner" id="progressInner"></div>
+</div>
 </div>
 
 <div class="quiz-wrap">
+
 <div class="quiz-card" id="quizCard">
 <div class="badge" id="subjectBadge">الرياضيات</div>
 <div class="question-text" id="questionText">...</div>
 <div class="options" id="optionsWrap"></div>
 </div>
+
+<div class="stage-complete" id="stageCompleteScreen" style="display:none;">
+
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="stage-complete-svg">
+<path class="theme-fill" opacity="0.9" d="M75 140 L58 195 L100 172 L142 195 L125 140 Z"/>
+<circle cx="100" cy="90" r="55" fill="#ffd24d" stroke="#c9a227" stroke-width="6"/>
+<path d="M100 58 l10 22 24 3 -18 17 5 24 -21 -12 -21 12 5 -24 -18 -17 24 -3 z" fill="#fff6da"/>
+<path class="sparkle s1" d="M35 60 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" fill="#ffffff"/>
+<path class="sparkle s2 theme-fill" d="M168 70 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+</svg>
+
+<h2 id="stageCompleteTitle">🎉 أحسنت! أنهيت المرحلة الأولى</h2>
+<p id="stageCompleteText">أجبت بشكل صحيح على 17 من 20 سؤالاً</p>
+<button class="restart-btn" id="stageContinueBtn">متابعة ⬅</button>
+
+</div>
+
+<div class="congrats" id="congratsScreen" style="display:none;">
+
+<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" class="congrats-svg">
+<defs>
+<radialGradient id="glow" cx="50%" cy="45%" r="60%">
+<stop offset="0%" stop-color="#1aff66" stop-opacity="0.35" class="theme-stop"/>
+<stop offset="100%" stop-color="#1aff66" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<ellipse cx="200" cy="120" rx="180" ry="120" fill="url(#glow)"/>
+
+<rect x="175" y="190" width="50" height="14" rx="4" fill="#8a6d1f"/>
+<rect x="190" y="170" width="20" height="24" fill="#c9a227"/>
+
+<path d="M155 90 Q155 150 200 150 Q245 150 245 90 Z" fill="#ffd24d" stroke="#c9a227" stroke-width="3"/>
+<path d="M155 95 Q125 95 130 120 Q135 140 158 138" fill="none" stroke="#c9a227" stroke-width="6" stroke-linecap="round"/>
+<path d="M245 95 Q275 95 270 120 Q265 140 242 138" fill="none" stroke="#c9a227" stroke-width="6" stroke-linecap="round"/>
+<rect x="150" y="80" width="100" height="14" rx="7" fill="#ffe083"/>
+<path d="M200 100 l6 13 14 2 -10 10 2 14 -12 -7 -12 7 2 -14 -10 -10 14 -2 z" fill="#fff6da"/>
+
+<g transform="rotate(20 65 45)"><rect class="confetti c1 theme-fill" x="60" y="40" width="10" height="10"/></g>
+<g transform="rotate(-15 325 65)"><rect class="confetti c2" x="320" y="60" width="10" height="10" fill="#ffd24d"/></g>
+<circle class="confetti c3" cx="90" cy="150" r="6" fill="#ffd24d"/>
+<circle class="confetti c4 theme-fill" cx="310" cy="160" r="6"/>
+<g transform="rotate(45 44 114)"><rect class="confetti c5" x="40" y="110" width="8" height="8" fill="#ffffff"/></g>
+<g transform="rotate(30 344 114)"><rect class="confetti c6 theme-fill" x="340" y="110" width="8" height="8"/></g>
+
+<path class="sparkle s1" d="M80 80 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" fill="#ffffff"/>
+<path class="sparkle s2 theme-fill" d="M330 190 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+<path class="sparkle s3" d="M60 190 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2 z" fill="#ffd24d"/>
+</svg>
+
+<h2>🎉 أحسنت! لقد أتممت المراجعة</h2>
+<p id="finalScoreText"></p>
+<button class="restart-btn" onclick="restartGame()">إعادة المحاولة من جديد</button>
+
+</div>
+
 </div>
 
 <a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
@@ -309,27 +152,27 @@ const questions = [
 {subject:"الرياضيات", q:"نقطة التناظر لمنحنى دالة f عند النقطة Ω(a, b) تحقق القانون:", options:["f(2a - x) + f(x) = 2b","f(a - x) = f(a + x)","f(a + x) + f(a - x) = b"], correct:0},
 {subject:"الرياضيات", q:"محور التناظر لمنحنى دالة عند المستقيم ذي المعادلة x = a يحقق القانون:", options:["f(2a - x) = f(x)","f(a - x) = -f(a + x)","f(a + x) + f(a - x) = 0"], correct:0},
 
-/* ---------- الفيزياء ---------- */
-{subject:"الفيزياء", q:"الطاقة الحركية لجسم صلب في حركة انسحابية تعبر بالعلاقة:", options:["Ec = m·v²","Ec = ½·m·v²","Ec = m·g·h"], correct:1},
-{subject:"الفيزياء", q:"طاقة المرونة لنابض مشوه بمقدار استطالة x وثابت صلابة k هي:", options:["Epe = ½·k·x²","Epe = k·x","Epe = ½·k²·x"], correct:0},
-{subject:"الفيزياء", q:"عمل قوة ثابتة F⃗ ينقل مركز عطالتها من A إلى B هو:", options:["W(AB)(F⃗) = F·AB·sin(α)","W(AB)(F⃗) = F·AB·cos(α)","W(AB)(F⃗) = F·AB"], correct:1},
-{subject:"الفيزياء", q:"يكون عمل قوة الثقل W(P⃗) محركاً عندما يكون الجسم:", options:["صاعداً","نازلاً","ساكناً"], correct:1},
-{subject:"الفيزياء", q:"مبدأ حفظ الطاقة لجملة ما يعبر عنه بـ:", options:["الطاقة الابتدائية + الطاقة المكتسبة - الطاقة الضائعة = الطاقة النهائية","الطاقة الابتدائية = الطاقة الضائعة فقط","الطاقة النهائية = الطاقة المكتسبة فقط"], correct:0},
-{subject:"الفيزياء", q:"الطاقة الداخلية للجملة Ei تتغير بتبادل:", options:["عمل ميكانيكي فقط","تحويل حراري Q أو عمل W أو إشعاع Er","تغير الارتفاع h فقط"], correct:1},
-{subject:"الفيزياء", q:"كمية الحرارة Q اللازمة لتغيير درجة حرارة جسم كتلته m بمقدار ΔT هي:", options:["Q = m·c·ΔT","Q = (m·c)/ΔT","Q = m·L"], correct:0},
-{subject:"الفيزياء", q:"الناقلية الكهربائية G لجزء من محلول شاردي تساوي:", options:["G = U/I","G = I/U","G = I·U"], correct:1},
-{subject:"الفيزياء", q:"الناقلية النوعية σ لمحلول شاردي تعطى بقانون كولروش:", options:["σ = Σ λᵢ·[Xᵢ]","σ = λᵢ/[Xᵢ]","σ = G·S"], correct:0},
-{subject:"الفيزياء", q:"ثابت الخلية K لخلية قياس الناقلية هو:", options:["K = L/S","K = S/L","K = S·L"], correct:1},
-{subject:"الفيزياء", q:"الثنائية أكسدة/إرجاع يُرمز لها بـ:", options:["Red/Ox","Ox/Red","Ox·Red"], correct:1},
-{subject:"الفيزياء", q:"المؤكسد Ox هو كل فرد كيميائي قادر على:", options:["اكتساب إلكترون أو أكثر","فقدان إلكترون أو أكثر","فقدان بروتون H⁺"], correct:0},
-{subject:"الفيزياء", q:"المرجع Red هو كل فرد كيميائي قادر على:", options:["اكتساب بروتون H⁺","فقدان إلكترون أو أكثر","اكتساب إلكترون أو أكثر"], correct:1},
-{subject:"الفيزياء", q:"نقطة التكافؤ في التفاعل الحمضي-الأساسي أو الأكسدة-إرجاع هي النقطة التي يكون عندها المزيج:", options:["حمضياً جداً","بمقادير ستوكيومترية","يحتوي على المؤكسد فقط"], correct:1},
-{subject:"الفيزياء", q:"معامل التمديد F يساوي:", options:["F = C₀/C₁ = V₁/V₀","F = C₁/C₀ = V₀/V₁","F = C₀·V₀"], correct:0},
-{subject:"الفيزياء", q:"الصيغة المجملة للألكانات هي:", options:["CₙH₂ₙ","CₙH₂ₙ₊₂","CₙH₂ₙ₋₂"], correct:1},
-{subject:"الفيزياء", q:"المجموعة الفعالة للكحولات تتميز بوجود زمرة:", options:["هيدروكسيل OH","كربوكسيل COOH","كربونيل CHO"], correct:0},
-{subject:"الفيزياء", q:"الألدهيدات والكيتونات تحتويان على المجموعة الفعالة:", options:["الكربوكسيل","الكربونيل C=O","الأمين NH₂"], correct:1},
-{subject:"الفيزياء", q:"العزم الميكانيكي لقوة F بالنسبة لمحور دوران Δ هو:", options:["M = F·d","M = F/d","M = F+d"], correct:0},
-{subject:"الفيزياء", q:"شرط توازن جسم صلب خاضع لثلاث قوى غير متوازية هو:", options:["المجموع الشعاعي للقوى معدوم وتتقاطع في نقطة واحدة","القوى متساوية في الشدة فقط","القوى متعامدة فيما بينها"], correct:0},
+/* ---------- الفيزياء والكيمياء ---------- */
+{subject:"الفيزياء والكيمياء", q:"الطاقة الحركية لجسم صلب في حركة انسحابية تعبر بالعلاقة:", options:["Ec = m·v²","Ec = ½·m·v²","Ec = m·g·h"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"طاقة المرونة لنابض مشوه بمقدار استطالة x وثابت صلابة k هي:", options:["Epe = ½·k·x²","Epe = k·x","Epe = ½·k²·x"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"عمل قوة ثابتة F⃗ ينقل مركز عطالتها من A إلى B هو:", options:["W(AB)(F⃗) = F·AB·sin(α)","W(AB)(F⃗) = F·AB·cos(α)","W(AB)(F⃗) = F·AB"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"يكون عمل قوة الثقل W(P⃗) محركاً عندما يكون الجسم:", options:["صاعداً","نازلاً","ساكناً"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"مبدأ حفظ الطاقة لجملة ما يعبر عنه بـ:", options:["الطاقة الابتدائية + الطاقة المكتسبة - الطاقة الضائعة = الطاقة النهائية","الطاقة الابتدائية = الطاقة الضائعة فقط","الطاقة النهائية = الطاقة المكتسبة فقط"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"الطاقة الداخلية للجملة Ei تتغير بتبادل:", options:["عمل ميكانيكي فقط","تحويل حراري Q أو عمل W أو إشعاع Er","تغير الارتفاع h فقط"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"كمية الحرارة Q اللازمة لتغيير درجة حرارة جسم كتلته m بمقدار ΔT هي:", options:["Q = m·c·ΔT","Q = (m·c)/ΔT","Q = m·L"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"الناقلية الكهربائية G لجزء من محلول شاردي تساوي:", options:["G = U/I","G = I/U","G = I·U"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"الناقلية النوعية σ لمحلول شاردي تعطى بقانون كولروش:", options:["σ = Σ λᵢ·[Xᵢ]","σ = λᵢ/[Xᵢ]","σ = G·S"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"ثابت الخلية K لخلية قياس الناقلية هو:", options:["K = L/S","K = S/L","K = S·L"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"الثنائية أكسدة/إرجاع يُرمز لها بـ:", options:["Red/Ox","Ox/Red","Ox·Red"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"المؤكسد Ox هو كل فرد كيميائي قادر على:", options:["اكتساب إلكترون أو أكثر","فقدان إلكترون أو أكثر","فقدان بروتون H⁺"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"المرجع Red هو كل فرد كيميائي قادر على:", options:["اكتساب بروتون H⁺","فقدان إلكترون أو أكثر","اكتساب إلكترون أو أكثر"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"نقطة التكافؤ في التفاعل الحمضي-الأساسي أو الأكسدة-إرجاع هي النقطة التي يكون عندها المزيج:", options:["حمضياً جداً","بمقادير ستوكيومترية","يحتوي على المؤكسد فقط"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"معامل التمديد F يساوي:", options:["F = C₀/C₁ = V₁/V₀","F = C₁/C₀ = V₀/V₁","F = C₀·V₀"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"الصيغة المجملة للألكانات هي:", options:["CₙH₂ₙ","CₙH₂ₙ₊₂","CₙH₂ₙ₋₂"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"المجموعة الفعالة للكحولات تتميز بوجود زمرة:", options:["هيدروكسيل OH","كربوكسيل COOH","كربونيل CHO"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"الألدهيدات والكيتونات تحتويان على المجموعة الفعالة:", options:["الكربوكسيل","الكربونيل C=O","الأمين NH₂"], correct:1},
+{subject:"الفيزياء والكيمياء", q:"العزم الميكانيكي لقوة F بالنسبة لمحور دوران Δ هو:", options:["M = F·d","M = F/d","M = F+d"], correct:0},
+{subject:"الفيزياء والكيمياء", q:"شرط توازن جسم صلب خاضع لثلاث قوى غير متوازية هو:", options:["المجموع الشعاعي للقوى معدوم وتتقاطع في نقطة واحدة","القوى متساوية في الشدة فقط","القوى متعامدة فيما بينها"], correct:0},
 
 /* ---------- العلوم الطبيعية ---------- */
 {subject:"العلوم الطبيعية", q:"المنعكس العضلي هو:", options:["استجابة إرادية لتقلص العضلة","لاإرادي يؤدي إلى تقلص العضلة استجابة لتمددها","حركة إرادية منسقة بواسطة المخ"], correct:1},
@@ -355,7 +198,45 @@ const questions = [
 
 ];
 
-/* ---------- shuffle ---------- */
+/* ---------- إعداد المراحل ---------- */
+
+const stagesDef = [
+{ label:"الرياضيات", range:[0,20] },
+{ label:"الفيزياء والكيمياء", range:[20,40] },
+{ label:"العلوم الطبيعية", range:[40,60] }
+];
+
+const optionLetters = ["أ", "ب", "ج"];
+
+let stageIdx = 0;
+let queue = [];
+let posInQueue = 0;
+let stageScore = 0;
+let wrongIds = new Set();
+let reviewQueue = [];
+let mode = "main";
+let score = 0;
+let currentQid = null;
+let locked = false;
+
+const quizCard = document.getElementById("quizCard");
+const congratsScreen = document.getElementById("congratsScreen");
+const stageCompleteScreen = document.getElementById("stageCompleteScreen");
+const subjectBadge = document.getElementById("subjectBadge");
+const questionText = document.getElementById("questionText");
+const optionsWrap = document.getElementById("optionsWrap");
+const banner = document.getElementById("banner");
+const stageLabel = document.getElementById("stageLabel");
+const progressLabel = document.getElementById("progressLabel");
+const scoreValEl = document.getElementById("scoreVal");
+const progressInner = document.getElementById("progressInner");
+const finalScoreText = document.getElementById("finalScoreText");
+const stageCompleteTitle = document.getElementById("stageCompleteTitle");
+const stageCompleteText = document.getElementById("stageCompleteText");
+const stageContinueBtn = document.getElementById("stageContinueBtn");
+
+let pendingAfterStageComplete = null;
+
 function shuffle(arr){
 const a = arr.slice();
 for(let i = a.length - 1; i > 0; i--){
@@ -365,45 +246,113 @@ const j = Math.floor(Math.random() * (i + 1));
 return a;
 }
 
-let order = shuffle(questions.map((_, i) => i));
-let current = 0;
-let score = 0;
-let locked = false;
-
-document.getElementById("qTotal").textContent = questions.length;
-
-const quizCard = document.getElementById("quizCard");
-const subjectBadge = document.getElementById("subjectBadge");
-const questionText = document.getElementById("questionText");
-const optionsWrap = document.getElementById("optionsWrap");
-const banner = document.getElementById("banner");
-const qIndexEl = document.getElementById("qIndex");
-const scoreValEl = document.getElementById("scoreVal");
-
-function loadQuestion(){
-
-if(current >= order.length){
-order = shuffle(questions.map((_, i) => i));
-current = 0;
+function startStage(idx){
+stageIdx = idx;
+const [start, end] = stagesDef[idx].range;
+queue = shuffle(Array.from({length:end - start}, (_, i) => start + i));
+posInQueue = 0;
+stageScore = 0;
+mode = "main";
+loadNext();
 }
 
-locked = false;
-quizCard.classList.remove("flash-red","flash-green","shake");
+function startReview(){
+mode = "review";
+reviewQueue = shuffle(Array.from(wrongIds));
+loadNext();
+}
 
-const item = questions[order[current]];
+function loadNext(){
+
+if(mode === "main"){
+
+if(posInQueue >= queue.length){
+
+pendingAfterStageComplete = function(){
+if(stageIdx < stagesDef.length - 1){
+startStage(stageIdx + 1);
+}else if(wrongIds.size > 0){
+startReview();
+}else{
+showCongrats();
+}
+};
+
+showStageComplete();
+return;
+
+}
+
+currentQid = queue[posInQueue];
+renderQuestion(currentQid, false);
+
+}else{
+
+if(reviewQueue.length === 0){
+showCongrats();
+return;
+}
+
+currentQid = reviewQueue.shift();
+renderQuestion(currentQid, true);
+
+}
+
+}
+
+function updateHeader(){
+
+if(mode === "main"){
+stageLabel.textContent = "المرحلة " + (stageIdx + 1) + " من 3 · " + stagesDef[stageIdx].label;
+progressLabel.textContent = (posInQueue + 1) + " / " + queue.length;
+progressInner.style.width = Math.round((posInQueue / queue.length) * 100) + "%";
+}else{
+stageLabel.textContent = "مرحلة المراجعة";
+progressLabel.textContent = "متبقٍ " + (reviewQueue.length + 1);
+const totalWrong = wrongIds.size;
+const doneCount = totalWrong - reviewQueue.length - 1;
+progressInner.style.width = totalWrong > 0 ? Math.max(0, Math.round((doneCount / totalWrong) * 100)) + "%" : "100%";
+}
+
+}
+
+function renderQuestion(qid, isReview){
+
+locked = false;
+quizCard.classList.remove("flash-red", "flash-green", "shake");
+
+const item = questions[qid];
 
 subjectBadge.textContent = item.subject;
+subjectBadge.classList.toggle("review", isReview);
+
 questionText.textContent = item.q;
-qIndexEl.textContent = current + 1;
+questionText.setAttribute("dir", "auto");
+
+updateHeader();
 
 optionsWrap.innerHTML = "";
 
 item.options.forEach((opt, idx) => {
+
 const btn = document.createElement("button");
 btn.className = "option-btn";
-btn.textContent = opt;
-btn.onclick = () => handleAnswer(idx, item, btn);
+
+const letterSpan = document.createElement("span");
+letterSpan.className = "option-letter";
+letterSpan.textContent = optionLetters[idx];
+
+const textSpan = document.createElement("span");
+textSpan.className = "option-text";
+textSpan.textContent = opt;
+textSpan.setAttribute("dir", "auto");
+
+btn.appendChild(letterSpan);
+btn.appendChild(textSpan);
+
+btn.onclick = () => handleAnswer(idx, item, btn, qid, isReview);
 optionsWrap.appendChild(btn);
+
 });
 
 }
@@ -416,7 +365,7 @@ banner.classList.remove("show");
 }, 1100);
 }
 
-function handleAnswer(idx, item, btn){
+function handleAnswer(idx, item, btn, qid, isReview){
 
 if(locked) return;
 locked = true;
@@ -426,8 +375,10 @@ allBtns.forEach(b => b.disabled = true);
 
 if(idx === item.correct){
 
+if(!isReview){
 score++;
-scoreValEl.textContent = score;
+stageScore++;
+}
 btn.classList.add("correct-answer");
 quizCard.classList.add("flash-green");
 showBanner("زعيييم، كمل فيها 💪", "win");
@@ -435,20 +386,70 @@ showBanner("زعيييم، كمل فيها 💪", "win");
 }else{
 
 btn.classList.add("wrong-answer");
-quizCard.classList.add("flash-red","shake");
+quizCard.classList.add("flash-red", "shake");
 allBtns[item.correct].classList.add("correct-answer");
 showBanner("زير روحك 😅", "lose");
 
+if(isReview){
+reviewQueue.push(qid);
+}else{
+wrongIds.add(qid);
 }
 
+}
+
+scoreValEl.textContent = score;
+
 setTimeout(() => {
-current++;
-loadQuestion();
+if(mode === "main") posInQueue++;
+loadNext();
 }, 1500);
 
 }
 
-loadQuestion();
+function showStageComplete(){
+
+quizCard.style.display = "none";
+
+const stageTotal = queue.length;
+stageCompleteTitle.textContent = "🎉 أحسنت! أنهيت مرحلة " + stagesDef[stageIdx].label;
+stageCompleteText.textContent = "أجبت بشكل صحيح على " + stageScore + " من " + stageTotal + " سؤالاً";
+
+stageCompleteScreen.style.display = "block";
+
+}
+
+stageContinueBtn.onclick = function(){
+stageCompleteScreen.style.display = "none";
+quizCard.style.display = "block";
+if(pendingAfterStageComplete){
+const action = pendingAfterStageComplete;
+pendingAfterStageComplete = null;
+action();
+}
+};
+
+function showCongrats(){
+quizCard.style.display = "none";
+congratsScreen.style.display = "block";
+progressInner.style.width = "100%";
+stageLabel.textContent = "اكتملت المراجعة";
+progressLabel.textContent = "60 / 60";
+
+const percent = Math.round((score / 60) * 100);
+finalScoreText.textContent = "حصلت على " + score + " من 60 إجابة صحيحة من أول محاولة (" + percent + "%)، وأتممت مراجعة كل الأخطاء بنجاح.";
+}
+
+function restartGame(){
+wrongIds = new Set();
+score = 0;
+scoreValEl.textContent = 0;
+quizCard.style.display = "block";
+congratsScreen.style.display = "none";
+startStage(0);
+}
+
+startStage(0);
 
 </script>
 
