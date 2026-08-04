@@ -736,6 +736,18 @@ footer{
     display:block;
 }
 
+.lesson iframe{
+    width:100%;
+    height:620px;
+    border:none;
+    display:block;
+    background:#ffffff;
+}
+
+.lesson .topic-download-btn{
+    margin:14px 20px 20px;
+}
+
 /* ==========================================================
    11. المنتدى (chat.html)
    ========================================================== */
@@ -984,6 +996,126 @@ footer{
     font-size:16px;
 }
 
+/* ==========================================================
+   13. أزرار التنزيل (المواضيع + الدروس)
+   ========================================================== */
+
+.subjects .card{
+    position:relative;
+}
+
+.topic-download-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin-top:16px;
+    padding:8px 18px;
+    background:transparent;
+    border:1.5px solid var(--accent);
+    color:var(--accent);
+    border-radius:10px;
+    font-size:13px;
+    font-weight:bold;
+    font-family:inherit;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background-color .25s ease, color .25s ease, transform .2s ease, box-shadow .25s ease, border-color .35s ease;
+}
+
+.topic-download-btn:hover{
+    background:var(--accent);
+    color:#000;
+    transform:translateY(-2px);
+    box-shadow:0 6px 16px var(--accent-glow);
+}
+
+.topic-download-btn:active{
+    transform:translateY(0);
+}
+
+.topic-download-btn svg{
+    flex-shrink:0;
+}
+
+.topic-download-btn span{
+    line-height:1;
+}
+
+.download-all-section{
+    max-width:1050px;
+    margin:10px auto 45px;
+    padding:0 20px;
+    text-align:center;
+}
+
+.download-all-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    min-width:290px;
+    max-width:100%;
+    padding:17px 36px;
+    background:var(--accent);
+    color:#000;
+    font-weight:bold;
+    font-size:16px;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    font-family:inherit;
+    box-shadow:0 8px 24px var(--accent-soft);
+    transition:transform .25s ease, box-shadow .25s ease, background-color .35s ease, opacity .25s ease;
+}
+
+.download-all-btn:hover:not(.loading):not(.done){
+    transform:translateY(-3px) scale(1.02);
+    box-shadow:0 10px 30px var(--accent-glow);
+}
+
+.download-all-btn:active:not(.loading){
+    transform:translateY(0) scale(.98);
+}
+
+.download-all-btn.loading{
+    cursor:progress;
+    opacity:.92;
+}
+
+.download-all-btn svg{
+    flex-shrink:0;
+}
+
+.dl-label{
+    line-height:1.3;
+}
+
+.dl-spinner{
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    border:2.5px solid rgba(0,0,0,.28);
+    border-top-color:#000;
+    animation:dlspin .8s linear infinite;
+    flex-shrink:0;
+}
+
+@keyframes dlspin{
+    to{ transform:rotate(360deg); }
+}
+
+.dl-check{
+    font-size:19px;
+    line-height:1;
+}
+
+.download-hint{
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--footer-text);
+}
+
 /* ---------- 12. تجاوب للجوال ---------- */
 
 @media(max-width:768px){
@@ -1011,6 +1143,10 @@ footer{
     .lesson{
         border-radius:16px;
         margin-bottom:30px;
+    }
+
+    .lesson iframe{
+        height:420px;
     }
 }
 
@@ -1040,5 +1176,17 @@ footer{
     .score-bar{
         font-size:12px;
         justify-content:center;
+    }
+
+    .download-all-btn{
+        width:100%;
+        min-width:0;
+        padding:15px 20px;
+        font-size:14.5px;
+    }
+
+    .topic-download-btn{
+        font-size:12px;
+        padding:7px 14px;
     }
 }

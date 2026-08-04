@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنتدى - BacOrbit</title>
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+<!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <a href="support.html" class="top-link">
+        🎧 الدعم
+    </a>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+    <a href="forum.html" class="top-link">
+        📚 المنتدى
+    </a>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1>منتدى التلاميذ</h1>
+<p>اطرح سؤالك، شارك ملاحظاتك، وساعد زملاءك 🎓</p>
+</section>
+
+<div class="wrap">
+
+<div class="new-post">
+<h3>✏️ اكتب سؤالاً أو ملاحظة</h3>
+<textarea id="textInput" placeholder="اكتب سؤالك أو تعليقك هنا..." maxlength="1500"></textarea>
+
+<div class="file-row">
+<label class="file-label" for="imgInput">📷 إضافة صورة</label>
+<input type="file" id="imgInput" accept="image/*" style="display:none">
+<span class="file-name" id="fileName"></span>
+</div>
+<img id="imgPreview" class="img-preview">
+
+<button class="submit-btn" onclick="submitPost()">نشر</button>
+</div>
+
+<div id="postsContainer"></div>
+
+<div id="emptyState" class="empty-state">لا توجد أسئلة بعد، كن أول من يشارك! 🙌</div>
+
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<script>
+
+// إعدادات Firebase الخاصة بمشروعك
+const firebaseConfig = {
+  apiKey: "AIzaSyBgh1JW8IepmDe78jko33mnvaAU2af3-fw",
+  authDomain: "bacorbit-c5d67.firebaseapp.com",
+  projectId: "bacorbit-c5d67",
+  storageBucket: "bacorbit-c5d67.firebasestorage.app",
+  messagingSenderId: "1047289657770",
+  appId: "1:1047289657770:web:2d814fcde45978b17493d3",
+  measurementId: "G-4J629GND42"
+};
+
+// تهيئة Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let pendingImage = "";
+
+// إنشاء أو استرجاع اسم التلميذ العشوائي وحفظه في المتصفح ليبقى ثابتاً لنفس الشخص
+let currentUsername = localStorage.getItem("bacorbit_username");
+if (!currentUsername) {
+  currentUsername = "التلميذ " + Math.floor(Math.random() * 1000);
+  localStorage.setItem("bacorbit_username", currentUsername);
+}
+
+// تنظيف النصوص للحماية من الثغرات
+function escapeHtml(str){
+  if(!str) return "";
+  return str
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+// تنسيق التاريخ والوقت
+function formatDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString("ar-DZ",{day:"2-digit",month:"2-digit",year:"numeric"}) +
+    " - " +
+    d.toLocaleTimeString("ar-DZ",{hour:"2-digit",minute:"2-digit"});
+}
+
+function genId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+// رفع ومعاينة الصور
+document.getElementById("imgInput").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if(!file){
+    pendingImage = "";
+    document.getElementById("fileName").textContent = "";
+    document.getElementById("imgPreview").style.display = "none";
+    return;
+  }
+
+  if(file.size > 1 * 1024 * 1024){
+    alert("حجم الصورة كبير جداً، الرجاء اختيار صورة أصغر من 1MB");
+    e.target.value = "";
+    return;
+  }
+
+  document.getElementById("fileName").textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    pendingImage = ev.target.result;
+    const preview = document.getElementById("imgPreview");
+    preview.src = pendingImage;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+// نشر منشور جديد إلى السحابة
+function submitPost(){
+  const textInput = document.getElementById("textInput");
+
+  // استخدام الاسم الثابت المحفوظ في المتصفح
+  const author = currentUsername;
+  const text = textInput.value.trim();
+
+  if(!text && !pendingImage){
+    alert("اكتب نصاً أو أضف صورة قبل النشر");
+    return;
+  }
+
+  db.collection("posts").add({
+    author: author,
+    text: text,
+    image: pendingImage,
+    date: Date.now(),
+    replies: []
+  }).then(() => {
+    textInput.value = "";
+    pendingImage = "";
+    document.getElementById("imgInput").value = "";
+    document.getElementById("fileName").textContent = "";
+    document.getElementById("imgPreview").style.display = "none";
+  }).catch(error => {
+    alert("حدث خطأ أثناء النشر: " + error.message);
+  });
+}
+
+// التعامل مع الردود
+let pendingReplyImage = {};
+
+function toggleReplyForm(postId){
+  const form = document.getElementById("reply-form-" + postId);
+  form.classList.toggle("open");
+}
+
+function handleReplyImage(postId, input){
+  const file = input.files[0];
+  if(!file){
+    pendingReplyImage[postId] = "";
+    return;
+  }
+  if(file.size > 1 * 1024 * 1024){
+    alert("حجم الصورة كبير جداً، الرجاء اختيار صورة أصغر من 1MB");
+    input.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    pendingReplyImage[postId] = ev.target.result;
+    const preview = document.getElementById("reply-preview-" + postId);
+    preview.src = ev.target.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitReply(postId){
+  const textInput = document.getElementById("reply-text-" + postId);
+
+  // استخدام الاسم الثابت المحفوظ في المتصفح للرد أيضاً
+  const author = currentUsername;
+  const text = textInput.value.trim();
+  const image = pendingReplyImage[postId] || "";
+
+  if(!text && !image){
+    alert("اكتب رداً أو أضف صورة قبل النشر");
+    return;
+  }
+
+  const newReply = {
+    id: genId(),
+    author: author,
+    text: text,
+    image: image,
+    date: Date.now()
+  };
+
+  db.collection("posts").doc(postId).update({
+    replies: firebase.firestore.FieldValue.arrayUnion(newReply)
+  }).then(() => {
+    pendingReplyImage[postId] = "";
+  }).catch(err => alert("خطأ في إضافة الرد: " + err.message));
+}
+
+// حذف المنشورات والردود
+function deletePost(postId){
+  if(!confirm("هل تريد حذف هذا المنشور؟")) return;
+  db.collection("posts").doc(postId).delete();
+}
+
+function deleteReply(postId, replyId){
+  if(!confirm("هل تريد حذف هذا الرد؟")) return;
+
+  const postRef = db.collection("posts").doc(postId);
+  
+  postRef.get().then(doc => {
+    if(doc.exists){
+      const postData = doc.data();
+      const updatedReplies = postData.replies.filter(r => r.id !== replyId);
+      postRef.update({ replies: updatedReplies });
+    }
+  });
+}
+
+// عرض المنشورات وتحديثها لحظياً للجميع
+db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
+  const container = document.getElementById("postsContainer");
+  const emptyState = document.getElementById("emptyState");
+
+  container.innerHTML = "";
+
+  if(snapshot.empty){
+    emptyState.style.display = "block";
+    return;
+  }
+  emptyState.style.display = "none";
+
+  snapshot.forEach(doc => {
+    const post = doc.data();
+    const postId = doc.id;
+
+    let repliesHtml = "";
+    if(post.replies && post.replies.length > 0){
+      repliesHtml = '<div class="replies">' + post.replies.map(r => `
+        <div class="reply">
+          <div class="post-head">
+            <span class="post-author">💬 ${escapeHtml(r.author)}</span>
+            <span class="post-date">${formatDate(r.date)}</span>
+          </div>
+          ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
+          ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
+          <div class="post-actions">
+            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>
+          </div>
+        </div>
+      `).join("") + '</div>';
+    }
+
+    const postEl = document.createElement("div");
+    postEl.className = "post";
+    postEl.innerHTML = `
+      <div class="post-head">
+        <span class="post-author">👤 ${escapeHtml(post.author)}</span>
+        <span class="post-date">${formatDate(post.date)}</span>
+      </div>
+      ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
+      ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
+      <div class="post-actions">
+        <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
+        <button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>
+      </div>
+
+      <div class="reply-form" id="reply-form-${postId}">
+        <textarea id="reply-text-${postId}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
+        <div class="file-row">
+          <label class="file-label" for="reply-img-${postId}">📷 صورة</label>
+          <input type="file" id="reply-img-${postId}" accept="image/*" style="display:none" onchange="handleReplyImage('${postId}', this)">
+        </div>
+        <img id="reply-preview-${postId}" class="img-preview">
+        <button class="submit-btn" onclick="submitReply('${postId}')">نشر الرد</button>
+      </div>
+
+      ${repliesHtml}
+    `;
+
+    container.appendChild(postEl);
+  });
+});
+</script>
+
+</body>
+</html>

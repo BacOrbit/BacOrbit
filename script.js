@@ -87,3 +87,81 @@
     }
 
 })();
+
+/* ==========================================================
+   تنزيل جميع ملفات/صور مجلد الدرس دفعة واحدة (تنزيلات منفصلة)
+   يُستعمل من أزرار "download-all-btn" في صفحات الدروس (L_*.html)
+   كل ملف يُنزَّل مباشرة كما هو (صورة أو PDF) دون أي ضغط/تجميع
+   ========================================================== */
+
+(function(){
+
+    function setLabel(btn, text){
+        var label = btn.querySelector(".dl-label");
+        if(label) label.textContent = text;
+    }
+
+    function delay(ms){
+        return new Promise(function(resolve){ setTimeout(resolve, ms); });
+    }
+
+    function triggerDownload(url, fileName){
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    window.downloadLessonFolder = async function(btn, folder, files, folderLabel){
+
+        if(!btn || btn.dataset.busy === "1") return;
+        btn.dataset.busy = "1";
+
+        var originalHTML = btn.innerHTML;
+        btn.classList.add("loading");
+
+        var total = files.length;
+
+        try{
+
+            for(var i = 0; i < total; i++){
+
+                var fileName = files[i];
+                setLabel(btn, "جاري التنزيل… " + (i + 1) + " / " + total);
+                btn.innerHTML = '<span class="dl-spinner"></span><span class="dl-label">جاري التنزيل… ' + (i + 1) + ' / ' + total + '</span>';
+
+                triggerDownload(folder + "/" + fileName, fileName);
+
+                await delay(400);
+
+            }
+
+            btn.classList.remove("loading");
+            btn.classList.add("done");
+            btn.innerHTML = '<span class="dl-check">✓</span><span class="dl-label">تم تنزيل ' + total + ' ملفاً بنجاح</span>';
+
+            setTimeout(function(){
+                btn.classList.remove("done");
+                btn.innerHTML = originalHTML;
+                btn.dataset.busy = "0";
+            }, 2600);
+
+        }catch(err){
+
+            console.error(err);
+            btn.classList.remove("loading");
+            btn.innerHTML = '<span class="dl-label">⚠ حدث خطأ، أعد المحاولة</span>';
+
+            setTimeout(function(){
+                btn.innerHTML = originalHTML;
+                btn.dataset.busy = "0";
+            }, 2600);
+
+        }
+
+    };
+
+})();
