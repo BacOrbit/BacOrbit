@@ -235,13 +235,25 @@ function submitReply(postId){
   }).catch(err => alert("خطأ في إضافة الرد: " + err.message));
 }
 
-// حذف المنشورات والردود
-function deletePost(postId){
+// حذف المنشورات والردود (كل شخص يستطيع حذف رسائله فقط)
+function deletePost(postId, author){
+
+  if(author !== currentUsername){
+    alert("لا يمكنك حذف رسالة لا تخصك");
+    return;
+  }
+
   if(!confirm("هل تريد حذف هذا المنشور؟")) return;
   db.collection("posts").doc(postId).delete();
 }
 
-function deleteReply(postId, replyId){
+function deleteReply(postId, replyId, author){
+
+  if(author !== currentUsername){
+    alert("لا يمكنك حذف رد لا يخصك");
+    return;
+  }
+
   if(!confirm("هل تريد حذف هذا الرد؟")) return;
 
   const postRef = db.collection("posts").doc(postId);
@@ -282,9 +294,10 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
           </div>
           ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
           ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
+          ${r.author === currentUsername ? `
           <div class="post-actions">
-            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>
-          </div>
+            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>
+          </div>` : ""}
         </div>
       `).join("") + '</div>';
     }
@@ -300,7 +313,7 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
       ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
       <div class="post-actions">
         <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
-        <button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>
+        ${post.author === currentUsername ? `<button class="action-btn del-btn" onclick="deletePost('${postId}','${post.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : ""}
       </div>
 
       <div class="reply-form" id="reply-form-${postId}">
