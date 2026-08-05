@@ -267,6 +267,92 @@ function deleteReply(postId, replyId, author){
   });
 }
 
+// الإبلاغ عن المنشورات والردود (حذف تلقائي بعد 3 إبلاغات من أشخاص مختلفين)
+
+function reportPost(postId){
+
+  const postRef = db.collection("posts").doc(postId);
+
+  db.runTransaction(function(transaction){
+    return transaction.get(postRef).then(function(doc){
+
+      if(!doc.exists) return;
+
+      const data = doc.data();
+      const reports = data.reports || [];
+
+      if(reports.includes(currentUsername)){
+        throw new Error("ALREADY_REPORTED");
+      }
+
+      const updatedReports = reports.concat([currentUsername]);
+
+      if(updatedReports.length >= 3){
+        transaction.delete(postRef);
+      }else{
+        transaction.update(postRef, { reports: updatedReports });
+      }
+
+    });
+  }).then(() => {
+    alert("تم إرسال إبلاغك، شكراً لمساهمتك في الحفاظ على المنتدى 🙏");
+  }).catch(err => {
+    if(err && err.message === "ALREADY_REPORTED"){
+      alert("لقد قمت بالإبلاغ عن هذا المنشور من قبل");
+    }else{
+      console.error(err);
+    }
+  });
+
+}
+
+function reportReply(postId, replyId){
+
+  const postRef = db.collection("posts").doc(postId);
+
+  db.runTransaction(function(transaction){
+    return transaction.get(postRef).then(function(doc){
+
+      if(!doc.exists) return;
+
+      const data = doc.data();
+      const replies = data.replies || [];
+      const idx = replies.findIndex(r => r.id === replyId);
+
+      if(idx === -1) return;
+
+      const reply = replies[idx];
+      const reports = reply.reports || [];
+
+      if(reports.includes(currentUsername)){
+        throw new Error("ALREADY_REPORTED");
+      }
+
+      const updatedReports = reports.concat([currentUsername]);
+      let newReplies;
+
+      if(updatedReports.length >= 3){
+        newReplies = replies.filter(r => r.id !== replyId);
+      }else{
+        newReplies = replies.slice();
+        newReplies[idx] = Object.assign({}, reply, { reports: updatedReports });
+      }
+
+      transaction.update(postRef, { replies: newReplies });
+
+    });
+  }).then(() => {
+    alert("تم إرسال إبلاغك، شكراً لمساهمتك في الحفاظ على المنتدى 🙏");
+  }).catch(err => {
+    if(err && err.message === "ALREADY_REPORTED"){
+      alert("لقد قمت بالإبلاغ عن هذا الرد من قبل");
+    }else{
+      console.error(err);
+    }
+  });
+
+}
+
 // عرض المنشورات وتحديثها لحظياً للجميع
 db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
   const container = document.getElementById("postsContainer");
@@ -294,10 +380,10 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
           </div>
           ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
           ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
-          ${r.author === currentUsername ? `
           <div class="post-actions">
-            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>
-          </div>` : ""}
+            ${r.author === currentUsername ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : ""}
+            <button class="action-btn report-btn" onclick="reportReply('${postId}','${r.id}')">🚩 إبلاغ</button>
+          </div>
         </div>
       `).join("") + '</div>';
     }
@@ -314,6 +400,7 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
       <div class="post-actions">
         <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
         ${post.author === currentUsername ? `<button class="action-btn del-btn" onclick="deletePost('${postId}','${post.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : ""}
+        <button class="action-btn report-btn" onclick="reportPost('${postId}')">🚩 إبلاغ</button>
       </div>
 
       <div class="reply-form" id="reply-form-${postId}">

@@ -916,6 +916,8 @@ footer{
 
 .post-actions{
     display:flex;
+    align-items:center;
+    flex-wrap:wrap;
     gap:14px;
 }
 
@@ -943,6 +945,16 @@ footer{
 
 .del-btn:hover{
     background:var(--danger-bg);
+}
+
+.report-btn{
+    margin-right:auto;
+    border-color:var(--gold);
+    color:var(--gold-dark);
+}
+
+.report-btn:hover{
+    background:rgba(255,210,77,.18);
 }
 
 .replies{
