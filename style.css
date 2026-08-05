@@ -872,6 +872,18 @@ footer{
     transition:box-shadow .3s ease, background-color .35s ease, border-color .35s ease;
 }
 
+.post-mine{
+    background:linear-gradient(135deg, var(--card-bg), var(--featured-tint));
+    border-color:var(--accent);
+    border-width:3px;
+}
+
+.mine-tag{
+    color:var(--accent);
+    font-size:12px;
+    font-weight:normal;
+}
+
 .post:hover{
     box-shadow:0 0 20px var(--accent-soft);
 }
@@ -969,6 +981,11 @@ footer{
     border-radius:14px;
     padding:14px 16px;
     margin-top:12px;
+}
+
+.reply-mine{
+    background:var(--featured-tint);
+    border:1px solid var(--accent);
 }
 
 .reply .post-author{

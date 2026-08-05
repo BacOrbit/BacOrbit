@@ -373,34 +373,32 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
     let repliesHtml = "";
     if(post.replies && post.replies.length > 0){
       repliesHtml = '<div class="replies">' + post.replies.map(r => `
-        <div class="reply">
+        <div class="reply${r.author === currentUsername ? ' reply-mine' : ''}">
           <div class="post-head">
-            <span class="post-author">💬 ${escapeHtml(r.author)}</span>
+            <span class="post-author">💬 ${escapeHtml(r.author)}${r.author === currentUsername ? ' <span class="mine-tag">(أنت)</span>' : ''}</span>
             <span class="post-date">${formatDate(r.date)}</span>
           </div>
           ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
           ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
           <div class="post-actions">
-            ${r.author === currentUsername ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : ""}
-            <button class="action-btn report-btn" onclick="reportReply('${postId}','${r.id}')">🚩 إبلاغ</button>
+            ${r.author === currentUsername ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : `<button class="action-btn report-btn" onclick="reportReply('${postId}','${r.id}')">🚩 إبلاغ</button>`}
           </div>
         </div>
       `).join("") + '</div>';
     }
 
     const postEl = document.createElement("div");
-    postEl.className = "post";
+    postEl.className = "post" + (post.author === currentUsername ? " post-mine" : "");
     postEl.innerHTML = `
       <div class="post-head">
-        <span class="post-author">👤 ${escapeHtml(post.author)}</span>
+        <span class="post-author">👤 ${escapeHtml(post.author)}${post.author === currentUsername ? ' <span class="mine-tag">(أنت)</span>' : ''}</span>
         <span class="post-date">${formatDate(post.date)}</span>
       </div>
       ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
       ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
       <div class="post-actions">
         <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
-        ${post.author === currentUsername ? `<button class="action-btn del-btn" onclick="deletePost('${postId}','${post.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : ""}
-        <button class="action-btn report-btn" onclick="reportPost('${postId}')">🚩 إبلاغ</button>
+        ${post.author === currentUsername ? `<button class="action-btn del-btn" onclick="deletePost('${postId}','${post.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : `<button class="action-btn report-btn" onclick="reportPost('${postId}')">🚩 إبلاغ</button>`}
       </div>
 
       <div class="reply-form" id="reply-form-${postId}">
