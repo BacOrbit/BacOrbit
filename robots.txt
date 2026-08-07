@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bacorbit.github.io/BacOrbit/sitemap.xml

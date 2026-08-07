@@ -4,10 +4,7 @@
    (الشريط العلوي، الهيدر، البطاقات، الفوتر، عناصر لعبة المكتسبات)
    يجب ربط هذا الملف من كل صفحة تريد نفس الهوية البصرية.
    ========================================================== */
-.seo-title {
-    position: absolute;
-    left: -9999px;
-}
+
 *{
     margin:0;
     padding:0;
@@ -875,18 +872,6 @@ footer{
     transition:box-shadow .3s ease, background-color .35s ease, border-color .35s ease;
 }
 
-.post-mine{
-    background:linear-gradient(135deg, var(--card-bg), var(--featured-tint));
-    border-color:var(--accent);
-    border-width:3px;
-}
-
-.mine-tag{
-    color:var(--accent);
-    font-size:12px;
-    font-weight:normal;
-}
-
 .post:hover{
     box-shadow:0 0 20px var(--accent-soft);
 }
@@ -931,8 +916,6 @@ footer{
 
 .post-actions{
     display:flex;
-    align-items:center;
-    flex-wrap:wrap;
     gap:14px;
 }
 
@@ -962,16 +945,6 @@ footer{
     background:var(--danger-bg);
 }
 
-.report-btn{
-    margin-right:auto;
-    border-color:var(--gold);
-    color:var(--gold-dark);
-}
-
-.report-btn:hover{
-    background:rgba(255,210,77,.18);
-}
-
 .replies{
     margin-top:16px;
     padding-right:22px;
@@ -984,11 +957,6 @@ footer{
     border-radius:14px;
     padding:14px 16px;
     margin-top:12px;
-}
-
-.reply-mine{
-    background:var(--featured-tint);
-    border:1px solid var(--accent);
 }
 
 .reply .post-author{
@@ -1221,4 +1189,4 @@ footer{
         font-size:12px;
         padding:7px 14px;
     }
-} 
+}

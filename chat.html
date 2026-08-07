@@ -4,12 +4,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>المنتدى - BacOrbit</title>
+<title>منتدى التلاميذ - اطرح أسئلتك وشارك زملاءك | BacOrbit</title>
 <link rel="stylesheet" href="style.css">
 <script src="script.js"></script>
 <!-- مكتبات Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<meta name="description" content="منتدى BacOrbit الخاص بتلاميذ البكالوريا: اطرح سؤالك في أي مادة، شارك ملاحظاتك، وتفاعل مع زملائك للمراجعة الجماعية.">
+<meta name="keywords" content="منتدى البكالوريا, أسئلة البكالوريا, مساعدة تلاميذ البكالوريا, BacOrbit">
+<meta name="robots" content="index, follow">
+<meta name="author" content="BacOrbit">
+<link rel="canonical" href="https://bacorbit.github.io/BacOrbit/chat.html">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BacOrbit">
+<meta property="og:locale" content="ar_DZ">
+<meta property="og:title" content="منتدى التلاميذ - اطرح أسئلتك وشارك زملاءك | BacOrbit">
+<meta property="og:description" content="منتدى BacOrbit الخاص بتلاميذ البكالوريا: اطرح سؤالك في أي مادة، شارك ملاحظاتك، وتفاعل مع زملائك للمراجعة الجماعية.">
+<meta property="og:url" content="https://bacorbit.github.io/BacOrbit/chat.html">
+<meta property="og:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="منتدى التلاميذ - اطرح أسئلتك وشارك زملاءك | BacOrbit">
+<meta name="twitter:description" content="منتدى BacOrbit الخاص بتلاميذ البكالوريا: اطرح سؤالك في أي مادة، شارك ملاحظاتك، وتفاعل مع زملائك للمراجعة الجماعية.">
+<meta name="twitter:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://bacorbit.github.io/BacOrbit/"},{"@type":"ListItem","position":2,"name":"المنتدى","item":"https://bacorbit.github.io/BacOrbit/chat.html"}]
+}
+</script>
+
 </head>
 
 <body>
@@ -235,25 +264,13 @@ function submitReply(postId){
   }).catch(err => alert("خطأ في إضافة الرد: " + err.message));
 }
 
-// حذف المنشورات والردود (كل شخص يستطيع حذف رسائله فقط)
-function deletePost(postId, author){
-
-  if(author !== currentUsername){
-    alert("لا يمكنك حذف رسالة لا تخصك");
-    return;
-  }
-
+// حذف المنشورات والردود
+function deletePost(postId){
   if(!confirm("هل تريد حذف هذا المنشور؟")) return;
   db.collection("posts").doc(postId).delete();
 }
 
-function deleteReply(postId, replyId, author){
-
-  if(author !== currentUsername){
-    alert("لا يمكنك حذف رد لا يخصك");
-    return;
-  }
-
+function deleteReply(postId, replyId){
   if(!confirm("هل تريد حذف هذا الرد؟")) return;
 
   const postRef = db.collection("posts").doc(postId);
@@ -265,92 +282,6 @@ function deleteReply(postId, replyId, author){
       postRef.update({ replies: updatedReplies });
     }
   });
-}
-
-// الإبلاغ عن المنشورات والردود (حذف تلقائي بعد 3 إبلاغات من أشخاص مختلفين)
-
-function reportPost(postId){
-
-  const postRef = db.collection("posts").doc(postId);
-
-  db.runTransaction(function(transaction){
-    return transaction.get(postRef).then(function(doc){
-
-      if(!doc.exists) return;
-
-      const data = doc.data();
-      const reports = data.reports || [];
-
-      if(reports.includes(currentUsername)){
-        throw new Error("ALREADY_REPORTED");
-      }
-
-      const updatedReports = reports.concat([currentUsername]);
-
-      if(updatedReports.length >= 3){
-        transaction.delete(postRef);
-      }else{
-        transaction.update(postRef, { reports: updatedReports });
-      }
-
-    });
-  }).then(() => {
-    alert("تم إرسال إبلاغك، شكراً لمساهمتك في الحفاظ على المنتدى 🙏");
-  }).catch(err => {
-    if(err && err.message === "ALREADY_REPORTED"){
-      alert("لقد قمت بالإبلاغ عن هذا المنشور من قبل");
-    }else{
-      console.error(err);
-    }
-  });
-
-}
-
-function reportReply(postId, replyId){
-
-  const postRef = db.collection("posts").doc(postId);
-
-  db.runTransaction(function(transaction){
-    return transaction.get(postRef).then(function(doc){
-
-      if(!doc.exists) return;
-
-      const data = doc.data();
-      const replies = data.replies || [];
-      const idx = replies.findIndex(r => r.id === replyId);
-
-      if(idx === -1) return;
-
-      const reply = replies[idx];
-      const reports = reply.reports || [];
-
-      if(reports.includes(currentUsername)){
-        throw new Error("ALREADY_REPORTED");
-      }
-
-      const updatedReports = reports.concat([currentUsername]);
-      let newReplies;
-
-      if(updatedReports.length >= 3){
-        newReplies = replies.filter(r => r.id !== replyId);
-      }else{
-        newReplies = replies.slice();
-        newReplies[idx] = Object.assign({}, reply, { reports: updatedReports });
-      }
-
-      transaction.update(postRef, { replies: newReplies });
-
-    });
-  }).then(() => {
-    alert("تم إرسال إبلاغك، شكراً لمساهمتك في الحفاظ على المنتدى 🙏");
-  }).catch(err => {
-    if(err && err.message === "ALREADY_REPORTED"){
-      alert("لقد قمت بالإبلاغ عن هذا الرد من قبل");
-    }else{
-      console.error(err);
-    }
-  });
-
 }
 
 // عرض المنشورات وتحديثها لحظياً للجميع
@@ -373,32 +304,32 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
     let repliesHtml = "";
     if(post.replies && post.replies.length > 0){
       repliesHtml = '<div class="replies">' + post.replies.map(r => `
-        <div class="reply${r.author === currentUsername ? ' reply-mine' : ''}">
+        <div class="reply">
           <div class="post-head">
-            <span class="post-author">💬 ${escapeHtml(r.author)}${r.author === currentUsername ? ' <span class="mine-tag">(أنت)</span>' : ''}</span>
+            <span class="post-author">💬 ${escapeHtml(r.author)}</span>
             <span class="post-date">${formatDate(r.date)}</span>
           </div>
           ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
           ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
           <div class="post-actions">
-            ${r.author === currentUsername ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}','${r.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : `<button class="action-btn report-btn" onclick="reportReply('${postId}','${r.id}')">🚩 إبلاغ</button>`}
+            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>
           </div>
         </div>
       `).join("") + '</div>';
     }
 
     const postEl = document.createElement("div");
-    postEl.className = "post" + (post.author === currentUsername ? " post-mine" : "");
+    postEl.className = "post";
     postEl.innerHTML = `
       <div class="post-head">
-        <span class="post-author">👤 ${escapeHtml(post.author)}${post.author === currentUsername ? ' <span class="mine-tag">(أنت)</span>' : ''}</span>
+        <span class="post-author">👤 ${escapeHtml(post.author)}</span>
         <span class="post-date">${formatDate(post.date)}</span>
       </div>
       ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
       ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
       <div class="post-actions">
         <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
-        ${post.author === currentUsername ? `<button class="action-btn del-btn" onclick="deletePost('${postId}','${post.author.replace(/'/g,"\\'")}')">🗑 حذف</button>` : `<button class="action-btn report-btn" onclick="reportPost('${postId}')">🚩 إبلاغ</button>`}
+        <button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>
       </div>
 
       <div class="reply-form" id="reply-form-${postId}">
@@ -420,4 +351,4 @@ db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
 </script>
 
 </body>
-</html> 
+</html>
