@@ -10,6 +10,7 @@
 <!-- مكتبات Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <meta name="description" content="منتدى BacOrbit الخاص بتلاميذ البكالوريا: اطرح سؤالك في أي مادة، شارك ملاحظاتك، وتفاعل مع زملائك للمراجعة الجماعية.">
 <meta name="keywords" content="منتدى البكالوريا, أسئلة البكالوريا, مساعدة تلاميذ البكالوريا, BacOrbit">
 <meta name="robots" content="index, follow">
@@ -57,7 +58,7 @@
         <span class="theme-switch-thumb"></span>
     </button>
 
-    <a href="forum.html" class="top-link">
+    <a href="chat.html" class="top-link">
         📚 المنتدى
     </a>
 
@@ -73,6 +74,21 @@
 </section>
 
 <div class="wrap">
+
+<!-- بوابة تسجيل الدخول: تظهر فقط لغير المسجلين -->
+<div class="new-post auth-gate" id="authGate">
+<h3>🔐 سجّل الدخول للمتابعة</h3>
+<p>للحفاظ على جودة النقاش ومنع الإزعاج، يجب تسجيل الدخول بحساب Google لعرض المنتدى والمشاركة فيه. لن نعرض بريدك الإلكتروني لأي شخص، وسيظهر اسمك للآخرين كاسم مستعار مثل "تلميذ 342".</p>
+<button class="google-signin-btn" onclick="signIn()">تسجيل الدخول عبر Google</button>
+</div>
+
+<!-- محتوى المنتدى الفعلي: مخفي حتى تسجيل الدخول -->
+<div id="forumWrap" style="display:none;">
+
+<div class="user-badge">
+<span id="userBadgeText"></span>
+<button class="signout-link" onclick="signOutUser()">تسجيل الخروج</button>
+</div>
 
 <div class="new-post">
 <h3>✏️ اكتب سؤالاً أو ملاحظة</h3>
@@ -91,6 +107,8 @@
 <div id="postsContainer"></div>
 
 <div id="emptyState" class="empty-state">لا توجد أسئلة بعد، كن أول من يشارك! 🙌</div>
+
+</div>
 
 </div>
 
@@ -113,18 +131,20 @@ const firebaseConfig = {
   measurementId: "G-4J629GND42"
 };
 
-// تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 let pendingImage = "";
+let pendingReplyImage = {};
+let currentUser = null;
+let currentUsername = "";
+let unsubscribePosts = null;
 
-// إنشاء أو استرجاع اسم التلميذ العشوائي وحفظه في المتصفح ليبقى ثابتاً لنفس الشخص
-let currentUsername = localStorage.getItem("bacorbit_username");
-if (!currentUsername) {
-  currentUsername = "التلميذ " + Math.floor(Math.random() * 1000);
-  localStorage.setItem("bacorbit_username", currentUsername);
-}
+const authGate = document.getElementById("authGate");
+const forumWrap = document.getElementById("forumWrap");
+const userBadgeText = document.getElementById("userBadgeText");
 
 // تنظيف النصوص للحماية من الثغرات
 function escapeHtml(str){
@@ -137,7 +157,6 @@ function escapeHtml(str){
     .replace(/'/g,"&#039;");
 }
 
-// تنسيق التاريخ والوقت
 function formatDate(ts){
   const d = new Date(ts);
   return d.toLocaleDateString("ar-DZ",{day:"2-digit",month:"2-digit",year:"numeric"}) +
@@ -149,7 +168,55 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 
-// رفع ومعاينة الصور
+/* ---------- تسجيل الدخول / الخروج ---------- */
+
+function signIn(){
+  auth.signInWithPopup(googleProvider).catch(err => {
+    alert("تعذّر تسجيل الدخول: " + err.message);
+  });
+}
+
+function signOutUser(){
+  auth.signOut();
+}
+
+async function getOrCreateUsername(uid){
+  const ref = db.collection("users").doc(uid);
+  const snap = await ref.get();
+  if(snap.exists && snap.data().username){
+    return snap.data().username;
+  }
+  const name = "تلميذ " + Math.floor(Math.random() * 10000);
+  await ref.set({ username: name }, { merge: true });
+  return name;
+}
+
+auth.onAuthStateChanged(async function(user){
+
+  if(user){
+    currentUser = user;
+    try{
+      currentUsername = await getOrCreateUsername(user.uid);
+    }catch(err){
+      currentUsername = "تلميذ";
+    }
+    userBadgeText.textContent = "مسجّل الدخول باسم: " + currentUsername;
+    authGate.style.display = "none";
+    forumWrap.style.display = "block";
+    attachPostsListener();
+  }else{
+    currentUser = null;
+    currentUsername = "";
+    if(unsubscribePosts){ unsubscribePosts(); unsubscribePosts = null; }
+    authGate.style.display = "block";
+    forumWrap.style.display = "none";
+    document.getElementById("postsContainer").innerHTML = "";
+  }
+
+});
+
+/* ---------- رفع ومعاينة الصور ---------- */
+
 document.getElementById("imgInput").addEventListener("change", function(e){
   const file = e.target.files[0];
   if(!file){
@@ -177,12 +244,12 @@ document.getElementById("imgInput").addEventListener("change", function(e){
   reader.readAsDataURL(file);
 });
 
-// نشر منشور جديد إلى السحابة
-function submitPost(){
-  const textInput = document.getElementById("textInput");
+/* ---------- نشر منشور جديد ---------- */
 
-  // استخدام الاسم الثابت المحفوظ في المتصفح
-  const author = currentUsername;
+function submitPost(){
+  if(!currentUser) return;
+
+  const textInput = document.getElementById("textInput");
   const text = textInput.value.trim();
 
   if(!text && !pendingImage){
@@ -191,11 +258,13 @@ function submitPost(){
   }
 
   db.collection("posts").add({
-    author: author,
+    author: currentUsername,
+    authorUid: currentUser.uid,
     text: text,
     image: pendingImage,
     date: Date.now(),
-    replies: []
+    replies: [],
+    reportedBy: []
   }).then(() => {
     textInput.value = "";
     pendingImage = "";
@@ -207,8 +276,7 @@ function submitPost(){
   });
 }
 
-// التعامل مع الردود
-let pendingReplyImage = {};
+/* ---------- الردود ---------- */
 
 function toggleReplyForm(postId){
   const form = document.getElementById("reply-form-" + postId);
@@ -237,10 +305,9 @@ function handleReplyImage(postId, input){
 }
 
 function submitReply(postId){
-  const textInput = document.getElementById("reply-text-" + postId);
+  if(!currentUser) return;
 
-  // استخدام الاسم الثابت المحفوظ في المتصفح للرد أيضاً
-  const author = currentUsername;
+  const textInput = document.getElementById("reply-text-" + postId);
   const text = textInput.value.trim();
   const image = pendingReplyImage[postId] || "";
 
@@ -251,10 +318,12 @@ function submitReply(postId){
 
   const newReply = {
     id: genId(),
-    author: author,
+    author: currentUsername,
+    authorUid: currentUser.uid,
     text: text,
     image: image,
-    date: Date.now()
+    date: Date.now(),
+    reportedBy: []
   };
 
   db.collection("posts").doc(postId).update({
@@ -264,17 +333,20 @@ function submitReply(postId){
   }).catch(err => alert("خطأ في إضافة الرد: " + err.message));
 }
 
-// حذف المنشورات والردود
+/* ---------- الحذف (للمالك فقط) ---------- */
+
 function deletePost(postId){
+  if(!currentUser) return;
   if(!confirm("هل تريد حذف هذا المنشور؟")) return;
   db.collection("posts").doc(postId).delete();
 }
 
 function deleteReply(postId, replyId){
+  if(!currentUser) return;
   if(!confirm("هل تريد حذف هذا الرد؟")) return;
 
   const postRef = db.collection("posts").doc(postId);
-  
+
   postRef.get().then(doc => {
     if(doc.exists){
       const postData = doc.data();
@@ -284,70 +356,164 @@ function deleteReply(postId, replyId){
   });
 }
 
-// عرض المنشورات وتحديثها لحظياً للجميع
-db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
-  const container = document.getElementById("postsContainer");
-  const emptyState = document.getElementById("emptyState");
+/* ---------- الإبلاغ (لغير المالك) - حذف تلقائي بعد 3 بلاغات مختلفة ---------- */
 
-  container.innerHTML = "";
+async function reportPost(postId){
+  if(!currentUser) return;
+  const ref = db.collection("posts").doc(postId);
 
-  if(snapshot.empty){
-    emptyState.style.display = "block";
-    return;
-  }
-  emptyState.style.display = "none";
+  try{
+    await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      if(!doc.exists) return;
+      const data = doc.data();
+      const reportedBy = data.reportedBy || [];
 
-  snapshot.forEach(doc => {
-    const post = doc.data();
-    const postId = doc.id;
+      if(reportedBy.includes(currentUser.uid)){
+        throw new Error("ALREADY_REPORTED");
+      }
 
-    let repliesHtml = "";
-    if(post.replies && post.replies.length > 0){
-      repliesHtml = '<div class="replies">' + post.replies.map(r => `
-        <div class="reply">
-          <div class="post-head">
-            <span class="post-author">💬 ${escapeHtml(r.author)}</span>
-            <span class="post-date">${formatDate(r.date)}</span>
-          </div>
-          ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
-          ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
-          <div class="post-actions">
-            <button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>
-          </div>
-        </div>
-      `).join("") + '</div>';
+      const updated = reportedBy.concat([currentUser.uid]);
+
+      if(updated.length >= 3){
+        tx.delete(ref);
+      }else{
+        tx.update(ref, { reportedBy: updated });
+      }
+    });
+  }catch(err){
+    if(err.message === "ALREADY_REPORTED"){
+      alert("لقد أبلغت عن هذا المنشور من قبل");
+    }else{
+      alert("حدث خطأ أثناء الإبلاغ: " + err.message);
     }
+  }
+}
 
-    const postEl = document.createElement("div");
-    postEl.className = "post";
-    postEl.innerHTML = `
-      <div class="post-head">
-        <span class="post-author">👤 ${escapeHtml(post.author)}</span>
-        <span class="post-date">${formatDate(post.date)}</span>
-      </div>
-      ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
-      ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
-      <div class="post-actions">
-        <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
-        <button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>
-      </div>
+async function reportReply(postId, replyId){
+  if(!currentUser) return;
+  const ref = db.collection("posts").doc(postId);
 
-      <div class="reply-form" id="reply-form-${postId}">
-        <textarea id="reply-text-${postId}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
-        <div class="file-row">
-          <label class="file-label" for="reply-img-${postId}">📷 صورة</label>
-          <input type="file" id="reply-img-${postId}" accept="image/*" style="display:none" onchange="handleReplyImage('${postId}', this)">
+  try{
+    await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
+      if(!doc.exists) return;
+      const data = doc.data();
+      const replies = (data.replies || []).slice();
+      const idx = replies.findIndex(r => r.id === replyId);
+      if(idx === -1) return;
+
+      const reply = replies[idx];
+      const reportedBy = reply.reportedBy || [];
+
+      if(reportedBy.includes(currentUser.uid)){
+        throw new Error("ALREADY_REPORTED");
+      }
+
+      const updatedReportedBy = reportedBy.concat([currentUser.uid]);
+
+      if(updatedReportedBy.length >= 3){
+        replies.splice(idx, 1);
+      }else{
+        replies[idx] = Object.assign({}, reply, { reportedBy: updatedReportedBy });
+      }
+
+      tx.update(ref, { replies: replies });
+    });
+  }catch(err){
+    if(err.message === "ALREADY_REPORTED"){
+      alert("لقد أبلغت عن هذا الرد من قبل");
+    }else{
+      alert("حدث خطأ أثناء الإبلاغ: " + err.message);
+    }
+  }
+}
+
+/* ---------- عرض المنشورات (يتفعّل فقط بعد تسجيل الدخول) ---------- */
+
+function attachPostsListener(){
+
+  if(unsubscribePosts) unsubscribePosts();
+
+  unsubscribePosts = db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
+
+    const container = document.getElementById("postsContainer");
+    const emptyState = document.getElementById("emptyState");
+
+    container.innerHTML = "";
+
+    if(snapshot.empty){
+      emptyState.style.display = "block";
+      return;
+    }
+    emptyState.style.display = "none";
+
+    snapshot.forEach(doc => {
+      const post = doc.data();
+      const postId = doc.id;
+      const isOwner = currentUser && post.authorUid === currentUser.uid;
+      const alreadyReported = currentUser && (post.reportedBy || []).includes(currentUser.uid);
+
+      let repliesHtml = "";
+      if(post.replies && post.replies.length > 0){
+        repliesHtml = '<div class="replies">' + post.replies.map(r => {
+          const rIsOwner = currentUser && r.authorUid === currentUser.uid;
+          const rAlreadyReported = currentUser && (r.reportedBy || []).includes(currentUser.uid);
+          const rActionBtn = rIsOwner
+            ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>`
+            : `<button class="action-btn report-btn" ${rAlreadyReported ? "disabled" : ""} onclick="reportReply('${postId}','${r.id}')">${rAlreadyReported ? "تم الإبلاغ ✓" : "🚩 إبلاغ"}</button>`;
+
+          return `
+          <div class="reply ${rIsOwner ? "own-post" : ""}">
+            <div class="post-head">
+              <span class="post-author">💬 ${escapeHtml(r.author)}</span>
+              <span class="post-date">${formatDate(r.date)}</span>
+            </div>
+            ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
+            ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
+            <div class="post-actions">
+              ${rActionBtn}
+            </div>
+          </div>
+        `;
+        }).join("") + '</div>';
+      }
+
+      const actionBtn = isOwner
+        ? `<button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>`
+        : `<button class="action-btn report-btn" ${alreadyReported ? "disabled" : ""} onclick="reportPost('${postId}')">${alreadyReported ? "تم الإبلاغ ✓" : "🚩 إبلاغ"}</button>`;
+
+      const postEl = document.createElement("div");
+      postEl.className = "post" + (isOwner ? " own-post" : "");
+      postEl.innerHTML = `
+        <div class="post-head">
+          <span class="post-author">👤 ${escapeHtml(post.author)}</span>
+          <span class="post-date">${formatDate(post.date)}</span>
         </div>
-        <img id="reply-preview-${postId}" class="img-preview">
-        <button class="submit-btn" onclick="submitReply('${postId}')">نشر الرد</button>
-      </div>
+        ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
+        ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
+        <div class="post-actions">
+          <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
+          ${actionBtn}
+        </div>
 
-      ${repliesHtml}
-    `;
+        <div class="reply-form" id="reply-form-${postId}">
+          <textarea id="reply-text-${postId}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
+          <div class="file-row">
+            <label class="file-label" for="reply-img-${postId}">📷 صورة</label>
+            <input type="file" id="reply-img-${postId}" accept="image/*" style="display:none" onchange="handleReplyImage('${postId}', this)">
+          </div>
+          <img id="reply-preview-${postId}" class="img-preview">
+          <button class="submit-btn" onclick="submitReply('${postId}')">نشر الرد</button>
+        </div>
 
-    container.appendChild(postEl);
+        ${repliesHtml}
+      `;
+
+      container.appendChild(postEl);
+    });
   });
-});
+}
 </script>
 
 </body>

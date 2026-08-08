@@ -165,3 +165,16 @@
     };
 
 })();
+/* ==========================================================
+   مولّد قوائم أسماء الملفات لأزرار "تنزيل الكل" في صفحات الدروس
+   ========================================================== */
+
+function lessonFileRange(prefix, start, end, pad, ext){
+    var arr = [];
+    for(var i = start; i <= end; i++){
+        var num = pad ? String(i).padStart(pad, "0") : String(i);
+        arr.push(prefix + num + ext);
+    }
+    return arr;
+}
+window.lessonFileRange = lessonFileRange;
