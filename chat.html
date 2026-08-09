@@ -98,7 +98,7 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
     <div class="new-post">
       <div class="composer-title">
         <div>
-          <h3>✏️ اكتب سؤالاً أو تعليقاً</h3>
+          <h3>✏️ اكتب سؤالاً</h3>
           <p>شارك نصاً، صورة، أو ملفاً مع زملائك.</p>
         </div>
         <span class="composer-badge">BacOrbit 🎓</span>
@@ -106,7 +106,7 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 
       <div id="mainError" class="forum-error" style="display:none"></div>
 
-      <textarea id="postText" data-draft="main" placeholder="اكتب سؤالك أو مشاركتك هنا… (Ctrl+Enter للنشر السريع)"></textarea>
+      <textarea id="postText" data-draft="main" placeholder="اكتب سؤالك أو مشاركتك هنا…"></textarea>
 
       <!-- معاينة المرفقات قبل النشر -->
       <div class="attach-preview-list" data-preview="main"></div>
@@ -116,13 +116,12 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
           <input type="file" hidden multiple data-filefor="main"
                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.csv">
         </label>
-        <span class="file-name">PDF، Word، ZIP، صور… حتى 15MB</span>
       </div>
 
-      <button type="button" class="submit-btn" id="postSubmit">نشر التعليق ➜</button>
+      <button type="button" class="submit-btn" id="postSubmit">نشر السؤال ➜</button>
     </div>
 
-    <!-- قائمة التعليقات -->
+    <!-- قائمة السؤالات -->
     <div id="postsList"></div>
     <div id="emptyState" class="empty-state" style="display:none">لا توجد تعليقات بعد، كن أول من يشارك! 🙌</div>
   </div>
