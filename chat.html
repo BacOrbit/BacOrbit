@@ -46,7 +46,7 @@
 
 <div class="top-bar" id="topBar">
 
-    <a href="support.html" class="top-link">
+    <a href="https://www.facebook.com/profile.php?id=61593220613025" class="top-link" target="_blank" rel="noopener noreferrer">
         🎧 الدعم
     </a>
 
@@ -75,19 +75,11 @@
 
 <div class="wrap">
 
-<!-- بوابة تسجيل الدخول: تظهر فقط لغير المسجلين -->
-<div class="new-post auth-gate" id="authGate">
-<h3>🔐 سجّل الدخول للمتابعة</h3>
-<p>للحفاظ على جودة النقاش ومنع الإزعاج، يجب تسجيل الدخول بحساب Google لعرض المنتدى والمشاركة فيه. لن نعرض بريدك الإلكتروني لأي شخص، وسيظهر اسمك للآخرين كاسم مستعار مثل "تلميذ 342".</p>
-<button class="google-signin-btn" onclick="signIn()">تسجيل الدخول عبر Google</button>
-</div>
+<div id="forumContent" style="display:none;">
 
-<!-- محتوى المنتدى الفعلي: مخفي حتى تسجيل الدخول -->
-<div id="forumWrap" style="display:none;">
-
-<div class="user-badge">
-<span id="userBadgeText"></span>
-<button class="signout-link" onclick="signOutUser()">تسجيل الخروج</button>
+<div class="user-bar">
+<span>مسجّل الدخول باسم: <strong id="userNameLabel"></strong></span>
+<span class="signout-link" onclick="signOutUser()">تسجيل الخروج ⏻</span>
 </div>
 
 <div class="new-post">
@@ -106,7 +98,7 @@
 
 <div id="postsContainer"></div>
 
-<div id="emptyState" class="empty-state">لا توجد أسئلة بعد، كن أول من يشارك! 🙌</div>
+<div id="emptyState" class="empty-state" style="display:none;">لا توجد أسئلة بعد، كن أول من يشارك! 🙌</div>
 
 </div>
 
@@ -131,10 +123,10 @@ const firebaseConfig = {
   measurementId: "G-4J629GND42"
 };
 
+// تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 let pendingImage = "";
 let pendingReplyImage = {};
@@ -143,8 +135,51 @@ let currentUsername = "";
 let unsubscribePosts = null;
 
 const authGate = document.getElementById("authGate");
-const forumWrap = document.getElementById("forumWrap");
-const userBadgeText = document.getElementById("userBadgeText");
+const forumContent = document.getElementById("forumContent");
+const userNameLabel = document.getElementById("userNameLabel");
+
+// تسجيل الدخول عبر Google
+function signInWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(err){
+    alert("تعذّر تسجيل الدخول: " + err.message);
+  });
+}
+
+function signOutUser(){
+  auth.signOut();
+}
+
+// إنشاء أو استرجاع اسم التلميذ العشوائي، محفوظ في Firestore مرتبطاً بحساب المستخدم (UID)
+// بدلاً من التخزين المحلي، ليبقى الاسم ثابتاً على كل الأجهزة
+async function ensureUsername(uid){
+  const ref = db.collection("users").doc(uid);
+  const snap = await ref.get();
+  if(snap.exists && snap.data().username){
+    return snap.data().username;
+  }
+  const uname = "التلميذ " + Math.floor(Math.random() * 10000);
+  await ref.set({ username: uname }, { merge: true });
+  return uname;
+}
+
+// بوابة الدخول: لا يظهر أي محتوى من المنتدى قبل تسجيل الدخول
+auth.onAuthStateChanged(async function(user){
+  if(user){
+    currentUser = user;
+    currentUsername = await ensureUsername(user.uid);
+    userNameLabel.textContent = currentUsername;
+    authGate.style.display = "none";
+    forumContent.style.display = "block";
+    startListeningToPosts();
+  }else{
+    currentUser = null;
+    currentUsername = "";
+    if(unsubscribePosts){ unsubscribePosts(); unsubscribePosts = null; }
+    authGate.style.display = "block";
+    forumContent.style.display = "none";
+  }
+});
 
 // تنظيف النصوص للحماية من الثغرات
 function escapeHtml(str){
@@ -157,6 +192,7 @@ function escapeHtml(str){
     .replace(/'/g,"&#039;");
 }
 
+// تنسيق التاريخ والوقت
 function formatDate(ts){
   const d = new Date(ts);
   return d.toLocaleDateString("ar-DZ",{day:"2-digit",month:"2-digit",year:"numeric"}) +
@@ -168,55 +204,7 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 }
 
-/* ---------- تسجيل الدخول / الخروج ---------- */
-
-function signIn(){
-  auth.signInWithPopup(googleProvider).catch(err => {
-    alert("تعذّر تسجيل الدخول: " + err.message);
-  });
-}
-
-function signOutUser(){
-  auth.signOut();
-}
-
-async function getOrCreateUsername(uid){
-  const ref = db.collection("users").doc(uid);
-  const snap = await ref.get();
-  if(snap.exists && snap.data().username){
-    return snap.data().username;
-  }
-  const name = "تلميذ " + Math.floor(Math.random() * 10000);
-  await ref.set({ username: name }, { merge: true });
-  return name;
-}
-
-auth.onAuthStateChanged(async function(user){
-
-  if(user){
-    currentUser = user;
-    try{
-      currentUsername = await getOrCreateUsername(user.uid);
-    }catch(err){
-      currentUsername = "تلميذ";
-    }
-    userBadgeText.textContent = "مسجّل الدخول باسم: " + currentUsername;
-    authGate.style.display = "none";
-    forumWrap.style.display = "block";
-    attachPostsListener();
-  }else{
-    currentUser = null;
-    currentUsername = "";
-    if(unsubscribePosts){ unsubscribePosts(); unsubscribePosts = null; }
-    authGate.style.display = "block";
-    forumWrap.style.display = "none";
-    document.getElementById("postsContainer").innerHTML = "";
-  }
-
-});
-
-/* ---------- رفع ومعاينة الصور ---------- */
-
+// رفع ومعاينة الصور
 document.getElementById("imgInput").addEventListener("change", function(e){
   const file = e.target.files[0];
   if(!file){
@@ -244,8 +232,7 @@ document.getElementById("imgInput").addEventListener("change", function(e){
   reader.readAsDataURL(file);
 });
 
-/* ---------- نشر منشور جديد ---------- */
-
+// نشر منشور جديد إلى السحابة
 function submitPost(){
   if(!currentUser) return;
 
@@ -258,8 +245,8 @@ function submitPost(){
   }
 
   db.collection("posts").add({
-    author: currentUsername,
     authorUid: currentUser.uid,
+    author: currentUsername,
     text: text,
     image: pendingImage,
     date: Date.now(),
@@ -276,8 +263,7 @@ function submitPost(){
   });
 }
 
-/* ---------- الردود ---------- */
-
+// التعامل مع الردود
 function toggleReplyForm(postId){
   const form = document.getElementById("reply-form-" + postId);
   form.classList.toggle("open");
@@ -318,8 +304,8 @@ function submitReply(postId){
 
   const newReply = {
     id: genId(),
-    author: currentUsername,
     authorUid: currentUser.uid,
+    author: currentUsername,
     text: text,
     image: image,
     date: Date.now(),
@@ -330,19 +316,17 @@ function submitReply(postId){
     replies: firebase.firestore.FieldValue.arrayUnion(newReply)
   }).then(() => {
     pendingReplyImage[postId] = "";
+    textInput.value = "";
   }).catch(err => alert("خطأ في إضافة الرد: " + err.message));
 }
 
-/* ---------- الحذف (للمالك فقط) ---------- */
-
+// حذف المنشورات والردود (متاح فقط لصاحب المنشور/الرد، يُتحقق من ذلك أيضاً بإخفاء الزر في الواجهة)
 function deletePost(postId){
-  if(!currentUser) return;
   if(!confirm("هل تريد حذف هذا المنشور؟")) return;
   db.collection("posts").doc(postId).delete();
 }
 
 function deleteReply(postId, replyId){
-  if(!currentUser) return;
   if(!confirm("هل تريد حذف هذا الرد؟")) return;
 
   const postRef = db.collection("posts").doc(postId);
@@ -350,93 +334,90 @@ function deleteReply(postId, replyId){
   postRef.get().then(doc => {
     if(doc.exists){
       const postData = doc.data();
-      const updatedReplies = postData.replies.filter(r => r.id !== replyId);
+      const updatedReplies = (postData.replies || []).filter(r => r.id !== replyId);
       postRef.update({ replies: updatedReplies });
     }
   });
 }
 
-/* ---------- الإبلاغ (لغير المالك) - حذف تلقائي بعد 3 بلاغات مختلفة ---------- */
-
-async function reportPost(postId){
+// نظام الإبلاغ: يُحذف المنشور/الرد تلقائياً بعد 3 إبلاغات من 3 حسابات مختلفة
+function reportPost(postId){
   if(!currentUser) return;
+  if(!confirm("هل تريد الإبلاغ عن هذا المنشور؟")) return;
+
+  const uid = currentUser.uid;
   const ref = db.collection("posts").doc(postId);
 
-  try{
-    await db.runTransaction(async (tx) => {
-      const doc = await tx.get(ref);
+  db.runTransaction(function(tx){
+    return tx.get(ref).then(function(doc){
       if(!doc.exists) return;
       const data = doc.data();
       const reportedBy = data.reportedBy || [];
-
-      if(reportedBy.includes(currentUser.uid)){
-        throw new Error("ALREADY_REPORTED");
+      if(reportedBy.includes(uid)){
+        return Promise.reject("already-reported");
       }
-
-      const updated = reportedBy.concat([currentUser.uid]);
-
+      const updated = reportedBy.concat([uid]);
       if(updated.length >= 3){
         tx.delete(ref);
       }else{
         tx.update(ref, { reportedBy: updated });
       }
     });
-  }catch(err){
-    if(err.message === "ALREADY_REPORTED"){
+  }).then(() => {
+    alert("تم استلام بلاغك، شكراً لمساعدتك في الحفاظ على المنتدى");
+  }).catch(err => {
+    if(err === "already-reported"){
       alert("لقد أبلغت عن هذا المنشور من قبل");
     }else{
-      alert("حدث خطأ أثناء الإبلاغ: " + err.message);
+      console.error(err);
     }
-  }
+  });
 }
 
-async function reportReply(postId, replyId){
+function reportReply(postId, replyId){
   if(!currentUser) return;
+  if(!confirm("هل تريد الإبلاغ عن هذا الرد؟")) return;
+
+  const uid = currentUser.uid;
   const ref = db.collection("posts").doc(postId);
 
-  try{
-    await db.runTransaction(async (tx) => {
-      const doc = await tx.get(ref);
+  db.runTransaction(function(tx){
+    return tx.get(ref).then(function(doc){
       if(!doc.exists) return;
       const data = doc.data();
-      const replies = (data.replies || []).slice();
+      const replies = data.replies || [];
       const idx = replies.findIndex(r => r.id === replyId);
       if(idx === -1) return;
-
       const reply = replies[idx];
       const reportedBy = reply.reportedBy || [];
-
-      if(reportedBy.includes(currentUser.uid)){
-        throw new Error("ALREADY_REPORTED");
+      if(reportedBy.includes(uid)){
+        return Promise.reject("already-reported");
       }
-
-      const updatedReportedBy = reportedBy.concat([currentUser.uid]);
-
+      const updatedReportedBy = reportedBy.concat([uid]);
+      const newReplies = replies.slice();
       if(updatedReportedBy.length >= 3){
-        replies.splice(idx, 1);
+        newReplies.splice(idx, 1);
       }else{
-        replies[idx] = Object.assign({}, reply, { reportedBy: updatedReportedBy });
+        newReplies[idx] = Object.assign({}, reply, { reportedBy: updatedReportedBy });
       }
-
-      tx.update(ref, { replies: replies });
+      tx.update(ref, { replies: newReplies });
     });
-  }catch(err){
-    if(err.message === "ALREADY_REPORTED"){
+  }).then(() => {
+    alert("تم استلام بلاغك، شكراً لمساعدتك في الحفاظ على المنتدى");
+  }).catch(err => {
+    if(err === "already-reported"){
       alert("لقد أبلغت عن هذا الرد من قبل");
     }else{
-      alert("حدث خطأ أثناء الإبلاغ: " + err.message);
+      console.error(err);
     }
-  }
+  });
 }
 
-/* ---------- عرض المنشورات (يتفعّل فقط بعد تسجيل الدخول) ---------- */
-
-function attachPostsListener(){
-
-  if(unsubscribePosts) unsubscribePosts();
+// عرض المنشورات وتحديثها لحظياً للجميع (يبدأ فقط بعد تسجيل الدخول)
+function startListeningToPosts(){
+  if(unsubscribePosts) return;
 
   unsubscribePosts = db.collection("posts").orderBy("date", "desc").onSnapshot(snapshot => {
-
     const container = document.getElementById("postsContainer");
     const emptyState = document.getElementById("emptyState");
 
@@ -451,64 +432,61 @@ function attachPostsListener(){
     snapshot.forEach(doc => {
       const post = doc.data();
       const postId = doc.id;
-      const isOwner = currentUser && post.authorUid === currentUser.uid;
-      const alreadyReported = currentUser && (post.reportedBy || []).includes(currentUser.uid);
+      const isMine = currentUser && post.authorUid === currentUser.uid;
 
       let repliesHtml = "";
       if(post.replies && post.replies.length > 0){
         repliesHtml = '<div class="replies">' + post.replies.map(r => {
-          const rIsOwner = currentUser && r.authorUid === currentUser.uid;
-          const rAlreadyReported = currentUser && (r.reportedBy || []).includes(currentUser.uid);
-          const rActionBtn = rIsOwner
+          const replyIsMine = currentUser && r.authorUid === currentUser.uid;
+          const replyActionBtn = replyIsMine
             ? `<button class="action-btn del-btn" onclick="deleteReply('${postId}','${r.id}')">🗑 حذف</button>`
-            : `<button class="action-btn report-btn" ${rAlreadyReported ? "disabled" : ""} onclick="reportReply('${postId}','${r.id}')">${rAlreadyReported ? "تم الإبلاغ ✓" : "🚩 إبلاغ"}</button>`;
-
+            : `<button class="action-btn report-btn" onclick="reportReply('${postId}','${r.id}')">🚩 إبلاغ</button>`;
           return `
-          <div class="reply ${rIsOwner ? "own-post" : ""}">
-            <div class="post-head">
-              <span class="post-author">💬 ${escapeHtml(r.author)}</span>
-              <span class="post-date">${formatDate(r.date)}</span>
-            </div>
-            ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
-            ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
-            <div class="post-actions">
-              ${rActionBtn}
-            </div>
+        <div class="reply${replyIsMine ? ' post-mine' : ''}">
+          <div class="post-head">
+            <span class="post-author">💬 ${escapeHtml(r.author)}${replyIsMine ? ' (أنت)' : ''}</span>
+            <span class="post-date">${formatDate(r.date)}</span>
           </div>
-        `;
+          ${r.text ? `<div class="post-text">${escapeHtml(r.text)}</div>` : ""}
+          ${r.image ? `<img class="post-img" src="${r.image}">` : ""}
+          <div class="post-actions">
+            ${replyActionBtn}
+          </div>
+        </div>
+      `;
         }).join("") + '</div>';
       }
 
-      const actionBtn = isOwner
+      const mainActionBtn = isMine
         ? `<button class="action-btn del-btn" onclick="deletePost('${postId}')">🗑 حذف</button>`
-        : `<button class="action-btn report-btn" ${alreadyReported ? "disabled" : ""} onclick="reportPost('${postId}')">${alreadyReported ? "تم الإبلاغ ✓" : "🚩 إبلاغ"}</button>`;
+        : `<button class="action-btn report-btn" onclick="reportPost('${postId}')">🚩 إبلاغ</button>`;
 
       const postEl = document.createElement("div");
-      postEl.className = "post" + (isOwner ? " own-post" : "");
+      postEl.className = "post" + (isMine ? " post-mine" : "");
       postEl.innerHTML = `
-        <div class="post-head">
-          <span class="post-author">👤 ${escapeHtml(post.author)}</span>
-          <span class="post-date">${formatDate(post.date)}</span>
-        </div>
-        ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
-        ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
-        <div class="post-actions">
-          <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
-          ${actionBtn}
-        </div>
+      <div class="post-head">
+        <span class="post-author">👤 ${escapeHtml(post.author)}${isMine ? ' (أنت)' : ''}</span>
+        <span class="post-date">${formatDate(post.date)}</span>
+      </div>
+      ${post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : ""}
+      ${post.image ? `<img class="post-img" src="${post.image}">` : ""}
+      <div class="post-actions">
+        <button class="action-btn" onclick="toggleReplyForm('${postId}')">↩ رد</button>
+        ${mainActionBtn}
+      </div>
 
-        <div class="reply-form" id="reply-form-${postId}">
-          <textarea id="reply-text-${postId}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
-          <div class="file-row">
-            <label class="file-label" for="reply-img-${postId}">📷 صورة</label>
-            <input type="file" id="reply-img-${postId}" accept="image/*" style="display:none" onchange="handleReplyImage('${postId}', this)">
-          </div>
-          <img id="reply-preview-${postId}" class="img-preview">
-          <button class="submit-btn" onclick="submitReply('${postId}')">نشر الرد</button>
+      <div class="reply-form" id="reply-form-${postId}">
+        <textarea id="reply-text-${postId}" placeholder="اكتب ردك هنا..." maxlength="800"></textarea>
+        <div class="file-row">
+          <label class="file-label" for="reply-img-${postId}">📷 صورة</label>
+          <input type="file" id="reply-img-${postId}" accept="image/*" style="display:none" onchange="handleReplyImage('${postId}', this)">
         </div>
+        <img id="reply-preview-${postId}" class="img-preview">
+        <button class="submit-btn" onclick="submitReply('${postId}')">نشر الرد</button>
+      </div>
 
-        ${repliesHtml}
-      `;
+      ${repliesHtml}
+    `;
 
       container.appendChild(postEl);
     });

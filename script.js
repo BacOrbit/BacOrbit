@@ -165,16 +165,53 @@
     };
 
 })();
+
 /* ==========================================================
-   مولّد قوائم أسماء الملفات لأزرار "تنزيل الكل" في صفحات الدروس
+   تنزيل موضوع واحد
    ========================================================== */
 
-function lessonFileRange(prefix, start, end, pad, ext){
-    var arr = [];
-    for(var i = start; i <= end; i++){
-        var num = pad ? String(i).padStart(pad, "0") : String(i);
-        arr.push(prefix + num + ext);
-    }
-    return arr;
-}
-window.lessonFileRange = lessonFileRange;
+(function(){
+
+    window.downloadTopic = function(event, url, fileName){
+
+        if(event){
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        var button = event && event.currentTarget ? event.currentTarget : null;
+        if(!button || button.dataset.busy === "1") return;
+
+        button.dataset.busy = "1";
+        button.classList.add("loading");
+
+        var originalHTML = button.innerHTML;
+
+        button.innerHTML =
+            '<span class="dl-spinner"></span>' +
+            '<span>جاري التنزيل…</span>';
+
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = fileName || "";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(function(){
+            button.classList.remove("loading");
+            button.classList.add("done");
+            button.innerHTML =
+                '<span class="dl-check">✓</span>' +
+                '<span>تم التنزيل</span>';
+
+            setTimeout(function(){
+                button.classList.remove("done");
+                button.innerHTML = originalHTML;
+                button.dataset.busy = "0";
+            }, 1800);
+        }, 500);
+    };
+
+})();
