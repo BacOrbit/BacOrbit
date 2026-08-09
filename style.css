@@ -1367,3 +1367,48 @@ footer{
         min-width:140px;
     }
 }
+
+/* ==========================================================
+   11-B. تحسينات منتدى BacOrbit
+   ========================================================== */
+.auth-gate{max-width:800px;margin:0 auto 40px}
+.auth-card{background:var(--card-bg);border:2px solid var(--border);border-radius:22px;padding:38px 28px;text-align:center;box-shadow:0 12px 35px rgba(0,0,0,.25);animation:forumCardIn .45s ease both}
+.auth-icon{width:62px;height:62px;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--featured-tint);border:1px solid var(--accent);font-size:28px}
+.auth-card h2{color:var(--accent);margin-bottom:10px}.auth-card p{color:var(--text-secondary);line-height:1.8;margin-bottom:22px}
+.google-btn{width:100%;max-width:360px;padding:14px 20px;border:1px solid var(--accent);border-radius:13px;background:var(--accent);color:#000;font:700 15px Arial,sans-serif;cursor:pointer;transition:transform .2s ease,box-shadow .25s ease}
+.google-btn:hover{transform:translateY(-2px);box-shadow:0 0 22px var(--accent-glow)}
+.user-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 15px;border:1px solid var(--empty-border);border-radius:14px;background:var(--card-bg);color:var(--text-secondary)}
+.user-bar strong{color:var(--accent)}.signout-link{color:var(--danger);cursor:pointer;font-weight:bold}.signout-link:hover{opacity:.75}
+.composer-title{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.composer-title h3{margin-bottom:5px}.composer-title p{color:var(--text-secondary);font-size:13px}
+.composer-badge{border:1px solid var(--accent);color:var(--accent);background:var(--featured-tint);padding:6px 10px;border-radius:999px;font-size:11px;font-weight:bold;white-space:nowrap}
+.file-name{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clear-file-btn{display:inline-flex;align-items:center;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:9px;padding:7px 10px;cursor:pointer;font:700 12px Arial,sans-serif}.clear-file-btn:hover{background:var(--danger-bg)}
+.attachment-preview-wrap{margin:0 0 14px;padding:10px;border:1px solid var(--empty-border);border-radius:13px;background:var(--bg)}
+.img-preview{max-width:220px;max-height:220px;object-fit:cover}
+.file-preview-card{display:none;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 12px;border-radius:11px;background:var(--card-bg);border:1px solid var(--empty-border);color:var(--text)}
+.file-preview-card strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}.file-preview-card small{display:block;color:var(--text-secondary);margin-top:3px}.file-preview-icon{font-size:27px}
+.submit-btn{display:flex;align-items:center;justify-content:center;gap:9px}.submit-btn:disabled,.google-btn:disabled{opacity:.65;cursor:wait;transform:none}
+.btn-spinner{width:15px;height:15px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:forumSpin .7s linear infinite}
+.post{position:relative;animation:forumCardIn .35s ease both}
+.post-mine{border-color:var(--accent);background:linear-gradient(135deg,var(--featured-tint),var(--card-bg) 65%);box-shadow:0 0 0 1px var(--accent-soft),0 8px 26px rgba(0,0,0,.18)}
+.post-mine::before{content:"";position:absolute;top:12px;right:12px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.you-badge{display:inline-flex;align-items:center;margin-right:5px;padding:3px 7px;border-radius:999px;background:var(--accent);color:#000;font-size:10px;vertical-align:middle}
+.post-mine .post-author{color:var(--accent)}
+.attachment-image-link{display:block;width:max-content;max-width:100%}
+.attachment-card{display:flex;align-items:center;gap:12px;width:100%;max-width:520px;margin:0 0 13px;padding:12px 14px;background:var(--bg);border:1px solid var(--empty-border);border-radius:13px;color:var(--text);text-decoration:none;transition:transform .2s ease,border-color .25s ease,box-shadow .25s ease}
+.attachment-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 7px 20px rgba(0,0,0,.18)}
+.attachment-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:var(--featured-tint);font-size:20px;flex:0 0 auto}
+.attachment-info{min-width:0;flex:1}.attachment-info strong,.attachment-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.attachment-info small{margin-top:4px;color:var(--text-secondary);font-size:11px}
+.attachment-download{color:var(--accent);font-size:22px;font-weight:bold}.replies-title{color:var(--text-secondary);font-size:12px;font-weight:bold;margin:4px 0 8px}
+.reply.post-mine{background:linear-gradient(135deg,var(--featured-tint),var(--bg) 70%)}.reply .attachment-card{max-width:460px}
+.post-actions{flex-wrap:wrap}.report-btn{border-color:var(--danger);color:var(--danger)}.report-btn:hover{background:var(--danger-bg)}.reply-btn:hover{background:var(--accent-glow)}
+.reply-form{overflow:hidden;animation:replyOpen .25s ease both}
+.forum-error{padding:20px;margin-bottom:25px;border:1px solid var(--danger);border-radius:14px;background:var(--danger-bg);color:var(--danger);text-align:center;line-height:1.7}
+@keyframes forumCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes replyOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes forumSpin{to{transform:rotate(360deg)}}
+@media(max-width:600px){
+ .auth-card{padding:28px 18px}.composer-title{flex-direction:column}.composer-badge{align-self:flex-start}
+ .user-bar{align-items:flex-start;flex-direction:column}.post{padding:17px;border-radius:16px}.post-actions{gap:8px}
+ .action-btn{padding:7px 11px;font-size:12px}.attachment-card{padding:10px}.file-preview-card strong{max-width:210px}
+}
