@@ -1,1414 +1,1732 @@
 /* ==========================================================
-   BacOrbit - Shared Stylesheet
-   يحتوي على: متغيرات الوضع الداكن/الفاتح + كل المكوّنات المشتركة
-   (الشريط العلوي، الهيدر، البطاقات، الفوتر، عناصر لعبة المكتسبات)
-   يجب ربط هذا الملف من كل صفحة تريد نفس الهوية البصرية.
+   BacOrbit - Production Stylesheet
+   الملف الموحد النظيف بعد المراجعة التقنية وحل تعارضات التفاعل
    ========================================================== */
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, sans-serif;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
 }
 
-html{
-    scroll-behavior:smooth;
+html {
+    scroll-behavior: smooth;
 }
 
 /* ---------- 1. متغيرات الألوان ---------- */
 
-:root{
-    --bg:#0d0d0d;
-    --text:#ffffff;
-    --text-secondary:#bdbdbd;
-    --text-muted:#cfcfcf;
-    --header-bg:#111111;
-    --track-bg:#0a0a0a;
-    --accent:#1aff66;
-    --accent-soft:rgba(26,255,102,.5);
-    --accent-glow:rgba(26,255,102,.4);
-    --card-bg:#161616;
-    --border:#1aff66;
-    --empty-border:#333333;
-    --empty-text:#666666;
-    --footer-text:#888888;
-    --featured-tint:#0f2b1a;
-    --danger:#ff4d4d;
-    --danger-bg:#2b0f0f;
-    --gold:#ffd24d;
-    --gold-dark:#c9a227;
+:root {
+    --bg: #0d0d0d;
+    --text: #ffffff;
+    --text-secondary: #bdbdbd;
+    --text-muted: #cfcfcf;
+    --header-bg: #111111;
+    --track-bg: #0a0a0a;
+    --accent: #1aff66;
+    --accent-soft: rgba(26, 255, 102, 0.5);
+    --accent-glow: rgba(26, 255, 102, 0.4);
+    --card-bg: #161616;
+    --border: #1aff66;
+    --empty-border: #333333;
+    --empty-text: #666666;
+    --footer-text: #888888;
+    --featured-tint: #0f2b1a;
+    --danger: #ff4d4d;
+    --danger-bg: #2b0f0f;
+    --gold: #ffd24d;
+    --gold-dark: #c9a227;
 }
 
-html[data-theme="light"]{
-    --bg:#ffffff;
-    --text:#181818;
-    --text-secondary:#5c5c5c;
-    --text-muted:#4a4a4a;
-    --header-bg:#fff8f0;
-    --track-bg:#ffe9d2;
-    --accent:#ff8a1f;
-    --accent-soft:rgba(255,138,31,.4);
-    --accent-glow:rgba(255,138,31,.35);
-    --card-bg:#fbf7f2;
-    --border:#ff8a1f;
-    --empty-border:#e4ded6;
-    --empty-text:#a3a3a3;
-    --footer-text:#8a8a8a;
-    --featured-tint:#ffe6c9;
-    --danger:#e04343;
-    --danger-bg:#fdeaea;
-    --gold:#ffc94d;
-    --gold-dark:#b5860f;
+html[data-theme="light"] {
+    --bg: #ffffff;
+    --text: #181818;
+    --text-secondary: #5c5c5c;
+    --text-muted: #4a4a4a;
+    --header-bg: #fff8f0;
+    --track-bg: #ffe9d2;
+    --accent: #ff8a1f;
+    --accent-soft: rgba(255, 138, 31, 0.4);
+    --accent-glow: rgba(255, 138, 31, 0.35);
+    --card-bg: #fbf7f2;
+    --border: #ff8a1f;
+    --empty-border: #e4ded6;
+    --empty-text: #a3a3a3;
+    --footer-text: #8a8a8a;
+    --featured-tint: #ffe6c9;
+    --danger: #e04343;
+    --danger-bg: #fdeaea;
+    --gold: #ffc94d;
+    --gold-dark: #b5860f;
 }
 
-html, body{
-    transition:background-color .4s ease, color .4s ease;
+html, body {
+    transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-body{
-    background:var(--bg);
-    color:var(--text);
-    min-height:100vh;
-    overflow-x:hidden;
+body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* ---------- 2. الشريط العلوي ---------- */
 
-.top-bar{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    background:var(--header-bg);
-    border-bottom:1px solid var(--border);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 25px;
-    z-index:1000;
-    transition:transform .3s ease, background-color .35s ease, border-color .35s ease;
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 25px;
+    z-index: 1000;
+    transition: transform 0.3s ease-in-out, background-color 0.35s ease, border-color 0.35s ease;
 }
 
-.top-bar.hide{
-    transform:translateY(-100%);
+.top-bar.hide {
+    transform: translateY(-100%);
 }
 
-.top-link{
-    color:var(--accent);
-    text-decoration:none;
-    font-size:18px;
-    font-weight:bold;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    transition:color .25s ease;
+.top-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.25s ease;
 }
 
-.top-link:hover{
-    color:var(--text);
+.top-link:hover {
+    color: var(--text);
 }
 
-.notification-dot{
-    width:9px;
-    height:9px;
-    background:var(--danger);
-    border-radius:50%;
-    display:inline-block;
-    box-shadow:0 0 10px var(--danger);
+.notification-dot {
+    width: 9px;
+    height: 9px;
+    background: var(--danger);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px var(--danger);
 }
 
 /* ---------- 3. زر تبديل الوضع (Switch) ---------- */
 
-.theme-switch{
-    direction:ltr;
-    position:relative;
-    width:62px;
-    height:32px;
-    border-radius:999px;
-    border:1px solid var(--border);
-    background:var(--track-bg);
-    cursor:pointer;
-    padding:0;
-    flex-shrink:0;
-    transition:background-color .4s ease, border-color .4s ease, box-shadow .3s ease;
+.theme-switch {
+    direction: ltr;
+    position: relative;
+    width: 62px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--track-bg);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.3s ease;
 }
 
-.theme-switch:hover{
-    box-shadow:0 0 14px var(--accent-glow);
+.theme-switch:hover {
+    box-shadow: 0 0 14px var(--accent-glow);
 }
 
-.theme-switch:active .theme-switch-thumb{
-    width:30px;
+.theme-switch:active .theme-switch-thumb {
+    width: 30px;
 }
 
-.theme-switch-track{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 7px;
-    pointer-events:none;
+.theme-switch-track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 7px;
+    pointer-events: none;
+    z-index: 2;
 }
 
-.theme-switch-icon{
-    font-size:13px;
-    line-height:1;
-    opacity:.4;
-    transition:opacity .35s ease, transform .35s ease;
+.theme-switch-icon {
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.4;
+    transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.theme-switch .moon{
-    opacity:1;
+.theme-switch .moon {
+    opacity: 1;
 }
 
-html[data-theme="light"] .theme-switch .sun{
-    opacity:1;
-    transform:scale(1.1);
+html[data-theme="light"] .theme-switch .sun {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
-html[data-theme="light"] .theme-switch .moon{
-    opacity:.4;
+html[data-theme="light"] .theme-switch .moon {
+    opacity: 0.4;
 }
 
-.theme-switch-thumb{
-    position:absolute;
-    top:3px;
-    left:33px;
-    width:24px;
-    height:24px;
-    border-radius:50%;
-    background:var(--accent);
-    box-shadow:0 2px 8px rgba(0,0,0,.45);
-    transition:left .4s cubic-bezier(.4,0,.2,1), background-color .4s ease, width .15s ease;
+.theme-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 33px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease, width 0.15s ease;
+    z-index: 3;
 }
 
-html[data-theme="light"] .theme-switch-thumb{
-    left:3px;
+html[data-theme="light"] .theme-switch-thumb {
+    left: 3px;
 }
 
 /* ---------- 4. الهيدر والشعار ---------- */
 
-header.site-header{
-    margin-top:55px;
-    text-align:center;
-    padding:30px;
-    border-bottom:1px solid var(--border);
-    transition:border-color .35s ease;
+header.site-header {
+    margin-top: 55px;
+    text-align: center;
+    padding: 30px;
+    border-bottom: 1px solid var(--border);
+    transition: border-color 0.35s ease;
 }
 
-.logo{
-    font-size:40px;
-    font-weight:bold;
-    color:var(--accent);
-    letter-spacing:2px;
-    transition:color .35s ease;
+.logo {
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--accent);
+    letter-spacing: 2px;
+    transition: color 0.35s ease;
 }
 
 /* ---------- 5. قسم الهيرو ---------- */
 
-.hero{
-    text-align:center;
-    padding:70px 20px 40px;
+.hero {
+    text-align: center;
+    padding: 70px 20px 40px;
 }
 
-.hero h1{
-    font-size:44px;
-    margin-bottom:14px;
-    color:var(--text);
+.hero h1 {
+    font-size: 44px;
+    margin-bottom: 14px;
+    color: var(--text);
 }
 
-.hero p{
-    color:var(--text-secondary);
-    font-size:18px;
-    line-height:1.7;
+.hero p {
+    color: var(--text-secondary);
+    font-size: 18px;
+    line-height: 1.7;
 }
 
 /* ---------- 6. شبكة البطاقات (الصفحة الرئيسية) ---------- */
 
-.branches{
-    max-width:1200px;
-    margin:auto;
-    padding:30px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
-    gap:25px;
+.branches {
+    max-width: 1200px;
+    margin: auto;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 25px;
 }
 
-.card{
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:20px;
-    padding:35px;
-    text-align:center;
-    cursor:pointer;
-    transition:transform .3s ease, box-shadow .3s ease, background-color .35s ease, border-color .35s ease;
+.card {
+    position: relative;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 35px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.35s ease, border-color 0.35s ease;
 }
 
-.card:hover{
-    transform:translateY(-8px);
-    box-shadow:0 0 25px var(--accent-soft);
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 25px var(--accent-soft);
 }
 
-.card h2{
-    color:var(--accent);
-    margin-bottom:15px;
-    transition:color .35s ease;
+.card h2 {
+    color: var(--accent);
+    margin-bottom: 15px;
+    transition: color 0.35s ease;
 }
 
-.card p{
-    color:var(--text-muted);
+.card p {
+    color: var(--text-muted);
 }
 
-.card-featured{
-    grid-column:1 / -1;
-    padding:55px 35px;
-    background:linear-gradient(135deg, var(--card-bg), var(--featured-tint));
-    border-width:3px;
+.card-featured {
+    grid-column: 1 / -1;
+    padding: 55px 35px;
+    background: linear-gradient(135deg, var(--card-bg), var(--featured-tint));
+    border-width: 3px;
 }
 
-.card-featured h2{
-    font-size:30px;
+.card-featured h2 {
+    font-size: 30px;
 }
 
-.card-featured p{
-    font-size:16px;
-    margin-top:6px;
+.card-featured p {
+    font-size: 16px;
+    margin-top: 6px;
 }
 
-.card-empty{
-    border-color:var(--empty-border);
-    cursor:default;
-    opacity:.65;
+.card-empty {
+    border-color: var(--empty-border);
+    cursor: default;
+    opacity: 0.65;
 }
 
-.card-empty:hover{
-    transform:none;
-    box-shadow:none;
+.card-empty:hover {
+    transform: none;
+    box-shadow: none;
 }
 
-.card-empty h2{
-    color:var(--empty-text);
+.card-empty h2 {
+    color: var(--empty-text);
 }
 
 /* ---------- 7. زر رجوع + فوتر ---------- */
 
-.back{
-    display:block;
-    width:260px;
-    margin:45px auto 40px;
-    padding:16px;
-    text-align:center;
-    background:var(--accent);
-    color:#000;
-    font-weight:bold;
-    text-decoration:none;
-    border-radius:14px;
-    transition:transform .25s ease, background-color .35s ease;
+.back {
+    display: block;
+    width: 260px;
+    margin: 45px auto 40px;
+    padding: 16px;
+    text-align: center;
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 14px;
+    transition: transform 0.25s ease, background-color 0.35s ease;
 }
 
-.back:hover{
-    transform:scale(1.03);
+.back:hover {
+    transform: scale(1.03);
 }
 
-footer{
-    text-align:center;
-    padding:25px;
-    color:var(--footer-text);
-    transition:color .35s ease;
+footer {
+    text-align: center;
+    padding: 25px;
+    color: var(--footer-text);
+    transition: color 0.35s ease;
 }
 
-/* ==========================================================
-   8. عناصر لعبة "التذكير بالمكتسبات"
-   ========================================================== */
+/* ---------- 8. عناصر لعبة "التذكير بالمكتسبات" ---------- */
 
-.game-hero h1{
-    font-size:40px;
-    color:var(--accent);
+.game-hero h1 {
+    font-size: 40px;
+    color: var(--accent);
 }
 
-.score-bar{
-    max-width:650px;
-    margin:0 auto 10px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:0 10px;
-    color:var(--text-secondary);
-    font-size:14px;
-    font-weight:bold;
-    flex-wrap:wrap;
-    gap:8px;
+.score-bar {
+    max-width: 650px;
+    margin: 0 auto 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: bold;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.score-bar span{
-    color:var(--accent);
+.score-bar span {
+    color: var(--accent);
 }
 
-.progress-track{
-    max-width:650px;
-    margin:0 auto 25px;
-    padding:0 10px;
+.progress-track {
+    max-width: 650px;
+    margin: 0 auto 25px;
+    padding: 0 10px;
 }
-
-.progress-outer{
-    height:8px;
-    background:var(--track-bg);
-    border-radius:10px;
-    overflow:hidden;
-    border:1px solid var(--empty-border);
-}
 
-.progress-inner{
-    height:100%;
-    background:var(--accent);
-    width:0%;
-    transition:width .4s ease, background-color .35s ease;
+.progress-outer {
+    height: 8px;
+    background: var(--track-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--empty-border);
 }
 
-.quiz-wrap{
-    max-width:650px;
-    margin:auto;
-    padding:10px 20px 60px;
+.progress-inner {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.4s ease, background-color 0.35s ease;
 }
 
-.quiz-card{
-    background:var(--card-bg);
-    border:3px solid var(--border);
-    border-radius:22px;
-    padding:35px;
-    transition:border-color .25s ease, box-shadow .25s ease, background-color .35s ease;
-    box-shadow:0 12px 35px rgba(0,0,0,.3);
+.quiz-wrap {
+    max-width: 650px;
+    margin: auto;
+    padding: 10px 20px 60px;
 }
-
-.quiz-card.shake{
-    animation:shake .4s;
-}
 
-.quiz-card.flash-red{
-    border-color:var(--danger);
-    box-shadow:0 0 30px rgba(224,67,67,.4);
+.quiz-card {
+    background: var(--card-bg);
+    border: 3px solid var(--border);
+    border-radius: 22px;
+    padding: 35px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
 }
 
-.quiz-card.flash-green{
-    border-color:var(--accent);
-    box-shadow:0 0 30px var(--accent-glow);
+.quiz-card.shake {
+    animation: shake 0.4s;
 }
 
-@keyframes shake{
-    0%{transform:translateX(0);}
-    20%{transform:translateX(-10px);}
-    40%{transform:translateX(10px);}
-    60%{transform:translateX(-8px);}
-    80%{transform:translateX(8px);}
-    100%{transform:translateX(0);}
-}
-
-.badge{
-    display:inline-block;
-    background:var(--bg);
-    border:1px solid var(--accent);
-    color:var(--accent);
-    font-size:13px;
-    font-weight:bold;
-    padding:6px 16px;
-    border-radius:20px;
-    margin-bottom:18px;
-    transition:border-color .35s ease, color .35s ease, background-color .35s ease;
+.quiz-card.flash-red {
+    border-color: var(--danger);
+    box-shadow: 0 0 30px rgba(224, 67, 67, 0.4);
 }
 
-.badge.review{
-    border-color:var(--gold);
-    color:var(--gold-dark);
-}
-
-.question-text{
-    font-size:21px;
-    line-height:1.85;
-    margin-bottom:28px;
-    min-height:60px;
-    unicode-bidi:plaintext;
-    letter-spacing:.2px;
-}
-
-.options{
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-}
-
-.option-btn{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    background:var(--bg);
-    border:2px solid var(--empty-border);
-    color:var(--text);
-    padding:14px 18px;
-    border-radius:14px;
-    font-size:17px;
-    text-align:right;
-    cursor:pointer;
-    transition:border-color .2s ease, transform .2s ease, background-color .35s ease, color .35s ease;
-    font-family:inherit;
-    width:100%;
+.quiz-card.flash-green {
+    border-color: var(--accent);
+    box-shadow: 0 0 30px var(--accent-glow);
 }
 
-.option-btn:hover:not(:disabled){
-    border-color:var(--accent);
-    transform:translateY(-3px);
+@keyframes shake {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-8px); }
+    80% { transform: translateX(8px); }
+    100% { transform: translateX(0); }
+}
+
+.badge {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: bold;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+    transition: border-color 0.35s ease, color 0.35s ease, background-color 0.35s ease;
+}
+
+.badge.review {
+    border-color: var(--gold);
+    color: var(--gold-dark);
+}
+
+.question-text {
+    font-size: 21px;
+    line-height: 1.85;
+    margin-bottom: 28px;
+    min-height: 60px;
+    unicode-bidi: plaintext;
+    letter-spacing: 0.2px;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg);
+    border: 2px solid var(--empty-border);
+    color: var(--text);
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 17px;
+    text-align: right;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.35s ease, color 0.35s ease;
+    font-family: inherit;
+    width: 100%;
+}
+
+.option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+}
+
+.option-btn:disabled {
+    cursor: default;
+}
+
+.option-letter {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.option-text {
+    flex: 1;
+    unicode-bidi: plaintext;
+    line-height: 1.6;
 }
+
+.option-btn.correct-answer {
+    border-color: var(--accent);
+    background: var(--featured-tint);
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.option-btn.correct-answer .option-letter {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+.option-btn.wrong-answer {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-weight: bold;
+}
+
+.option-btn.wrong-answer .option-letter {
+    background: var(--danger);
+    color: #fff;
+    border-color: var(--danger);
+}
 
-.option-btn:disabled{
-    cursor:default;
+.banner-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 2000;
 }
 
-.option-letter{
-    flex:0 0 auto;
-    width:30px;
-    height:30px;
-    border-radius:50%;
-    background:var(--card-bg);
-    border:2px solid var(--accent);
-    color:var(--accent);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:bold;
-    font-size:14px;
-    transition:background-color .3s ease, color .3s ease, border-color .3s ease;
+.banner {
+    padding: 22px 45px;
+    border-radius: 20px;
+    font-size: 32px;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
 }
 
-.option-text{
-    flex:1;
-    unicode-bidi:plaintext;
-    line-height:1.6;
+.banner.show {
+    opacity: 1;
+    transform: scale(1);
 }
 
-.option-btn.correct-answer{
-    border-color:var(--accent);
-    background:var(--featured-tint);
-    color:var(--accent);
-    font-weight:bold;
+.banner.win {
+    background: var(--featured-tint);
+    border: 3px solid var(--accent);
+    color: var(--accent);
 }
 
-.option-btn.correct-answer .option-letter{
-    background:var(--accent);
-    color:#000;
-    border-color:var(--accent);
+.banner.lose {
+    background: var(--danger-bg);
+    border: 3px solid var(--danger);
+    color: var(--danger);
 }
 
-.option-btn.wrong-answer{
-    border-color:var(--danger);
-    background:var(--danger-bg);
-    color:var(--danger);
-    font-weight:bold;
+.congrats, .stage-complete {
+    background: var(--card-bg);
+    border: 3px solid var(--border);
+    border-radius: 22px;
+    padding: 35px 25px 40px;
+    text-align: center;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
 }
 
-.option-btn.wrong-answer .option-letter{
-    background:var(--danger);
-    color:#fff;
-    border-color:var(--danger);
+.congrats-svg, .stage-complete-svg {
+    width: 100%;
+    height: auto;
+    margin: 0 auto 10px;
+    display: block;
 }
 
-/* ---------- بانر النتيجة الفورية ---------- */
+.congrats-svg { max-width: 380px; }
+.stage-complete-svg { max-width: 210px; }
 
-.banner-overlay{
-    position:fixed;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-    z-index:2000;
+.congrats h2, .stage-complete h2 {
+    color: var(--accent);
+    font-size: 26px;
+    margin-bottom: 14px;
 }
 
-.banner{
-    padding:22px 45px;
-    border-radius:20px;
-    font-size:32px;
-    font-weight:bold;
-    text-align:center;
-    opacity:0;
-    transform:scale(.7);
-    transition:transform .25s ease, opacity .25s ease;
-    box-shadow:0 0 40px rgba(0,0,0,.5);
+.congrats p, .stage-complete p {
+    color: var(--text-muted);
+    font-size: 17px;
+    line-height: 1.8;
+    margin-bottom: 26px;
 }
 
-.banner.show{
-    opacity:1;
-    transform:scale(1);
+.restart-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 15px 34px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease;
+    font-family: inherit;
 }
 
-.banner.win{
-    background:var(--featured-tint);
-    border:3px solid var(--accent);
-    color:var(--accent);
+.restart-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--accent-glow);
 }
 
-.banner.lose{
-    background:var(--danger-bg);
-    border:3px solid var(--danger);
-    color:var(--danger);
+.theme-fill {
+    fill: var(--accent);
+    transition: fill 0.35s ease;
 }
 
-/* ---------- شاشتا "نهاية المرحلة" و "التهنئة النهائية" ---------- */
+.theme-stop {
+    stop-color: var(--accent);
+    transition: stop-color 0.35s ease;
+}
 
-.congrats, .stage-complete{
-    background:var(--card-bg);
-    border:3px solid var(--border);
-    border-radius:22px;
-    padding:35px 25px 40px;
-    text-align:center;
-    box-shadow:0 12px 35px rgba(0,0,0,.3);
+.confetti {
+    animation: floaty 3s ease-in-out infinite;
 }
 
-.congrats-svg, .stage-complete-svg{
-    width:100%;
-    height:auto;
-    margin:0 auto 10px;
-    display:block;
+.confetti.c2, .confetti.c4, .confetti.c6 { animation-delay: 0.4s; }
+.confetti.c3, .confetti.c5 { animation-delay: 0.8s; }
+
+@keyframes floaty {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
 }
 
-.congrats-svg{
-    max-width:380px;
+.sparkle {
+    animation: twinkle 1.6s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
 }
+
+.sparkle.s2 { animation-delay: 0.5s; }
+.sparkle.s3 { animation-delay: 1s; }
 
-.stage-complete-svg{
-    max-width:210px;
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.15); }
 }
 
-.congrats h2, .stage-complete h2{
-    color:var(--accent);
-    font-size:26px;
-    margin-bottom:14px;
+/* ---------- 9. صفحات المواد والأكورديون (تم الإصلاح الشامل) ---------- */
+
+.subjects {
+    max-width: 1200px;
+    margin: auto;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    align-items: start;
 }
 
-.congrats p, .stage-complete p{
-    color:var(--text-muted);
-    font-size:17px;
-    line-height:1.8;
-    margin-bottom:26px;
+.subjects .card {
+    position: relative;
 }
 
-.restart-btn{
-    background:var(--accent);
-    color:#000;
-    border:none;
-    padding:15px 34px;
-    border-radius:12px;
-    font-size:16px;
-    font-weight:bold;
-    cursor:pointer;
-    transition:transform .25s ease, box-shadow .25s ease, background-color .35s ease;
-    font-family:inherit;
+/* إصلاح مشكلة قفل النقر وحجب المحتوى داخل الأكورديون */
+.subject-content {
+    display: none;
+    margin-top: 20px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.35s ease, max-height 0.4s ease-out;
 }
 
-.restart-btn:hover{
-    transform:scale(1.05);
-    box-shadow:0 0 20px var(--accent-glow);
+/* عند الفتح بـ JavaScript سواًء عبر تغيير display أو الكلاسات */
+.subject-content[style*="display: block"],
+.subject-content.open,
+.subject-content.active {
+    opacity: 1;
+    max-height: 2000px;
+    overflow: visible;
 }
 
-.theme-fill{
-    fill:var(--accent);
-    transition:fill .35s ease;
+.mini-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 15px;
+    padding: 15px;
+    margin-top: 12px;
+    color: var(--text);
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
 }
 
-.theme-stop{
-    stop-color:var(--accent);
-    transition:stop-color .35s ease;
+.mini-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px var(--accent-glow);
 }
 
-.confetti{
-    animation:floaty 3s ease-in-out infinite;
+.mini-card.disabled-card {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
 }
 
-.confetti.c2, .confetti.c4, .confetti.c6{
-    animation-delay:.4s;
+.mini-card.disabled-card:hover {
+    transform: none;
+    box-shadow: none;
 }
 
-.confetti.c3, .confetti.c5{
-    animation-delay:.8s;
+/* ---------- 10. صفحات الدروس ---------- */
+
+.lessons {
+    width: 100%;
+    max-width: 1050px;
+    margin: auto;
+    padding: 20px;
 }
 
-@keyframes floaty{
-    0%, 100%{transform:translateY(0);}
-    50%{transform:translateY(-6px);}
+.lesson {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 22px;
+    overflow: hidden;
+    margin-bottom: 45px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+    transition: transform 0.35s ease, box-shadow 0.35s ease, background-color 0.35s ease, border-color 0.35s ease;
 }
 
-.sparkle{
-    animation:twinkle 1.6s ease-in-out infinite;
-    transform-box:fill-box;
-    transform-origin:center;
+.lesson:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0 35px var(--accent-glow);
 }
 
-.sparkle.s2{
-    animation-delay:.5s;
+.lesson img {
+    width: 100%;
+    display: block;
 }
 
-.sparkle.s3{
-    animation-delay:1s;
+.lesson iframe {
+    width: 100%;
+    height: 620px;
+    border: none;
+    display: block;
+    background: #ffffff;
 }
 
-@keyframes twinkle{
-    0%, 100%{opacity:.3; transform:scale(.8);}
-    50%{opacity:1; transform:scale(1.15);}
+.lesson .topic-download-btn {
+    margin: 14px 20px 20px;
 }
+
+/* ---------- 11. المنتدى (chat.html) وبوابة التسجيل الموحدة ---------- */
 
-/* ==========================================================
-   9. صفحات المواد (شبكة المواد + البطاقات المصغّرة)
-   تُستعمل في صفحات الشعب (1_math.html, 1_science.html...)
-   وصفحات المواضيع (S_Social.html, S_science.html...)
-   ========================================================== */
+.wrap {
+    max-width: 800px;
+    margin: auto;
+    padding: 0 20px 40px;
+}
 
-.subjects{
-    max-width:1200px;
-    margin:auto;
-    padding:30px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
-    gap:25px;
-    align-items:start;
+.auth-gate {
+    max-width: 800px;
+    margin: 0 auto 40px;
 }
 
-.subject-content{
-    display:none;
-    margin-top:20px;
+.auth-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 22px;
+    padding: 38px 28px;
+    text-align: center;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+    animation: forumCardIn 0.45s ease both;
 }
 
-.mini-card{
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:15px;
-    padding:15px;
-    margin-top:12px;
-    color:var(--text);
-    font-weight:bold;
-    cursor:pointer;
-    transition:transform .3s ease, box-shadow .3s ease, background-color .35s ease, border-color .35s ease, color .35s ease;
+.auth-icon {
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    background: var(--featured-tint);
+    border: 1px solid var(--accent);
+    font-size: 28px;
 }
 
-.mini-card:hover{
-    transform:translateY(-5px);
-    box-shadow:0 0 20px var(--accent-glow);
+.auth-card h2 {
+    color: var(--accent);
+    margin-bottom: 10px;
 }
 
-.mini-card.disabled-card{
-    opacity:.45;
-    cursor:default;
-    pointer-events:none;
+.auth-card p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 22px;
 }
 
-.mini-card.disabled-card:hover{
-    transform:none;
-    box-shadow:none;
+.google-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+    padding: 14px 20px;
+    border: 1px solid var(--accent);
+    border-radius: 13px;
+    background: var(--accent);
+    color: #000;
+    font: 700 15px Arial, sans-serif;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.25s ease, background-color 0.35s ease;
 }
 
-/* ==========================================================
-   10. صفحات الدروس (L_Arabic.html, L_English.html...)
-   ========================================================== */
+.google-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 22px var(--accent-glow);
+}
 
-.lessons{
-    width:100%;
-    max-width:1050px;
-    margin:auto;
-    padding:20px;
+.google-btn:disabled, .submit-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
 }
 
-.lesson{
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:22px;
-    overflow:hidden;
-    margin-bottom:45px;
-    box-shadow:0 12px 35px rgba(0,0,0,.45);
-    transition:transform .35s ease, box-shadow .35s ease, background-color .35s ease, border-color .35s ease;
+.user-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 auto 20px;
+    max-width: 800px;
+    padding: 12px 18px;
+    border: 1px solid var(--empty-border);
+    border-radius: 14px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 14px;
 }
 
-.lesson:hover{
-    transform:translateY(-6px);
-    box-shadow:0 0 35px var(--accent-glow);
+.user-bar strong {
+    color: var(--accent);
 }
 
-.lesson img{
-    width:100%;
-    display:block;
+.signout-link {
+    color: var(--danger);
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
 }
 
-.lesson iframe{
-    width:100%;
-    height:620px;
-    border:none;
-    display:block;
-    background:#ffffff;
+.signout-link:hover {
+    text-decoration: underline;
+    opacity: 0.85;
 }
 
-.lesson .topic-download-btn{
-    margin:14px 20px 20px;
+.new-post {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 40px;
+    transition: background-color 0.35s ease, border-color 0.35s ease;
 }
 
-/* ==========================================================
-   11. المنتدى (chat.html)
-   ========================================================== */
+.composer-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 16px;
+}
 
-.wrap{
-    max-width:800px;
-    margin:auto;
-    padding:0 20px 40px;
+.composer-title h3 {
+    color: var(--accent);
+    font-size: 20px;
+    margin-bottom: 5px;
 }
 
-.new-post{
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:20px;
-    padding:25px;
-    margin-bottom:40px;
-    transition:background-color .35s ease, border-color .35s ease;
+.composer-title p {
+    color: var(--text-secondary);
+    font-size: 13px;
 }
 
-.new-post h3{
-    color:var(--accent);
-    margin-bottom:15px;
-    font-size:20px;
-    transition:color .35s ease;
+.composer-badge {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: var(--featured-tint);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 .new-post input[type="text"],
 .new-post textarea,
 .reply-form input[type="text"],
-.reply-form textarea{
-    width:100%;
-    background:var(--bg);
-    border:2px solid var(--empty-border);
-    border-radius:12px;
-    padding:12px 14px;
-    color:var(--text);
-    font-size:15px;
-    margin-bottom:14px;
-    resize:vertical;
-    transition:border-color .25s ease, background-color .35s ease, color .35s ease;
+.reply-form textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 2px solid var(--empty-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 14px;
+    resize: vertical;
+    transition: border-color 0.25s ease, background-color 0.35s ease, color 0.35s ease;
 }
 
 .new-post input[type="text"]:focus,
 .new-post textarea:focus,
 .reply-form input[type="text"]:focus,
-.reply-form textarea:focus{
-    outline:none;
-    border-color:var(--accent);
+.reply-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.new-post textarea { min-height: 100px; }
+
+.file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.25s ease, border-color 0.35s ease;
+}
+
+.file-label:hover {
+    background: var(--accent-glow);
+}
+
+.file-name {
+    color: var(--text-secondary);
+    font-size: 13px;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clear-file-btn {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--danger);
+    background: transparent;
+    color: var(--danger);
+    border-radius: 9px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font: 700 12px Arial, sans-serif;
+}
+
+.clear-file-btn:hover {
+    background: var(--danger-bg);
+}
+
+.attachment-preview-wrap {
+    margin: 0 0 14px;
+    padding: 10px;
+    border: 1px solid var(--empty-border);
+    border-radius: 13px;
+    background: var(--bg);
+}
+
+.img-preview {
+    max-width: 220px;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    display: none;
+    margin-bottom: 14px;
+}
+
+.file-preview-card {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 12px;
+    border-radius: 11px;
+    background: var(--card-bg);
+    border: 1px solid var(--empty-border);
+    color: var(--text);
+}
+
+.file-preview-card strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 360px;
+}
+
+.file-preview-card small {
+    display: block;
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+
+.file-preview-icon { font-size: 27px; }
+
+.submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+    font-size: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease;
+    font-family: inherit;
+}
+
+.submit-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.btn-spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: forumSpin 0.7s linear infinite;
+}
+
+.post {
+    position: relative;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 22px;
+    margin-bottom: 25px;
+    animation: forumCardIn 0.35s ease both;
+    transition: box-shadow 0.3s ease, background-color 0.35s ease, border-color 0.35s ease;
+}
+
+.post:hover {
+    box-shadow: 0 0 20px var(--accent-soft);
+}
+
+.post-mine {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--featured-tint), var(--card-bg) 65%);
+    box-shadow: 0 0 0 1px var(--accent-soft), 0 8px 26px rgba(0, 0, 0, 0.18);
+}
+
+.post-mine::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+}
+
+.you-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 5px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    vertical-align: middle;
+}
+
+.post-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.post-author {
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.post-date {
+    color: var(--footer-text);
+    font-size: 13px;
+}
+
+.post-text {
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 12px;
+}
+
+.post-img {
+    max-width: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    display: block;
 }
 
-.new-post textarea{
-    min-height:100px;
+.attachment-image-link {
+    display: block;
+    width: max-content;
+    max-width: 100%;
 }
 
-.file-row{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-bottom:16px;
+.attachment-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 0 13px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--empty-border);
+    border-radius: 13px;
+    color: var(--text);
+    text-decoration: none;
+    transition: transform 0.2s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.file-label{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:var(--bg);
-    border:2px dashed var(--accent);
-    border-radius:12px;
-    padding:10px 16px;
-    color:var(--accent);
-    cursor:pointer;
-    font-weight:bold;
-    font-size:14px;
-    transition:background-color .25s ease, border-color .35s ease, color .35s ease;
+.attachment-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.18);
 }
 
-.file-label:hover{
-    background:var(--accent-glow);
+.attachment-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: var(--featured-tint);
+    font-size: 20px;
+    flex: 0 0 auto;
 }
 
-.file-name{
-    color:var(--text-secondary);
-    font-size:13px;
+.attachment-info {
+    min-width: 0;
+    flex: 1;
 }
 
-.img-preview{
-    max-width:160px;
-    max-height:160px;
-    border-radius:10px;
-    border:2px solid var(--border);
-    display:none;
-    margin-bottom:14px;
+.attachment-info strong, .attachment-info small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.submit-btn{
-    display:block;
-    width:100%;
-    padding:14px;
-    background:var(--accent);
-    color:#000;
-    font-weight:bold;
-    font-size:16px;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    transition:transform .25s ease, box-shadow .25s ease, background-color .35s ease;
-    font-family:inherit;
+.attachment-info small {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 11px;
 }
 
-.submit-btn:hover{
-    transform:scale(1.02);
-    box-shadow:0 0 20px var(--accent-glow);
+.attachment-download {
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: bold;
 }
 
-.post{
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:20px;
-    padding:22px;
-    margin-bottom:25px;
-    transition:box-shadow .3s ease, background-color .35s ease, border-color .35s ease;
+.post-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
 }
 
-.post:hover{
-    box-shadow:0 0 20px var(--accent-soft);
+.action-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 6px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    transition: background-color 0.25s ease, border-color 0.35s ease, color 0.35s ease;
+    font-family: inherit;
 }
 
-.post-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:12px;
-    flex-wrap:wrap;
-    gap:8px;
+.action-btn:hover, .reply-btn:hover {
+    background: var(--accent-glow);
 }
 
-.post-author{
-    color:var(--accent);
-    font-weight:bold;
-    font-size:16px;
-    transition:color .35s ease;
+.del-btn, .report-btn {
+    border-color: var(--danger);
+    color: var(--danger);
 }
 
-.post-date{
-    color:var(--footer-text);
-    font-size:13px;
+.del-btn:hover, .report-btn:hover {
+    background: var(--danger-bg);
 }
 
-.post-text{
-    color:var(--text);
-    font-size:15px;
-    line-height:1.8;
-    white-space:pre-wrap;
-    word-wrap:break-word;
-    margin-bottom:12px;
+.replies {
+    margin-top: 16px;
+    padding-right: 22px;
+    border-right: 2px solid var(--accent-soft);
 }
 
-.post-img{
-    max-width:100%;
-    border-radius:14px;
-    border:1px solid var(--border);
-    margin-bottom:12px;
-    display:block;
+.replies-title {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: bold;
+    margin: 4px 0 8px;
 }
 
-.post-actions{
-    display:flex;
-    gap:14px;
+.reply {
+    background: var(--bg);
+    border: 1px solid var(--empty-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-top: 12px;
 }
 
-.action-btn{
-    background:none;
-    border:1px solid var(--accent);
-    color:var(--accent);
-    padding:6px 16px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:13px;
-    font-weight:bold;
-    transition:background-color .25s ease, border-color .35s ease, color .35s ease;
-    font-family:inherit;
+.reply.post-mine {
+    background: linear-gradient(135deg, var(--featured-tint), var(--bg) 70%);
 }
 
-.action-btn:hover{
-    background:var(--accent-glow);
-}
+.reply .attachment-card { max-width: 460px; }
 
-.del-btn{
-    border-color:var(--danger);
-    color:var(--danger);
+.reply-form {
+    display: none;
+    margin-top: 14px;
+    background: var(--bg);
+    border: 1px solid var(--empty-border);
+    border-radius: 14px;
+    padding: 14px;
+    overflow: hidden;
+    animation: replyOpen 0.25s ease both;
 }
 
-.del-btn:hover{
-    background:var(--danger-bg);
-}
+.reply-form.open { display: block; }
+.reply-form textarea { min-height: 70px; }
 
-.replies{
-    margin-top:16px;
-    padding-right:22px;
-    border-right:2px solid var(--accent-soft);
+.empty-state {
+    text-align: center;
+    color: var(--footer-text);
+    padding: 40px 20px;
+    font-size: 16px;
 }
 
-.reply{
-    background:var(--bg);
-    border:1px solid var(--empty-border);
-    border-radius:14px;
-    padding:14px 16px;
-    margin-top:12px;
+.forum-error {
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid var(--danger);
+    border-radius: 14px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    text-align: center;
+    line-height: 1.7;
 }
 
-.reply .post-author{
-    font-size:14px;
+@keyframes forumCardIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.reply .post-text{
-    font-size:14px;
-    margin-bottom:8px;
+@keyframes replyOpen {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.reply .post-img{
-    max-width:220px;
+@keyframes forumSpin {
+    to { transform: rotate(360deg); }
 }
 
-.reply-form{
-    display:none;
-    margin-top:14px;
-    background:var(--bg);
-    border:1px solid var(--empty-border);
-    border-radius:14px;
-    padding:14px;
-}
+/* ---------- 12. أزرار وتنسيق بطاقات المواضيع والتنزيل ---------- */
 
-.reply-form.open{
-    display:block;
+.topic-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 190px;
 }
 
-.reply-form textarea{
-    min-height:70px;
-}
+.topic-card h2 { width: 100%; }
 
-.empty-state{
-    text-align:center;
-    color:var(--footer-text);
-    padding:40px 20px;
-    font-size:16px;
+.topic-download-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 145px;
+    margin-top: auto;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, var(--card-bg), var(--featured-tint));
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease, border-color 0.35s ease;
 }
-
-/* ==========================================================
-   13. أزرار التنزيل (المواضيع + الدروس)
-   ========================================================== */
 
-.subjects .card{
-    position:relative;
+.topic-download-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.16) 50%, transparent 75%);
+    transform: translateX(-120%);
+    transition: transform 0.55s ease;
+    pointer-events: none;
 }
 
-.topic-download-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-    margin-top:16px;
-    padding:8px 18px;
-    background:transparent;
-    border:1.5px solid var(--accent);
-    color:var(--accent);
-    border-radius:10px;
-    font-size:13px;
-    font-weight:bold;
-    font-family:inherit;
-    text-decoration:none;
-    cursor:pointer;
-    transition:background-color .25s ease, color .25s ease, transform .2s ease, box-shadow .25s ease, border-color .35s ease;
+.topic-download-btn:hover::after {
+    transform: translateX(120%);
 }
 
-.topic-download-btn:hover{
-    background:var(--accent);
-    color:#000;
-    transform:translateY(-2px);
-    box-shadow:0 6px 16px var(--accent-glow);
+.topic-download-btn:hover {
+    background: var(--accent);
+    color: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--accent-glow);
 }
 
-.topic-download-btn:active{
-    transform:translateY(0);
+.topic-download-btn:active {
+    transform: translateY(0);
 }
 
-.topic-download-btn svg{
-    flex-shrink:0;
+.topic-download-btn.loading {
+    cursor: wait;
+    opacity: 0.9;
+    transform: none;
 }
 
-.topic-download-btn span{
-    line-height:1;
+.topic-download-btn.done {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    cursor: default;
+    transform: none;
 }
 
-.download-all-section{
-    max-width:1050px;
-    margin:10px auto 45px;
-    padding:0 20px;
-    text-align:center;
-}
+.topic-download-btn svg { flex-shrink: 0; }
+.topic-download-btn span { line-height: 1; }
 
-.download-all-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:12px;
-    min-width:290px;
-    max-width:100%;
-    padding:17px 36px;
-    background:var(--accent);
-    color:#000;
-    font-weight:bold;
-    font-size:16px;
-    border:none;
-    border-radius:14px;
-    cursor:pointer;
-    font-family:inherit;
-    box-shadow:0 8px 24px var(--accent-soft);
-    transition:transform .25s ease, box-shadow .25s ease, background-color .35s ease, opacity .25s ease;
+.download-all-section {
+    max-width: 1050px;
+    margin: 10px auto 45px;
+    padding: 0 20px;
+    text-align: center;
 }
 
-.download-all-btn:hover:not(.loading):not(.done){
-    transform:translateY(-3px) scale(1.02);
-    box-shadow:0 10px 30px var(--accent-glow);
+.download-all-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: 290px;
+    max-width: 100%;
+    padding: 17px 36px;
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+    font-size: 16px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 8px 24px var(--accent-soft);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease, opacity 0.25s ease;
 }
 
-.download-all-btn:active:not(.loading){
-    transform:translateY(0) scale(.98);
+.download-all-btn:hover:not(.loading):not(.done) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 30px var(--accent-glow);
 }
 
-.download-all-btn.loading{
-    cursor:progress;
-    opacity:.92;
+.download-all-btn:active:not(.loading) {
+    transform: translateY(0) scale(0.98);
 }
 
-.download-all-btn svg{
-    flex-shrink:0;
+.download-all-btn.loading {
+    cursor: progress;
+    opacity: 0.92;
 }
 
-.dl-label{
-    line-height:1.3;
-}
+.download-all-btn svg { flex-shrink: 0; }
+.dl-label { line-height: 1.3; }
 
-.dl-spinner{
-    width:16px;
-    height:16px;
-    border-radius:50%;
-    border:2.5px solid rgba(0,0,0,.28);
-    border-top-color:#000;
-    animation:dlspin .8s linear infinite;
-    flex-shrink:0;
+.dl-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(0, 0, 0, 0.28);
+    border-top-color: #000;
+    animation: dlspin 0.8s linear infinite;
+    flex-shrink: 0;
 }
 
-@keyframes dlspin{
-    to{ transform:rotate(360deg); }
+@keyframes dlspin {
+    to { transform: rotate(360deg); }
 }
 
-.dl-check{
-    font-size:19px;
-    line-height:1;
+.dl-check {
+    font-size: 19px;
+    line-height: 1;
 }
 
-.download-hint{
-    margin-top:12px;
-    font-size:12.5px;
-    color:var(--footer-text);
+.download-hint {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--footer-text);
 }
-
-/* ---------- 12. تجاوب للجوال ---------- */
-
-@media(max-width:768px){
-
-    .logo{
-        font-size:32px;
-    }
-
-    .hero{
-        padding:55px 15px 25px;
-    }
-
-    .hero h1{
-        font-size:32px;
-    }
-
-    .hero p{
-        font-size:16px;
-    }
-
-    .back{
-        width:90%;
-    }
 
-    .lesson{
-        border-radius:16px;
-        margin-bottom:30px;
-    }
+/* ---------- 13. أزرار عارض الصور (تكبير/تصغير وتنزيل جانبي) ---------- */
 
-    .lesson iframe{
-        height:420px;
-    }
+.bac-img-frame {
+    position: relative;
+    display: block;
+    line-height: 0;
+    isolation: isolate;
 }
 
-@media(max-width:600px){
-
-    .wrap{
-        padding:0 12px 30px;
-    }
-
-    .quiz-card, .congrats, .stage-complete{
-        padding:24px;
-    }
-
-    .question-text{
-        font-size:18px;
-    }
-
-    .option-btn{
-        font-size:15px;
-    }
-
-    .banner{
-        font-size:22px;
-        padding:16px 26px;
-    }
-
-    .score-bar{
-        font-size:12px;
-        justify-content:center;
-    }
-
-    .download-all-btn{
-        width:100%;
-        min-width:0;
-        padding:15px 20px;
-        font-size:14.5px;
-    }
+.bac-img-frame a {
+    display: block;
+    line-height: 0;
+}
 
-    .topic-download-btn{
-        font-size:12px;
-        padding:7px 14px;
-    }
+.bac-img-frame img {
+    display: block;
+    width: 100%;
+    transform-origin: center center;
+    transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.35s ease, border-radius 0.35s ease;
+    backface-visibility: hidden;
+    will-change: transform;
 }
-/* ==========================================================
-   14. بوابة تسجيل الدخول للمنتدى (Google Auth) + تمييز منشورات المستخدم
-   ========================================================== */
 
-.auth-gate{
-    max-width:480px;
-    margin:60px auto;
-    padding:40px 30px;
-    text-align:center;
-    background:var(--card-bg);
-    border:2px solid var(--border);
-    border-radius:20px;
-    transition:background-color .35s ease, border-color .35s ease;
+.bac-img-controls {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
 }
 
-.auth-gate h3{
-    color:var(--accent);
-    margin-bottom:12px;
-    font-size:22px;
-    transition:color .35s ease;
+.bac-img-zoom-btn,
+.bac-side-download {
+    pointer-events: auto;
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
-.auth-gate p{
-    color:var(--text-muted);
-    margin-bottom:24px;
-    line-height:1.7;
+.bac-img-zoom-btn {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    z-index: 32;
 }
 
-.google-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:10px;
-    padding:14px 28px;
-    background:var(--accent);
-    color:#000;
-    font-weight:bold;
-    font-size:15px;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    font-family:inherit;
-    transition:transform .25s ease, box-shadow .25s ease, background-color .35s ease;
+.bac-img-zoom-btn:hover {
+    transform: translate(-50%, -50%) scale(1.07);
+    background: var(--featured-tint);
+    box-shadow: 0 0 18px var(--accent-glow);
 }
 
-.google-btn:hover{
-    transform:scale(1.03);
-    box-shadow:0 0 20px var(--accent-glow);
+.bac-img-zoom-btn:active {
+    transform: translate(-50%, -50%) scale(0.95);
 }
 
-.user-bar{
-    max-width:800px;
-    margin:0 auto 20px;
-    padding:12px 20px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:10px;
-    color:var(--text-secondary);
-    font-size:14px;
+.bac-img-zoom-btn:focus-visible,
+.bac-side-download:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
 }
 
-.user-bar strong{
-    color:var(--accent);
-    transition:color .35s ease;
+.bac-img-zoom-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.signout-link{
-    color:var(--danger);
-    text-decoration:none;
-    font-weight:bold;
-    cursor:pointer;
+.bac-zoom-out { display: none; }
+.bac-img-frame.is-zoomed .bac-zoom-in { display: none; }
+.bac-img-frame.is-zoomed .bac-zoom-out { display: block; }
+
+.bac-img-frame.is-zoomed img {
+    transform: scale(1.55);
+    position: relative;
+    z-index: 31;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.35);
+    cursor: zoom-out;
+    border-radius: 14px;
 }
 
-.signout-link:hover{
-    text-decoration:underline;
+.bac-img-frame.is-zoomed .bac-img-zoom-btn {
+    background: var(--featured-tint);
 }
 
-.post.post-mine,
-.reply.post-mine{
-    border-color:var(--accent);
-    box-shadow:0 0 18px var(--accent-soft);
+.bac-side-download,
+a.bac-side-download,
+button.bac-side-download,
+.topic-download-btn.bac-side-download {
+    top: 12px;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    background: var(--card-bg);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    z-index: 32;
+    font-size: 0;
+    line-height: 0;
+    gap: 0;
+    overflow: hidden;
 }
 
-.report-btn{
-    border-color:var(--gold);
-    color:var(--gold-dark);
+.bac-side-download:hover,
+.topic-download-btn.bac-side-download:hover {
+    transform: translateY(-2px) scale(1.04);
+    background: var(--featured-tint);
+    box-shadow: 0 0 18px var(--accent-glow);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
-.report-btn:hover{
-    background:rgba(255,210,77,.15);
+.bac-side-download:active,
+.topic-download-btn.bac-side-download:active {
+    transform: translateY(0) scale(0.96);
 }
 
-@media(max-width:600px){
+.bac-side-download svg {
+    width: 19px;
+    height: 19px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 
-    .auth-gate{
-        margin:30px auto;
-        padding:30px 20px;
-    }
+.bac-hide-text { display: none !important; }
+.topic-download-btn.bac-side-download::after { display: none; }
 
-    .user-bar{
-        font-size:13px;
-        justify-content:center;
-        text-align:center;
-    }
+.lesson.bac-zoom-open,
+.card.bac-zoom-open,
+.topic-card.bac-zoom-open,
+.mini-card.bac-zoom-open {
+    overflow: visible !important;
+    z-index: 900;
+}
 
+.lesson.bac-zoom-open:hover,
+.card.bac-zoom-open:hover,
+.topic-card.bac-zoom-open:hover,
+.mini-card.bac-zoom-open:hover {
+    transform: none;
 }
 
-/* ==========================================================
-   15. تحسين بطاقات المواضيع وأزرار التنزيل
-   ========================================================== */
+.lesson.bac-zoom-open .bac-img-frame,
+.card.bac-zoom-open .bac-img-frame,
+.topic-card.bac-zoom-open .bac-img-frame,
+.mini-card.bac-zoom-open .bac-img-frame { z-index: 910; }
 
-.topic-card{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    min-height:190px;
-}
+.lesson.bac-zoom-open .bac-img-controls,
+.card.bac-zoom-open .bac-img-controls,
+.topic-card.bac-zoom-open .bac-img-controls,
+.mini-card.bac-zoom-open .bac-img-controls { z-index: 920; }
+
+.lesson.bac-zoom-open .bac-img-frame.is-zoomed img,
+.card.bac-zoom-open .bac-img-frame.is-zoomed img,
+.topic-card.bac-zoom-open .bac-img-frame.is-zoomed img,
+.mini-card.bac-zoom-open .bac-img-frame.is-zoomed img { z-index: 915; }
+
+/* ---------- 14. تأثيرات النبض واللمعان العامة للـ Buttons ---------- */
 
-.topic-card h2{
-    width:100%;
+.card, .mini-card, .topic-card, button {
+    position: relative;
 }
 
-.topic-download-btn{
-    position:relative;
-    overflow:hidden;
-    min-width:145px;
-    margin-top:auto;
-    padding:10px 18px;
-    background:linear-gradient(135deg, var(--card-bg), var(--featured-tint));
-    box-shadow:0 4px 14px rgba(0,0,0,.18);
+button {
+    overflow: hidden;
 }
 
-.topic-download-btn::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(
-        120deg,
-        transparent 25%,
-        rgba(255,255,255,.16) 50%,
-        transparent 75%
+button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0) 100%
     );
-    transform:translateX(-120%);
-    transition:transform .55s ease;
-    pointer-events:none;
+    transform: skewX(-25deg);
+    animation: shine-effect 3s infinite;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.topic-download-btn:hover::after{
-    transform:translateX(120%);
+button > * {
+    position: relative;
+    z-index: 2;
 }
 
-.topic-download-btn.loading{
-    cursor:wait;
-    opacity:.9;
-    transform:none;
+@keyframes shine-effect {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
 }
 
-.topic-download-btn.done{
-    background:var(--accent);
-    color:#000;
-    border-color:var(--accent);
-    cursor:default;
-    transform:none;
+.js-ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    background-color: rgba(255, 255, 255, 0.3);
+    width: 100px;
+    height: 100px;
+    margin-top: -50px;
+    margin-left: -50px;
+    pointer-events: none;
+    z-index: 1;
 }
 
-@media(max-width:600px){
-    .topic-card{
-        min-height:175px;
+[data-theme="light"] .js-ripple {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
     }
-
-    .topic-download-btn{
-        min-width:140px;
-    }
 }
 
-/* ==========================================================
-   11-B. تحسينات منتدى BacOrbit
-   ========================================================== */
-.auth-gate{max-width:800px;margin:0 auto 40px}
-.auth-card{background:var(--card-bg);border:2px solid var(--border);border-radius:22px;padding:38px 28px;text-align:center;box-shadow:0 12px 35px rgba(0,0,0,.25);animation:forumCardIn .45s ease both}
-.auth-icon{width:62px;height:62px;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--featured-tint);border:1px solid var(--accent);font-size:28px}
-.auth-card h2{color:var(--accent);margin-bottom:10px}.auth-card p{color:var(--text-secondary);line-height:1.8;margin-bottom:22px}
-.google-btn{width:100%;max-width:360px;padding:14px 20px;border:1px solid var(--accent);border-radius:13px;background:var(--accent);color:#000;font:700 15px Arial,sans-serif;cursor:pointer;transition:transform .2s ease,box-shadow .25s ease}
-.google-btn:hover{transform:translateY(-2px);box-shadow:0 0 22px var(--accent-glow)}
-.user-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 15px;border:1px solid var(--empty-border);border-radius:14px;background:var(--card-bg);color:var(--text-secondary)}
-.user-bar strong{color:var(--accent)}.signout-link{color:var(--danger);cursor:pointer;font-weight:bold}.signout-link:hover{opacity:.75}
-.composer-title{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.composer-title h3{margin-bottom:5px}.composer-title p{color:var(--text-secondary);font-size:13px}
-.composer-badge{border:1px solid var(--accent);color:var(--accent);background:var(--featured-tint);padding:6px 10px;border-radius:999px;font-size:11px;font-weight:bold;white-space:nowrap}
-.file-name{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.clear-file-btn{display:inline-flex;align-items:center;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:9px;padding:7px 10px;cursor:pointer;font:700 12px Arial,sans-serif}.clear-file-btn:hover{background:var(--danger-bg)}
-.attachment-preview-wrap{margin:0 0 14px;padding:10px;border:1px solid var(--empty-border);border-radius:13px;background:var(--bg)}
-.img-preview{max-width:220px;max-height:220px;object-fit:cover}
-.file-preview-card{display:none;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 12px;border-radius:11px;background:var(--card-bg);border:1px solid var(--empty-border);color:var(--text)}
-.file-preview-card strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}.file-preview-card small{display:block;color:var(--text-secondary);margin-top:3px}.file-preview-icon{font-size:27px}
-.submit-btn{display:flex;align-items:center;justify-content:center;gap:9px}.submit-btn:disabled,.google-btn:disabled{opacity:.65;cursor:wait;transform:none}
-.btn-spinner{width:15px;height:15px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:forumSpin .7s linear infinite}
-.post{position:relative;animation:forumCardIn .35s ease both}
-.post-mine{border-color:var(--accent);background:linear-gradient(135deg,var(--featured-tint),var(--card-bg) 65%);box-shadow:0 0 0 1px var(--accent-soft),0 8px 26px rgba(0,0,0,.18)}
-.post-mine::before{content:"";position:absolute;top:12px;right:12px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
-.you-badge{display:inline-flex;align-items:center;margin-right:5px;padding:3px 7px;border-radius:999px;background:var(--accent);color:#000;font-size:10px;vertical-align:middle}
-.post-mine .post-author{color:var(--accent)}
-.attachment-image-link{display:block;width:max-content;max-width:100%}
-.attachment-card{display:flex;align-items:center;gap:12px;width:100%;max-width:520px;margin:0 0 13px;padding:12px 14px;background:var(--bg);border:1px solid var(--empty-border);border-radius:13px;color:var(--text);text-decoration:none;transition:transform .2s ease,border-color .25s ease,box-shadow .25s ease}
-.attachment-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 7px 20px rgba(0,0,0,.18)}
-.attachment-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:var(--featured-tint);font-size:20px;flex:0 0 auto}
-.attachment-info{min-width:0;flex:1}.attachment-info strong,.attachment-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.attachment-info small{margin-top:4px;color:var(--text-secondary);font-size:11px}
-.attachment-download{color:var(--accent);font-size:22px;font-weight:bold}.replies-title{color:var(--text-secondary);font-size:12px;font-weight:bold;margin:4px 0 8px}
-.reply.post-mine{background:linear-gradient(135deg,var(--featured-tint),var(--bg) 70%)}.reply .attachment-card{max-width:460px}
-.post-actions{flex-wrap:wrap}.report-btn{border-color:var(--danger);color:var(--danger)}.report-btn:hover{background:var(--danger-bg)}.reply-btn:hover{background:var(--accent-glow)}
-.reply-form{overflow:hidden;animation:replyOpen .25s ease both}
-.forum-error{padding:20px;margin-bottom:25px;border:1px solid var(--danger);border-radius:14px;background:var(--danger-bg);color:var(--danger);text-align:center;line-height:1.7}
-@keyframes forumCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes replyOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
-@keyframes forumSpin{to{transform:rotate(360deg)}}
-@media(max-width:600px){
- .auth-card{padding:28px 18px}.composer-title{flex-direction:column}.composer-badge{align-self:flex-start}
- .user-bar{align-items:flex-start;flex-direction:column}.post{padding:17px;border-radius:16px}.post-actions{gap:8px}
- .action-btn{padding:7px 11px;font-size:12px}.attachment-card{padding:10px}.file-preview-card strong{max-width:210px}
+/* ---------- 15. تصميم متجاوب للشاشات الصغيرة والجوال ---------- */
+
+@media (max-width: 768px) {
+    .logo { font-size: 32px; }
+    .hero { padding: 55px 15px 25px; }
+    .hero h1 { font-size: 32px; }
+    .hero p { font-size: 16px; }
+    .back { width: 90%; }
+    .lesson { border-radius: 16px; margin-bottom: 30px; }
+    .lesson iframe { height: 420px; }
+    .bac-img-frame.is-zoomed img { transform: scale(1.22); }
+    .bac-img-zoom-btn { width: 46px; height: 46px; }
+    .bac-side-download { width: 44px; height: 44px; top: 10px; left: 10px; }
+}
+
+@media (max-width: 600px) {
+    .wrap { padding: 0 12px 30px; }
+    .quiz-card, .congrats, .stage-complete { padding: 24px; }
+    .question-text { font-size: 18px; }
+    .option-btn { font-size: 15px; }
+    .banner { font-size: 22px; padding: 16px 26px; }
+    .score-bar { font-size: 12px; justify-content: center; }
+    .download-all-btn { width: 100%; min-width: 0; padding: 15px 20px; font-size: 14.5px; }
+    .topic-download-btn { font-size: 12px; padding: 7px 14px; min-width: 140px; }
+    .topic-card { min-height: 175px; }
+    .auth-card { padding: 28px 18px; }
+    .composer-title { flex-direction: column; }
+    .composer-badge { align-self: flex-start; }
+    .user-bar { align-items: flex-start; flex-direction: column; font-size: 13px; text-align: center; justify-content: center; }
+    .post { padding: 17px; border-radius: 16px; }
+    .post-actions { gap: 8px; }
+    .action-btn { padding: 7px 11px; font-size: 12px; }
+    .attachment-card { padding: 10px; }
+    .file-preview-card strong { max-width: 210px; }
+    .auth-gate { margin: 30px auto; padding: 30px 20px; }
+    .bac-img-frame.is-zoomed img { transform: scale(1.12); }
+    .bac-img-zoom-btn { width: 44px; height: 44px; }
+    .bac-img-zoom-btn svg { width: 18px; height: 18px; }
+    .bac-side-download { width: 44px; height: 44px; }
 }

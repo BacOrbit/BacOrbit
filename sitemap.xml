@@ -116,6 +116,21 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://bacorbit.github.io/BacOrbit/Branches/S_math_E.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://bacorbit.github.io/BacOrbit/Branches/S_math_Sc.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://bacorbit.github.io/BacOrbit/Branches/S_math_T.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://bacorbit.github.io/BacOrbit/Branches/S_science.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
