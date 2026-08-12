@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة معدل البكالوريا - احسب معدلك حسب شعبتك | BacOrbit</title>
+
+<meta name="description" content="احسب معدل البكالوريا الجزائرية مباشرة حسب شعبتك: علوم تجريبية، رياضيات، تقني رياضي، وتسيير واقتصاد. أدخل علاماتك واحصل على معدلك فورًا حسب معاملات كل مادة.">
+<meta name="keywords" content="حاسبة معدل البكالوريا, حساب معدل البكالوريا الجزائري, معدل البكالوريا, معاملات البكالوريا, BacOrbit">
+<meta name="robots" content="index, follow">
+<meta name="author" content="BacOrbit">
+<link rel="canonical" href="https://bacorbit.github.io/BacOrbit/calculator.html">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BacOrbit">
+<meta property="og:locale" content="ar_DZ">
+<meta property="og:title" content="حاسبة معدل البكالوريا - احسب معدلك حسب شعبتك | BacOrbit">
+<meta property="og:description" content="احسب معدل البكالوريا الجزائرية مباشرة حسب شعبتك، وأدخل علاماتك واحصل على معدلك فورًا حسب معاملات كل مادة.">
+<meta property="og:url" content="https://bacorbit.github.io/BacOrbit/calculator.html">
+<meta property="og:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="حاسبة معدل البكالوريا - احسب معدلك حسب شعبتك | BacOrbit">
+<meta name="twitter:description" content="احسب معدل البكالوريا الجزائرية مباشرة حسب شعبتك، وأدخل علاماتك واحصل على معدلك فورًا حسب معاملات كل مادة.">
+<meta name="twitter:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://bacorbit.github.io/BacOrbit/"},{"@type":"ListItem","position":2,"name":"حاسبة معدل البكالوريا","item":"https://bacorbit.github.io/BacOrbit/calculator.html"}]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "حاسبة معدل البكالوريا",
+  "applicationCategory": "EducationApplication",
+  "operatingSystem": "Any",
+  "url": "https://bacorbit.github.io/BacOrbit/calculator.html",
+  "isPartOf": {"@type": "WebSite", "name": "BacOrbit", "url": "https://bacorbit.github.io/BacOrbit/"},
+  "inLanguage": "ar"
+}
+</script>
+
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة حاسبة معدل البكالوريا فقط (لا تعدّل style.css المشترك) ══ */
+
+.calc-wrap{max-width:850px;margin:0 auto;padding:10px 20px 60px}
+
+.branch-tabs{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:28px}
+
+.branch-tab{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--card-bg);color:var(--text);
+  border:2px solid var(--empty-border);border-radius:14px;
+  padding:11px 20px;font-size:15px;font-weight:bold;font-family:inherit;
+  cursor:pointer;transition:transform .2s ease,border-color .25s ease,box-shadow .25s ease,background-color .35s ease,color .35s ease;
+}
+
+.branch-tab:hover:not(.branch-tab-disabled){
+  transform:translateY(-3px);
+  border-color:var(--accent);
+  box-shadow:0 0 18px var(--accent-glow);
+}
+
+.branch-tab.active{
+  background:var(--accent);
+  color:#000;
+  border-color:var(--accent);
+}
+
+.branch-tab-disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  border-style:dashed;
+}
+
+.branch-tab-disabled:hover{ transform:none; box-shadow:none; }
+
+.calc-card{
+  background:var(--card-bg);
+  border:3px solid var(--border);
+  border-radius:22px;
+  padding:30px;
+  box-shadow:0 12px 35px rgba(0,0,0,.3);
+  transition:border-color .25s ease,background-color .35s ease;
+}
+
+.calc-locked-note{
+  display:none;
+  text-align:center;
+  color:var(--footer-text);
+  padding:50px 15px;
+  font-size:15px;
+  line-height:1.9;
+}
+
+.calc-table-scroll{width:100%;overflow-x:auto}
+
+.calc-table{width:100%;border-collapse:collapse;min-width:520px}
+
+.calc-table thead th{
+  color:var(--accent);
+  font-size:13.5px;
+  font-weight:bold;
+  text-align:center;
+  padding:10px 8px;
+  border-bottom:2px solid var(--accent-soft);
+  white-space:nowrap;
+}
+
+.calc-table thead th:first-child{ text-align:right; }
+
+.calc-row td{
+  padding:12px 8px;
+  text-align:center;
+  border-bottom:1px solid var(--empty-border);
+  transition:background-color .25s ease;
+  vertical-align:middle;
+}
+
+.calc-row:hover td{ background:var(--bg); }
+
+.calc-row:last-child td{ border-bottom:none; }
+
+.calc-subject-name{
+  text-align:right !important;
+  font-weight:bold;
+  color:var(--text);
+  font-size:14.5px;
+  line-height:1.6;
+}
+
+.calc-coef-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:34px;
+  height:30px;
+  padding:0 8px;
+  border-radius:10px;
+  background:var(--bg);
+  border:1px solid var(--accent);
+  color:var(--accent);
+  font-weight:bold;
+  font-size:13.5px;
+}
+
+.calc-mark-input{
+  width:78px;
+  max-width:100%;
+  padding:9px 10px;
+  text-align:center;
+  font-size:15px;
+  font-weight:bold;
+  font-family:inherit;
+  color:var(--text);
+  background:var(--bg);
+  border:2px solid var(--empty-border);
+  border-radius:10px;
+  transition:border-color .25s ease,box-shadow .25s ease;
+  direction:ltr;
+}
+
+.calc-mark-input:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+
+.calc-mark-input.invalid{ border-color:var(--danger); }
+
+.calc-points-cell{
+  font-weight:bold;
+  color:var(--accent);
+  font-size:14.5px;
+  direction:ltr;
+}
+
+.calc-summary{
+  margin-top:24px;
+  padding-top:18px;
+  border-top:1px dashed var(--empty-border);
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px 24px;
+  justify-content:center;
+}
+
+.calc-summary-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  color:var(--text-secondary);
+}
+
+.calc-summary-row span:last-child{
+  font-weight:bold;
+  color:var(--text);
+  direction:ltr;
+}
+
+.calc-result{
+  margin-top:22px;
+  text-align:center;
+  padding:26px 20px;
+  border-radius:18px;
+  background:linear-gradient(135deg, var(--card-bg), var(--featured-tint));
+  border:2px solid var(--accent);
+}
+
+.calc-result-label{
+  color:var(--text-secondary);
+  font-size:15px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.calc-result-value{
+  color:var(--accent);
+  font-size:42px;
+  font-weight:bold;
+  direction:ltr;
+  transition:color .25s ease;
+}
+
+.calc-result-value.low{ color:var(--danger); }
+
+.calc-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  justify-content:center;
+  margin-top:22px;
+}
+
+.calc-btn{
+  min-width:170px;
+  padding:14px 24px;
+  border-radius:12px;
+  border:none;
+  background:var(--accent);
+  color:#000;
+  font-weight:bold;
+  font-size:15px;
+  font-family:inherit;
+  cursor:pointer;
+  transition:transform .25s ease,box-shadow .25s ease,background-color .35s ease;
+}
+
+.calc-btn:hover{ transform:translateY(-2px); box-shadow:0 0 20px var(--accent-glow); }
+
+.calc-btn-secondary{
+  background:transparent;
+  color:var(--danger);
+  border:2px solid var(--danger);
+}
+
+.calc-btn-secondary:hover{ background:var(--danger-bg); box-shadow:none; transform:translateY(-2px); }
+
+.calc-hint{
+  text-align:center;
+  color:var(--footer-text);
+  font-size:12.5px;
+  margin-top:16px;
+  line-height:1.8;
+}
+
+#calcToast{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;z-index:3000;pointer-events:none}
+#calcToast .calc-toast-box{background:var(--card-bg);border:2px solid var(--accent);color:var(--accent);padding:12px 22px;border-radius:14px;font-weight:bold;box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(15px);transition:opacity .3s ease,transform .3s ease;max-width:90%;text-align:center}
+#calcToast.show .calc-toast-box{opacity:1;transform:translateY(0)}
+
+@media (max-width:600px){
+  .calc-card{padding:20px 16px}
+  .calc-result-value{font-size:34px}
+  .branch-tab{padding:9px 14px;font-size:13.5px}
+  .calc-mark-input{width:66px;padding:8px}
+  .calc-btn{min-width:0;flex:1}
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+    <h1>حساب المعدل</h1>
+    <p>اختر شعبتك</p>
+</section>
+
+<div class="calc-wrap">
+
+    <div class="branch-tabs" id="branchTabs"></div>
+
+    <div class="calc-card">
+
+        <div class="calc-table-scroll" id="calcTableWrap">
+            <table class="calc-table">
+                <thead>
+                    <tr>
+                        <th>المادة</th>
+                        <th>المعامل</th>
+                        <th>العلامة</th>
+                        <th>النقاط</th>
+                    </tr>
+                </thead>
+                <tbody id="calcTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="calc-locked-note" id="calcLockedNote">
+            🔒 شعبة الإعلام الآلي غير متاحة حاليًا، سيتم تفعيلها قريبًا.
+        </div>
+
+        <div id="calcResultsArea">
+
+            <div class="calc-summary">
+                <div class="calc-summary-row"><span>مجموع المعاملات</span><span id="sumCoef">0</span></div>
+                <div class="calc-summary-row"><span>مجموع النقاط</span><span id="sumPoints">0.00</span></div>
+            </div>
+
+            <div class="calc-result">
+                <div class="calc-result-label">معدل البكالوريا</div>
+                <div class="calc-result-value" id="avgResult">0.00 / 20</div>
+            </div>
+
+            <div class="calc-actions">
+                <button type="button" class="calc-btn" id="computeBtn">حساب المعدل</button>
+                <button type="button" class="calc-btn calc-btn-secondary" id="clearBtn">مسح العلامات</button>
+            </div>
+
+            <p class="calc-hint">يتم حساب المعدل تلقائيًا أثناء إدخال العلامات، ويتم حفظها في متصفحك لاسترجاعها لاحقًا.</p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<div id="calcToast"><div class="calc-toast-box" id="calcToastBox"></div></div>
+
+<script src="calculator.js"></script>
+
+</body>
+</html>

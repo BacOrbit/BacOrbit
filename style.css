@@ -1625,72 +1625,201 @@ button.bac-side-download,
 .topic-card.bac-zoom-open .bac-img-frame.is-zoomed img,
 .mini-card.bac-zoom-open .bac-img-frame.is-zoomed img { z-index: 915; }
 
-/* ---------- 14. تأثيرات النبض واللمعان العامة للـ Buttons ---------- */
+/* ---------- 14. تموضع أساسي للبطاقات والأزرار (تُستخدمه عناصر أخرى مثل الشارات) ---------- */
 
 .card, .mini-card, .topic-card, button {
     position: relative;
 }
 
-button {
-    overflow: hidden;
-}
 
-button::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
+/* ---------- 15. الخلفية التفاعلية وتأثيرات النقر (Interactive Background & Click FX) ----------
+   طبقتان Canvas فقط، بدون أي تأثير على تخطيط الصفحة أو قابلية النقر/التحديد:
+   - bacBgCanvas: خلف كل المحتوى (z-index: -1)، شبكة جسيمات هادئة تتفاعل بنعومة مع الماوس.
+   - bacClickFxCanvas: فوق كل شيء لكنها غير قابلة للنقر (pointer-events: none)، تعرض تأثير نقر بسيط.
+   الألوان تُقرأ من متغيرات التصميم (--accent / --accent-soft) فتتكيف تلقائيًا مع الوضعين. */
+
+#bacBgCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.35) 50%,
-        rgba(255, 255, 255, 0) 100%
-    );
-    transform: skewX(-25deg);
-    animation: shine-effect 3s infinite;
+    z-index: -1;
     pointer-events: none;
-    z-index: 1;
+    display: block;
 }
 
-button > * {
-    position: relative;
-    z-index: 2;
-}
-
-@keyframes shine-effect {
-    0% { left: -100%; }
-    20% { left: 200%; }
-    100% { left: 200%; }
-}
-
-.js-ripple {
-    position: absolute;
-    border-radius: 50%;
-    transform: scale(0);
-    animation: ripple-animation 0.6s linear;
-    background-color: rgba(255, 255, 255, 0.3);
-    width: 100px;
-    height: 100px;
-    margin-top: -50px;
-    margin-left: -50px;
+#bacClickFxCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
     pointer-events: none;
-    z-index: 1;
+    display: block;
 }
 
-[data-theme="light"] .js-ripple {
-    background-color: rgba(0, 0, 0, 0.1);
-}
-
-@keyframes ripple-animation {
-    to {
-        transform: scale(4);
-        opacity: 0;
+@media (prefers-reduced-motion: reduce) {
+    #bacBgCanvas,
+    #bacClickFxCanvas {
+        display: none !important;
     }
 }
 
-/* ---------- 15. تصميم متجاوب للشاشات الصغيرة والجوال ---------- */
+/* ---------- 16. قائمة التنقل المنسدلة (Hamburger Nav Menu) ----------
+   زر ☰ واحد يستبدل رابطي «المنتدى» و«الدعم» المنفصلين سابقًا في الشريط
+   العلوي. يعتمد بالكامل على متغيرات التصميم الحالية (--accent, --card-bg,
+   --border...) ليتكيف تلقائيًا مع الوضعين الداكن والفاتح، ويتموضع كعنصر
+   ابن لـ .top-bar فلا يحتاج أي تعديل في بنية الهيدر أو الشعار. */
+
+.nav-menu-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav-menu-btn {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.nav-menu-btn:hover {
+    box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.nav-menu-btn:active {
+    transform: scale(0.93);
+}
+
+.nav-menu-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.nav-menu-icon {
+    position: relative;
+    width: 20px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.nav-menu-bar {
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, background-color 0.35s ease;
+}
+
+.nav-menu-bar:nth-child(1) { top: 0; }
+.nav-menu-bar:nth-child(2) { top: 50%; transform: translateY(-50%); }
+.nav-menu-bar:nth-child(3) { bottom: 0; }
+
+.nav-menu-btn.open .nav-menu-bar:nth-child(1) {
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.nav-menu-btn.open .nav-menu-bar:nth-child(2) {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(0);
+}
+
+.nav-menu-btn.open .nav-menu-bar:nth-child(3) {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.nav-menu-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 226px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 1100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.97);
+    transform-origin: top right;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.22s ease;
+}
+
+.nav-menu-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.nav-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: bold;
+    font-family: inherit;
+    text-align: right;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.nav-menu-item:hover {
+    background: var(--accent-glow);
+    color: var(--accent);
+}
+
+.nav-menu-item:active {
+    transform: scale(0.98);
+}
+
+.nav-menu-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.nav-menu-item-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    width: 20px;
+}
+
+@media (max-width: 600px) {
+    .nav-menu-panel {
+        right: 0;
+        min-width: 210px;
+        max-width: calc(100vw - 30px);
+    }
+}
+
+/* ---------- 17. تصميم متجاوب للشاشات الصغيرة والجوال ---------- */
 
 @media (max-width: 768px) {
     .logo { font-size: 32px; }

@@ -75,31 +75,6 @@
   }
 
   /* ---------------------------------------------------------
-     3. تأثير النبض (Ripple) — يعتمد على تنسيقات .js-ripple
-        الموجودة أصلًا في style.css
-     نستخدم مرحلة الالتقاط (capture) حتى يظهر النبض دائمًا
-     حتى لو استُدعي stopPropagation() لاحقًا داخل زر معيّن.
-     --------------------------------------------------------- */
-  function initRipple() {
-    const selector = '.card, .mini-card, .topic-card, button';
-    on(document, 'click', function (e) {
-      const target = e.target.closest(selector);
-      if (!target) return;
-      if (target.classList.contains('card-empty')) return;
-      if (target.classList.contains('disabled-card')) return;
-      if (target.disabled) return;
-
-      const rect = target.getBoundingClientRect();
-      const ripple = document.createElement('span');
-      ripple.className = 'js-ripple';
-      ripple.style.left = (e.clientX - rect.left) + 'px';
-      ripple.style.top  = (e.clientY - rect.top) + 'px';
-      target.appendChild(ripple);
-      setTimeout(function () { ripple.remove(); }, 650);
-    }, true);
-  }
-
-  /* ---------------------------------------------------------
      4. إشعارات (Toast) — عنصر يُولَّد ديناميكيًا بالكامل
         (لا يحتاج أي تعديل في HTML)
      --------------------------------------------------------- */
@@ -389,15 +364,351 @@
   }
 
   /* ---------------------------------------------------------
-     8. التهيئة العامة
+     8. الخلفية التفاعلية (شبكة جسيمات) + تأثير النقر
+     طبقتا Canvas منفصلتان تمامًا عن DOM الموقع، لا تلمسان أي عنصر
+     ولا تعترضان أي نقر أو تحديد نص (pointer-events: none دائمًا).
+     - تُقرأ الألوان من متغيرات CSS الحالية (--accent / --accent-soft)
+       فتتبدّل تلقائيًا مع تبديل الوضع الداكن/الفاتح.
+     - تحترم prefers-reduced-motion وتتوقف تمامًا عند تفعيله.
+     - تعطّل تفاعل الماوس (التنافر اللطيف) على الأجهزة اللمسية،
+       وتُبقي فقط تأثير النقر الخفيف.
+     - تتوقف عن الرسم عند إخفاء التبويب لتوفير الأداء والبطارية.
+     --------------------------------------------------------- */
+
+  function readAccentColors() {
+    const styles = getComputedStyle(document.documentElement);
+    const dot = (styles.getPropertyValue('--accent') || '#1aff66').trim();
+    const line = (styles.getPropertyValue('--accent-soft') || 'rgba(26,255,102,0.4)').trim();
+    return { dot: dot, line: line };
+  }
+
+  function initInteractiveBackground() {
+    if (document.getElementById('bacBgCanvas')) return; // مُهيأ مسبقًا
+    if (typeof window.matchMedia !== 'function') return;
+
+    const reduceMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMotionMQ.matches) return; // احترام تفضيل تقليل الحركة فورًا
+
+    const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    const canvas = document.createElement('canvas');
+    canvas.id = 'bacBgCanvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(canvas, document.body.firstChild);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let W = 0, H = 0;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let particles = [];
+    let colors = readAccentColors();
+    const mouse = { x: -9999, y: -9999, active: false };
+    const smoothMouse = { x: -9999, y: -9999 };
+    let running = false;
+    let rafId = null;
+
+    function particleTarget() {
+      const area = W * H;
+      const base = Math.round(area / 24000);
+      const max = hasFinePointer ? 85 : 50; // كثافة أقل على الأجهزة اللمسية
+      return Math.max(16, Math.min(base, max));
+    }
+
+    function makeParticle() {
+      return {
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.16,
+        vy: (Math.random() - 0.5) * 0.16,
+        r: Math.random() * 1.3 + 0.6
+      };
+    }
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+      const target = particleTarget();
+      if (particles.length < target) {
+        while (particles.length < target) particles.push(makeParticle());
+      } else if (particles.length > target) {
+        particles.length = target;
+      }
+    }
+
+    function step() {
+      if (!running) { rafId = null; return; }
+      ctx.clearRect(0, 0, W, H);
+
+      smoothMouse.x += (mouse.x - smoothMouse.x) * 0.06;
+      smoothMouse.y += (mouse.y - smoothMouse.y) * 0.06;
+
+      const linkDist = Math.min(140, Math.max(90, W / 9));
+      const mouseRadius = 130;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < -10) p.x = W + 10; else if (p.x > W + 10) p.x = -10;
+        if (p.y < -10) p.y = H + 10; else if (p.y > H + 10) p.y = -10;
+
+        if (hasFinePointer && mouse.active) {
+          const dx = p.x - smoothMouse.x, dy = p.y - smoothMouse.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < mouseRadius && d > 0.01) {
+            const force = (1 - d / mouseRadius) * 0.5;
+            p.x += (dx / d) * force;
+            p.y += (dy / d) * force;
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = colors.dot;
+        ctx.globalAlpha = 0.35;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = colors.line;
+      ctx.lineWidth = 1;
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a + 1; b < particles.length; b++) {
+          const pa = particles[a], pb = particles[b];
+          const ddx = pa.x - pb.x, ddy = pa.y - pb.y;
+          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (dist < linkDist) {
+            ctx.globalAlpha = (1 - dist / linkDist) * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      rafId = window.requestAnimationFrame(step);
+    }
+
+    function start() {
+      if (!rafId) { running = true; rafId = window.requestAnimationFrame(step); }
+    }
+    function stop() {
+      running = false;
+      if (rafId) { window.cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    resize();
+    start();
+
+    let resizeTimer;
+    on(window, 'resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    if (hasFinePointer) {
+      on(window, 'pointermove', function (e) {
+        mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+      }, { passive: true });
+      on(window, 'blur', function () { mouse.active = false; });
+      on(document, 'mouseleave', function () { mouse.active = false; });
+    }
+
+    on(document, 'visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+
+    // إعادة قراءة الألوان عند تبديل الوضع الداكن/الفاتح (زر الصفحة الحالية إن وجد)
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) {
+      on(themeBtn, 'click', function () {
+        setTimeout(function () { colors = readAccentColors(); }, 60);
+      });
+    }
+
+    if (typeof reduceMotionMQ.addEventListener === 'function') {
+      reduceMotionMQ.addEventListener('change', function (e) {
+        if (e.matches) { stop(); canvas.style.display = 'none'; }
+      });
+    }
+  }
+
+  function initClickEffects() {
+    if (document.getElementById('bacClickFxCanvas')) return;
+    if (typeof window.matchMedia !== 'function') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.id = 'bacClickFxCanvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 0, H = 0;
+    let ripples = [];
+    let rafId = null;
+
+    function resize() {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+
+    let resizeTimer;
+    on(window, 'resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    function spawnRipple(x, y) {
+      const accent = readAccentColors().dot;
+      const dots = [];
+      const dotCount = 5;
+      for (let i = 0; i < dotCount; i++) {
+        const angle = (Math.PI * 2 * i) / dotCount + Math.random() * 0.4;
+        const speed = 0.8 + Math.random() * 0.9;
+        dots.push({
+          x: x, y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1
+        });
+      }
+      ripples.push({ x: x, y: y, r: 0, life: 1, color: accent, dots: dots });
+      loop();
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.r += 2.2;
+        rp.life -= 0.028;
+
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+        ctx.strokeStyle = rp.color;
+        ctx.globalAlpha = Math.max(rp.life, 0) * 0.5;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        for (let d = 0; d < rp.dots.length; d++) {
+          const dot = rp.dots[d];
+          dot.x += dot.vx;
+          dot.y += dot.vy;
+          dot.life -= 0.03;
+          if (dot.life > 0) {
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, 1.6, 0, Math.PI * 2);
+            ctx.fillStyle = rp.color;
+            ctx.globalAlpha = Math.max(dot.life, 0) * 0.7;
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        if (rp.life <= 0) ripples.splice(i, 1);
+      }
+
+      if (ripples.length > 0) {
+        rafId = window.requestAnimationFrame(frame);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function loop() {
+      if (!rafId) rafId = window.requestAnimationFrame(frame);
+    }
+
+    on(document, 'pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return;
+      spawnRipple(e.clientX, e.clientY);
+    }, { passive: true });
+  }
+
+  /* ---------------------------------------------------------
+     8ب. قائمة التنقل المنسدلة (Hamburger Nav Menu)
+     زر ☰ واحد يفتح لوحة تحتوي: المنتدى، حساب المعدل، الدعم،
+     السياسة والخصوصية. يعمل بأمان إن لم تحتوِ الصفحة على العناصر.
+     --------------------------------------------------------- */
+  function initNavMenu() {
+    const btn = document.getElementById('navMenuBtn');
+    const panel = document.getElementById('navMenuPanel');
+    if (!btn || !panel) return;
+
+    let navOpen = false;
+
+    function openMenu() {
+      if (navOpen) return;
+      navOpen = true;
+      btn.classList.add('open');
+      panel.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      panel.setAttribute('aria-hidden', 'false');
+    }
+    function closeMenu() {
+      if (!navOpen) return;
+      navOpen = false;
+      btn.classList.remove('open');
+      panel.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+
+    on(btn, 'click', function (e) {
+      e.stopPropagation();
+      navOpen ? closeMenu() : openMenu();
+    });
+
+    on(document, 'click', function (e) {
+      if (!navOpen) return;
+      if (panel.contains(e.target) || btn.contains(e.target)) return;
+      closeMenu();
+    });
+
+    on(panel, 'click', function (e) {
+      if (e.target.closest('.nav-menu-item')) closeMenu();
+    });
+
+    on(document, 'keydown', function (e) {
+      if (e.key === 'Escape') closeMenu();
+    });
+
+    let navResizeTimer;
+    on(window, 'resize', function () {
+      clearTimeout(navResizeTimer);
+      navResizeTimer = setTimeout(closeMenu, 120);
+    });
+  }
+
+  /* ---------------------------------------------------------
+     9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
     safeRun(initThemeToggle, 'الوضع الداكن/الفاتح');
     safeRun(initTopBarScroll, 'الشريط العلوي');
-    safeRun(initRipple, 'تأثير النبض');
     safeRun(enhanceLessonImages, 'عارض صور الدروس');
     safeRun(initImageViewerGlobalHandlers, 'أحداث عارض الصور العامة');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
+    safeRun(initNavMenu, 'قائمة التنقل');
+    safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
+    safeRun(initClickEffects, 'تأثير النقر');
   }
 
   if (document.readyState === 'loading') {

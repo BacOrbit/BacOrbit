@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+  <script src="script.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>منتدى التلاميذ - اطرح أسئلتك وشارك زملاءك | BacOrbit</title>
@@ -47,7 +48,24 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 
 <!-- ══ الشريط العلوي (كما هو) ══ -->
 <nav class="top-bar" id="topBar">
-  <a class="top-link" href="https://www.facebook.com/profile.php?id=61593220613025" target="_blank" rel="noopener">🎧 الدعم</a>
+
+  <div class="nav-menu-wrap">
+    <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+      <span class="nav-menu-icon">
+        <span class="nav-menu-bar"></span>
+        <span class="nav-menu-bar"></span>
+        <span class="nav-menu-bar"></span>
+      </span>
+    </button>
+
+    <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+      <a href="chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+      <a href="calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+      <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+      <a href="privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+    </div>
+  </div>
+
   <button class="theme-switch" id="themeSwitch" aria-label="تبديل الوضع الليلي/النهاري">
     <span class="theme-switch-track">
       <span class="theme-switch-icon sun">☀️</span>
@@ -55,7 +73,7 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
     </span>
     <span class="theme-switch-thumb"></span>
   </button>
-  <a class="top-link" href="chat.html">📚 المنتدى</a>
+
 </nav>
 
 <header class="site-header"><div class="logo">BacOrbit</div></header>
@@ -66,8 +84,6 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 </section>
 
 <main class="wrap">
-
-  <!-- تنبيه الوضع التجريبي (يظهر فقط إذا لم تُضبط إعدادات Firebase) -->
   <div class="mode-note" id="modeNote">⚙️ وضع تجريبي محلي — البيانات محفوظة في متصفحك فقط. أضف إعدادات Firebase داخل الكود لتفعيل المزامنة الفعلية والحظر المرتبط بالحساب.</div>
 
   <!-- شاشة التحميل / الدخول -->
@@ -140,18 +156,15 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 ═══════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-
-/* ═══════════ 1) إعدادات Firebase ═══════════
-   ➤ ضع هنا إعدادات مشروعك من: Firebase Console → Project settings.
-   ➤ فعّل: Authentication → Anonymous ، و: Storage ، و: Firestore.
-   ➤ إذا تركت القيم كما هي سيعمل الموقع بالوضع التجريبي المحلي. */
 const firebaseConfig = {
-  apiKey:            "ضع_API_KEY_هنا",
-  authDomain:        "your-project.firebaseapp.com",
-  projectId:         "your-project",
-  storageBucket:     "your-project.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:xxxxxxxxxxxx"
+  apiKey: "AIzaSyBgh1JW8IepmDe78jko33mnvaAU2af3-fw",
+  authDomain: "bacorbit-c5d67.firebaseapp.com",
+  databaseURL: "https://bacorbit-c5d67-default-rtdb.firebaseio.com",
+  projectId: "bacorbit-c5d67",
+  storageBucket: "bacorbit-c5d67.firebasestorage.app",
+  messagingSenderId: "1047289657770",
+  appId: "1:1047289657770:web:2d814fcde45978b17493d3",
+  measurementId: "G-4J629GND42"
 };
 
 const MAX_REPORTS = 3;               // عدد البلاغات الذي يُقصي صاحب المحتوى
@@ -216,6 +229,30 @@ window.addEventListener('scroll',()=>{
   $('#topBar').classList.toggle('hide', y>lastY && y>130);
   lastY=y;
 },{passive:true});
+
+/* ═══════════ 2ب) قائمة التنقل (Hamburger) — نفس سلوك script.js ═══════════ */
+(function(){
+  const navBtn=document.getElementById('navMenuBtn');
+  const navPanel=document.getElementById('navMenuPanel');
+  if(!navBtn||!navPanel) return;
+  let navOpen=false;
+  function openNav(){ if(navOpen) return; navOpen=true;
+    navBtn.classList.add('open'); navPanel.classList.add('open');
+    navBtn.setAttribute('aria-expanded','true'); navPanel.setAttribute('aria-hidden','false'); }
+  function closeNav(){ if(!navOpen) return; navOpen=false;
+    navBtn.classList.remove('open'); navPanel.classList.remove('open');
+    navBtn.setAttribute('aria-expanded','false'); navPanel.setAttribute('aria-hidden','true'); }
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); navOpen?closeNav():openNav(); });
+  document.addEventListener('click',e=>{
+    if(!navOpen) return;
+    if(navPanel.contains(e.target)||navBtn.contains(e.target)) return;
+    closeNav();
+  });
+  navPanel.addEventListener('click',e=>{ if(e.target.closest('.nav-menu-item')) closeNav(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeNav(); });
+  let navResizeTimer;
+  window.addEventListener('resize',()=>{ clearTimeout(navResizeTimer); navResizeTimer=setTimeout(closeNav,120); });
+})();
 
 /* ═══════════ 3) محوّل Firebase ═══════════ */
 const FB={
@@ -565,7 +602,7 @@ document.addEventListener('keydown',e=>{ /* Ctrl+Enter */
 
 $('#postSubmit').addEventListener('click',()=>sendContent('main',$('#postSubmit'),'نشر التعليق ➜',d=>DB.createPost(d)));
 
-$('#signOutBtn').addEventListener('click',async()=>{
+$('#signOutBtn')?.addEventListener('click',async()=>{
   if(!confirm('هل تريد تسجيل الخروج؟ عند العودة ستحصل على هوية جديدة.')) return;
   try{ await DB.signOut(); }catch(e){}
   location.reload();
