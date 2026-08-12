@@ -98,7 +98,6 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
     <div class="banned-icon">🚫</div>
     <h2 style="color:var(--danger)">تم إيقاف حسابك في المنتدى</h2>
     <p>الحساب <strong style="color:var(--danger)" id="bannedName"></strong> تلقّى أحد محتوياته
-    <b>3 بلاغات من 3 أعضاء مختلفين</b>، لذلك تم إقصاؤه من منتدى BacOrbit.<br>
     هذا الإيقاف مرتبط بالحساب نفسه ومخزَّن في قاعدة البيانات، ولا يمكن تجاوزه بإعادة تحميل الصفحة.</p>
     <a class="back" style="width:100%;margin:12px 0 0" href="index.html">⬅ العودة إلى الصفحة الرئيسية</a>
   </div>
@@ -435,8 +434,6 @@ function replyFormHTML(pid){
 function replyHTML(r){
   const mine=r.uid===me.uid;
   let h='<div class="reply'+(mine?' post-mine':'')+'">';
-  if(r.removed) return h+'⚠️ <div class="content-note">تمت إزالة هذا الرد بعد تلقيه '+MAX_REPORTS+' بلاغات.</div></div>';
-  if(r.deleted) return h+'<div class="content-note">🗑️ تم حذف هذا الرد.</div></div>';
   h+='<div class="post-head"><span class="post-author">'+esc(r.name)+(mine?' <span class="you-badge">أنت</span>':'')
     +'</span><span class="post-date">'+timeAgo(ts(r.createdAt))+'</span></div>';
   if(r.text) h+='<div class="post-text">'+esc(r.text)+'</div>';
