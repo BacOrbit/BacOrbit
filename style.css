@@ -36,6 +36,8 @@ html {
     --danger-bg: #2b0f0f;
     --gold: #ffd24d;
     --gold-dark: #c9a227;
+    --bg-particle-dot: rgba(26, 255, 102, 0.5);
+    --bg-particle-line: rgba(26, 255, 102, 0.4);
 }
 
 html[data-theme="light"] {
@@ -58,6 +60,8 @@ html[data-theme="light"] {
     --danger-bg: #fdeaea;
     --gold: #ffc94d;
     --gold-dark: #b5860f;
+    --bg-particle-dot: rgba(64, 99, 133, 0.7);
+    --bg-particle-line: rgba(64, 99, 133, 0.45);
 }
 
 html, body {
@@ -725,8 +729,11 @@ footer {
 }
 
 .lesson img {
-    width: 100%;
+    width: var(--bac-lesson-zoom, 100%);
+    max-width: 100%;
     display: block;
+    margin: 0 auto;
+    transition: width 0.15s ease;
 }
 
 .lesson iframe {
@@ -739,6 +746,63 @@ footer {
 
 .lesson .topic-download-btn {
     margin: 14px 20px 20px;
+}
+
+/* ---------- 10ب. شريط التحكم بحجم صور الدروس (تكبير/تصغير فوري) ---------- */
+
+.bac-zoom-bar {
+    max-width: 1050px;
+    margin: 0 auto 18px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    transition: background-color 0.35s ease, border-color 0.35s ease;
+}
+
+.bac-zoom-label {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.bac-zoom-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1.5px solid var(--accent);
+    background: var(--bg);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease, border-color 0.35s ease;
+}
+
+.bac-zoom-btn:hover {
+    box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.bac-zoom-range {
+    width: 160px;
+    max-width: 45vw;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .bac-zoom-bar { padding: 10px 14px; gap: 10px; }
+    .bac-zoom-label { font-size: 12.5px; }
 }
 
 /* ---------- 11. المنتدى (chat.html) وبوابة التسجيل الموحدة ---------- */
@@ -1301,11 +1365,23 @@ footer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    min-height: 190px;
+    justify-content: space-between;
+    min-height: 168px;
+    padding: 26px 22px;
+    gap: 16px;
 }
 
-.topic-card h2 { width: 100%; }
+.topic-card h2 {
+    width: 100%;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.topic-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 16px var(--accent-soft);
+}
 
 .topic-download-btn {
     position: relative;
@@ -1457,11 +1533,17 @@ footer {
 
 .bac-img-frame img {
     display: block;
-    width: 100%;
+    width: var(--bac-lesson-zoom, 100%);
+    max-width: 100%;
+    margin: 0 auto;
     transform-origin: center center;
-    transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.35s ease, border-radius 0.35s ease;
+    transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.35s ease, border-radius 0.35s ease, width 0.15s ease;
     backface-visibility: hidden;
     will-change: transform;
+}
+
+.bac-img-frame img {
+    cursor: zoom-in;
 }
 
 .bac-img-controls {
@@ -1471,7 +1553,6 @@ footer {
     z-index: 30;
 }
 
-.bac-img-zoom-btn,
 .bac-side-download {
     pointer-events: auto;
     position: absolute;
@@ -1483,63 +1564,9 @@ footer {
     user-select: none;
 }
 
-.bac-img-zoom-btn {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--card-bg);
-    border: 1.5px solid var(--accent);
-    color: var(--accent);
-    cursor: pointer;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
-    transition: transform 0.2s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
-    z-index: 32;
-}
-
-.bac-img-zoom-btn:hover {
-    transform: translate(-50%, -50%) scale(1.07);
-    background: var(--featured-tint);
-    box-shadow: 0 0 18px var(--accent-glow);
-}
-
-.bac-img-zoom-btn:active {
-    transform: translate(-50%, -50%) scale(0.95);
-}
-
-.bac-img-zoom-btn:focus-visible,
 .bac-side-download:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
-}
-
-.bac-img-zoom-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.bac-zoom-out { display: none; }
-.bac-img-frame.is-zoomed .bac-zoom-in { display: none; }
-.bac-img-frame.is-zoomed .bac-zoom-out { display: block; }
-
-.bac-img-frame.is-zoomed img {
-    transform: scale(1.55);
-    position: relative;
-    z-index: 31;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.35);
-    cursor: zoom-out;
-    border-radius: 14px;
-}
-
-.bac-img-frame.is-zoomed .bac-img-zoom-btn {
-    background: var(--featured-tint);
 }
 
 .bac-side-download,
@@ -1595,35 +1622,72 @@ button.bac-side-download,
 .bac-hide-text { display: none !important; }
 .topic-download-btn.bac-side-download::after { display: none; }
 
-.lesson.bac-zoom-open,
-.card.bac-zoom-open,
-.topic-card.bac-zoom-open,
-.mini-card.bac-zoom-open {
-    overflow: visible !important;
-    z-index: 900;
+/* ---------- 13ب. المكبّر الموحّد لصور الدروس (عنصر واحد فقط لكل صفحة) ---------- */
+
+.bac-image-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 40px 20px;
 }
 
-.lesson.bac-zoom-open:hover,
-.card.bac-zoom-open:hover,
-.topic-card.bac-zoom-open:hover,
-.mini-card.bac-zoom-open:hover {
-    transform: none;
+.bac-image-viewer-overlay.open {
+    display: flex;
 }
 
-.lesson.bac-zoom-open .bac-img-frame,
-.card.bac-zoom-open .bac-img-frame,
-.topic-card.bac-zoom-open .bac-img-frame,
-.mini-card.bac-zoom-open .bac-img-frame { z-index: 910; }
+.bac-image-viewer-inner {
+    position: relative;
+    max-width: 92vw;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
 
-.lesson.bac-zoom-open .bac-img-controls,
-.card.bac-zoom-open .bac-img-controls,
-.topic-card.bac-zoom-open .bac-img-controls,
-.mini-card.bac-zoom-open .bac-img-controls { z-index: 920; }
+.bac-image-viewer-inner img {
+    max-width: 92vw;
+    max-height: 78vh;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: block;
+    background: var(--card-bg);
+}
 
-.lesson.bac-zoom-open .bac-img-frame.is-zoomed img,
-.card.bac-zoom-open .bac-img-frame.is-zoomed img,
-.topic-card.bac-zoom-open .bac-img-frame.is-zoomed img,
-.mini-card.bac-zoom-open .bac-img-frame.is-zoomed img { z-index: 915; }
+.bac-image-viewer-close {
+    position: absolute;
+    top: -16px;
+    left: -16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, background-color 0.25s ease;
+    font-family: inherit;
+}
+
+.bac-image-viewer-close:hover {
+    transform: scale(1.08);
+    background: var(--featured-tint);
+}
+
+.bac-image-viewer-download {
+    width: auto;
+    min-width: 160px;
+}
 
 /* ---------- 14. تموضع أساسي للبطاقات والأزرار (تُستخدمه عناصر أخرى مثل الشارات) ---------- */
 
@@ -1829,8 +1893,6 @@ button.bac-side-download,
     .back { width: 90%; }
     .lesson { border-radius: 16px; margin-bottom: 30px; }
     .lesson iframe { height: 420px; }
-    .bac-img-frame.is-zoomed img { transform: scale(1.22); }
-    .bac-img-zoom-btn { width: 46px; height: 46px; }
     .bac-side-download { width: 44px; height: 44px; top: 10px; left: 10px; }
 }
 
@@ -1843,7 +1905,7 @@ button.bac-side-download,
     .score-bar { font-size: 12px; justify-content: center; }
     .download-all-btn { width: 100%; min-width: 0; padding: 15px 20px; font-size: 14.5px; }
     .topic-download-btn { font-size: 12px; padding: 7px 14px; min-width: 140px; }
-    .topic-card { min-height: 175px; }
+    .topic-card { min-height: 160px; padding: 20px 16px; gap: 14px; }
     .auth-card { padding: 28px 18px; }
     .composer-title { flex-direction: column; }
     .composer-badge { align-self: flex-start; }
@@ -1854,8 +1916,7 @@ button.bac-side-download,
     .attachment-card { padding: 10px; }
     .file-preview-card strong { max-width: 210px; }
     .auth-gate { margin: 30px auto; padding: 30px 20px; }
-    .bac-img-frame.is-zoomed img { transform: scale(1.12); }
-    .bac-img-zoom-btn { width: 44px; height: 44px; }
-    .bac-img-zoom-btn svg { width: 18px; height: 18px; }
     .bac-side-download { width: 44px; height: 44px; }
+    .bac-image-viewer-close { top: -10px; left: -10px; width: 36px; height: 36px; }
+    .bac-image-viewer-inner img { max-height: 70vh; }
 }

@@ -243,14 +243,11 @@
   };
 
   /* ---------------------------------------------------------
-     6. عارض الصور — تكبير/تصغير + تنزيل جانبي لصور الدروس
-     يعتمد على تنسيقات .bac-img-frame الموجودة أصلًا في style.css
-     ويُنشئ البنية اللازمة ديناميكيًا حول <img> داخل .lesson
+     6. عارض الصور — مكبّر مشترك واحد لكل صفحة + تنزيل جانبي لصور الدروس
+     يُنشئ المكبّر مرة واحدة في أعلى الصفحة (أول عنصر داخل body)،
+     وكل صور الدروس (بجميع المواد) تفتح داخل نفس المكبّر عند النقر عليها.
+     يعتمد على تنسيقات .bac-img-frame و.bac-image-viewer-* في style.css.
      --------------------------------------------------------- */
-  const ZOOM_SVG_IN =
-    '<svg class="bac-zoom-in" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
-  const ZOOM_SVG_OUT =
-    '<svg class="bac-zoom-out" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
   const DOWNLOAD_SVG =
     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
 
@@ -260,19 +257,82 @@
     catch (e) { return parts[parts.length - 1] || 'image'; }
   }
 
-  function closeZoom(frame) {
-    frame.classList.remove('is-zoomed');
-    const host = frame.closest('.lesson, .card, .topic-card, .mini-card');
-    if (host) host.classList.remove('bac-zoom-open');
+  let imageViewerEls = null;
+
+  function ensureImageViewer() {
+    if (imageViewerEls) return imageViewerEls;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'bacImageViewerOverlay';
+    overlay.className = 'bac-image-viewer-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+
+    const inner = document.createElement('div');
+    inner.className = 'bac-image-viewer-inner';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'bac-image-viewer-close';
+    closeBtn.setAttribute('aria-label', 'إغلاق المكبر');
+    closeBtn.innerHTML = '✕';
+
+    const img = document.createElement('img');
+    img.id = 'bacImageViewerImg';
+    img.alt = 'عرض مكبر للصورة';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.type = 'button';
+    dlBtn.className = 'topic-download-btn bac-image-viewer-download';
+    dlBtn.innerHTML = DOWNLOAD_SVG + '<span>تنزيل الصورة</span>';
+
+    inner.appendChild(closeBtn);
+    inner.appendChild(img);
+    inner.appendChild(dlBtn);
+    overlay.appendChild(inner);
+    document.body.insertBefore(overlay, document.body.firstChild);
+
+    function close() {
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      img.removeAttribute('src');
+    }
+
+    function openWith(src, name) {
+      img.setAttribute('src', src);
+      img.setAttribute('alt', name || 'صورة مكبرة');
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    on(closeBtn, 'click', function (e) { e.stopPropagation(); close(); });
+    on(overlay, 'click', function (e) { if (e.target === overlay) close(); });
+    on(document, 'keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+    });
+    on(dlBtn, 'click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dlBtn.dataset.busy === '1') return;
+      const src = img.getAttribute('src');
+      if (!src) return;
+      dlBtn.dataset.busy = '1';
+      const name = baseName(src);
+      triggerFileDownload(src, name).then(function () {
+        showToast('تم تنزيل الصورة ✅');
+      }).catch(function () {
+        showToast('تعذّر تنزيل الصورة، سيتم فتحها في نافذة جديدة', 'err');
+        safeRun(function () { window.open(src, '_blank'); });
+      }).finally(function () {
+        dlBtn.dataset.busy = '0';
+      });
+    });
+
+    imageViewerEls = { overlay: overlay, img: img, open: openWith, close: close };
+    return imageViewerEls;
   }
 
-  function openZoom(frame) {
-    qsa('.bac-img-frame.is-zoomed').forEach(function (f) {
-      if (f !== frame) closeZoom(f);
-    });
-    frame.classList.add('is-zoomed');
-    const host = frame.closest('.lesson, .card, .topic-card, .mini-card');
-    if (host) host.classList.add('bac-zoom-open');
+  function openImageViewer(src, name) {
+    ensureImageViewer().open(src, name);
   }
 
   function enhanceLessonImages() {
@@ -285,37 +345,21 @@
       const controls = document.createElement('div');
       controls.className = 'bac-img-controls';
 
-      const zoomBtn = document.createElement('button');
-      zoomBtn.type = 'button';
-      zoomBtn.className = 'bac-img-zoom-btn';
-      zoomBtn.setAttribute('aria-label', 'تكبير/تصغير الصورة');
-      zoomBtn.innerHTML = ZOOM_SVG_IN + ZOOM_SVG_OUT;
-
       const dlBtn = document.createElement('button');
       dlBtn.type = 'button';
       dlBtn.className = 'topic-download-btn bac-side-download';
       dlBtn.setAttribute('aria-label', 'تنزيل الصورة');
       dlBtn.innerHTML = DOWNLOAD_SVG;
 
-      controls.appendChild(zoomBtn);
       controls.appendChild(dlBtn);
 
       img.parentNode.insertBefore(frame, img);
       frame.appendChild(img);
       frame.appendChild(controls);
 
-      on(zoomBtn, 'click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        frame.classList.contains('is-zoomed') ? closeZoom(frame) : openZoom(frame);
-      });
-
       on(img, 'click', function (e) {
-        if (frame.classList.contains('is-zoomed')) {
-          e.preventDefault();
-          e.stopPropagation();
-          closeZoom(frame);
-        }
+        e.preventDefault();
+        openImageViewer(img.getAttribute('src'), baseName(img.getAttribute('src')));
       });
 
       on(dlBtn, 'click', function (e) {
@@ -337,17 +381,40 @@
     });
   }
 
-  function initImageViewerGlobalHandlers() {
-    on(document, 'keydown', function (e) {
-      if (e.key === 'Escape') {
-        qsa('.bac-img-frame.is-zoomed').forEach(closeZoom);
-      }
-    });
-    on(document, 'click', function (e) {
-      qsa('.bac-img-frame.is-zoomed').forEach(function (frame) {
-        if (!frame.contains(e.target)) closeZoom(frame);
-      });
-    });
+  /* ---------------------------------------------------------
+     6ب. شريط التحكم بحجم صور الدروس (تكبير/تصغير فوري)
+     يُنشأ ديناميكياً فوق شبكة الدروس (.lessons) في أي صفحة تحتوي
+     عليها، ويتحكم بعرض الصور عبر متغير CSS واحد (--bac-lesson-zoom)
+     ضمن نطاق آمن (50%–100%) بحيث لا تتجاوز الصور حدود حاويتها أبداً.
+     --------------------------------------------------------- */
+  function initLessonZoomControl() {
+    var lessonsEl = document.querySelector('.lessons');
+    if (!lessonsEl || document.getElementById('bacLessonZoomBar')) return;
+
+    var bar = document.createElement('div');
+    bar.id = 'bacLessonZoomBar';
+    bar.className = 'bac-zoom-bar';
+    bar.innerHTML =
+      '<span class="bac-zoom-label">🔍 حجم صور الدروس</span>' +
+      '<button type="button" class="bac-zoom-btn" id="bacZoomOut" aria-label="تصغير حجم الصور">−</button>' +
+      '<input type="range" id="bacZoomRange" class="bac-zoom-range" min="50" max="100" step="5" value="100" aria-label="التحكم بحجم صور الدروس">' +
+      '<button type="button" class="bac-zoom-btn" id="bacZoomIn" aria-label="تكبير حجم الصور">+</button>';
+
+    lessonsEl.parentNode.insertBefore(bar, lessonsEl);
+
+    var range = bar.querySelector('#bacZoomRange');
+    var btnOut = bar.querySelector('#bacZoomOut');
+    var btnIn = bar.querySelector('#bacZoomIn');
+
+    function applyZoom(val) {
+      val = Math.max(50, Math.min(100, val));
+      lessonsEl.style.setProperty('--bac-lesson-zoom', val + '%');
+      range.value = val;
+    }
+
+    on(range, 'input', function () { applyZoom(parseInt(range.value, 10)); });
+    on(btnOut, 'click', function () { applyZoom(parseInt(range.value, 10) - 10); });
+    on(btnIn, 'click', function () { applyZoom(parseInt(range.value, 10) + 10); });
   }
 
   /* ---------------------------------------------------------
@@ -377,8 +444,8 @@
 
   function readAccentColors() {
     const styles = getComputedStyle(document.documentElement);
-    const dot = (styles.getPropertyValue('--accent') || '#1aff66').trim();
-    const line = (styles.getPropertyValue('--accent-soft') || 'rgba(26,255,102,0.4)').trim();
+    const dot = (styles.getPropertyValue('--bg-particle-dot') || styles.getPropertyValue('--accent') || '#1aff66').trim();
+    const line = (styles.getPropertyValue('--bg-particle-line') || styles.getPropertyValue('--accent-soft') || 'rgba(26,255,102,0.4)').trim();
     return { dot: dot, line: line };
   }
 
@@ -703,8 +770,9 @@
   function init() {
     safeRun(initThemeToggle, 'الوضع الداكن/الفاتح');
     safeRun(initTopBarScroll, 'الشريط العلوي');
+    safeRun(ensureImageViewer, 'مكبر الصور الموحّد');
     safeRun(enhanceLessonImages, 'عارض صور الدروس');
-    safeRun(initImageViewerGlobalHandlers, 'أحداث عارض الصور العامة');
+    safeRun(initLessonZoomControl, 'شريط التحكم بحجم صور الدروس');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
