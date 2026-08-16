@@ -60,8 +60,8 @@ html[data-theme="light"] {
     --danger-bg: #fdeaea;
     --gold: #ffc94d;
     --gold-dark: #b5860f;
-    --bg-particle-dot: rgba(64, 99, 133, 0.7);
-    --bg-particle-line: rgba(64, 99, 133, 0.45);
+    --bg-particle-dot: rgba(196, 148, 25, 0.8);
+    --bg-particle-line: rgba(196, 148, 25, 0.45);
 }
 
 html, body {

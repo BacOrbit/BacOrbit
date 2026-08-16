@@ -449,6 +449,19 @@
     return { dot: dot, line: line };
   }
 
+  function isLightTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'light';
+  }
+
+  /* إعدادات بصرية مستقلة لكل وضع (شفافية النقاط/الخطوط وقوة تفاعل الماوس).
+     الوضع الفاتح أهدأ وأخف ليناسب خلفية بيضاء/كريمية دون إزعاج القارئ،
+     بينما يبقى الوضع الداكن كما كان تمامًا دون أي تغيير. */
+  function getVisualParams() {
+    return isLightTheme()
+      ? { dotAlpha: 0.55, lineAlpha: 0.24, mouseForce: 0.40 }
+      : { dotAlpha: 0.35, lineAlpha: 0.18, mouseForce: 0.50 };
+  }
+
   function initInteractiveBackground() {
     if (document.getElementById('bacBgCanvas')) return; // مُهيأ مسبقًا
     if (typeof window.matchMedia !== 'function') return;
@@ -469,6 +482,7 @@
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
     let particles = [];
     let colors = readAccentColors();
+    let visualParams = getVisualParams();
     const mouse = { x: -9999, y: -9999, active: false };
     const smoothMouse = { x: -9999, y: -9999 };
     let running = false;
@@ -476,9 +490,11 @@
 
     function particleTarget() {
       const area = W * H;
-      const base = Math.round(area / 24000);
-      const max = hasFinePointer ? 85 : 50; // كثافة أقل على الأجهزة اللمسية
-      return Math.max(16, Math.min(base, max));
+      const light = isLightTheme();
+      /* كثافة أهدأ قليلاً في الوضع الفاتح لتبقى الخلفية هادئة ومريحة للعين */
+      const base = Math.round(area / (light ? 29000 : 24000));
+      const max = hasFinePointer ? (light ? 65 : 85) : (light ? 38 : 50);
+      return Math.max(14, Math.min(base, max));
     }
 
     function makeParticle() {
@@ -530,7 +546,7 @@
           const dx = p.x - smoothMouse.x, dy = p.y - smoothMouse.y;
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < mouseRadius && d > 0.01) {
-            const force = (1 - d / mouseRadius) * 0.5;
+            const force = (1 - d / mouseRadius) * visualParams.mouseForce;
             p.x += (dx / d) * force;
             p.y += (dy / d) * force;
           }
@@ -539,7 +555,7 @@
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = colors.dot;
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = visualParams.dotAlpha;
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -552,7 +568,7 @@
           const ddx = pa.x - pb.x, ddy = pa.y - pb.y;
           const dist = Math.sqrt(ddx * ddx + ddy * ddy);
           if (dist < linkDist) {
-            ctx.globalAlpha = (1 - dist / linkDist) * 0.18;
+            ctx.globalAlpha = (1 - dist / linkDist) * visualParams.lineAlpha;
             ctx.beginPath();
             ctx.moveTo(pa.x, pa.y);
             ctx.lineTo(pb.x, pb.y);
@@ -594,11 +610,17 @@
       if (document.hidden) stop(); else start();
     });
 
-    // إعادة قراءة الألوان عند تبديل الوضع الداكن/الفاتح (زر الصفحة الحالية إن وجد)
-    const themeBtn = document.getElementById('themeToggle');
-    if (themeBtn) {
-      on(themeBtn, 'click', function () {
-        setTimeout(function () { colors = readAccentColors(); }, 60);
+    // إعادة قراءة الألوان والإعدادات البصرية فور تبديل data-theme على <html>،
+    // بغض النظر عن أي زر أو صفحة (يعمل تلقائيًا في كل الصفحات دون إعادة تحميل)
+    if (typeof MutationObserver === 'function') {
+      const themeObserver = new MutationObserver(function () {
+        colors = readAccentColors();
+        visualParams = getVisualParams();
+        resize(); // لإعادة ضبط كثافة الجسيمات المناسبة للوضع الجديد
+      });
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
       });
     }
 
