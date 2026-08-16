@@ -453,13 +453,13 @@
     return document.documentElement.getAttribute('data-theme') === 'light';
   }
 
-  /* إعدادات بصرية مستقلة لكل وضع (شفافية النقاط/الخطوط وقوة تفاعل الماوس).
-     الوضع الفاتح أهدأ وأخف ليناسب خلفية بيضاء/كريمية دون إزعاج القارئ،
-     بينما يبقى الوضع الداكن كما كان تمامًا دون أي تغيير. */
+  /* إعدادات بصرية مستقلة لكل وضع (شفافية النقاط/الخطوط وقوة تفاعل الماوس وتوهّج ناعم).
+     الوضع الفاتح أصبح أكثر وضوحًا وحيوية واحترافية (نقاط وخطوط أبرز مع توهج خفيف)
+     دون أن يزعج القراءة، بينما يبقى الوضع الداكن كما كان تمامًا دون أي تغيير. */
   function getVisualParams() {
     return isLightTheme()
-      ? { dotAlpha: 0.55, lineAlpha: 0.24, mouseForce: 0.40 }
-      : { dotAlpha: 0.35, lineAlpha: 0.18, mouseForce: 0.50 };
+      ? { dotAlpha: 0.72, lineAlpha: 0.38, mouseForce: 0.42, glow: 7 }
+      : { dotAlpha: 0.35, lineAlpha: 0.18, mouseForce: 0.50, glow: 0 };
   }
 
   function initInteractiveBackground() {
@@ -491,19 +491,22 @@
     function particleTarget() {
       const area = W * H;
       const light = isLightTheme();
-      /* كثافة أهدأ قليلاً في الوضع الفاتح لتبقى الخلفية هادئة ومريحة للعين */
-      const base = Math.round(area / (light ? 29000 : 24000));
-      const max = hasFinePointer ? (light ? 65 : 85) : (light ? 38 : 50);
+      /* كثافة أوضح وأكثر حيوية في الوضع الفاتح (تساوي أو تفوق كثافة الوضع الداكن)
+         مع الحفاظ على الأداء والراحة أثناء القراءة */
+      const base = Math.round(area / (light ? 21000 : 24000));
+      const max = hasFinePointer ? (light ? 95 : 85) : (light ? 55 : 50);
       return Math.max(14, Math.min(base, max));
     }
 
     function makeParticle() {
+      const light = isLightTheme();
       return {
         x: Math.random() * W,
         y: Math.random() * H,
         vx: (Math.random() - 0.5) * 0.16,
         vy: (Math.random() - 0.5) * 0.16,
-        r: Math.random() * 1.3 + 0.6
+        /* نقاط أكبر قليلاً في الوضع الفاتح لتبرز بوضوح فوق الخلفية الفاتحة */
+        r: light ? (Math.random() * 1.6 + 0.9) : (Math.random() * 1.3 + 0.6)
       };
     }
 
@@ -556,7 +559,13 @@
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = colors.dot;
         ctx.globalAlpha = visualParams.dotAlpha;
+        /* توهّج ناعم للنقاط في الوضع الفاتح فقط، لإضفاء حيوية واحترافية دون تشتيت */
+        if (visualParams.glow) {
+          ctx.shadowBlur = visualParams.glow;
+          ctx.shadowColor = colors.dot;
+        }
         ctx.fill();
+        if (visualParams.glow) ctx.shadowBlur = 0;
       }
       ctx.globalAlpha = 1;
 
