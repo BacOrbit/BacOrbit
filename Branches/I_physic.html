@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سلاسل تمارين الفيزياء - BacOrbit</title>
+<meta name="description" content="سلاسل تمارين شاملة في الفيزياء: المتابعة الزمنية، تطور جملة ميكانيكية، تطور جملة كهربائية RC و RL، المعايرة pH مترية، الفيزياء النووية، الأسترة، والأعمدة.">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة «سلاسل تمارين الفيزياء» فقط (لا تعدّل style.css المشترك) ══ */
+
+.ip-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 6px;
+}
+
+.ip-units {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.ip-unit-card {
+    display: block;
+    width: 100%;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 22px;
+    text-align: center;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    animation: forumCardIn 0.35s ease both;
+}
+
+.ip-unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 22px var(--accent-soft);
+}
+
+.ip-unit-card.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    cursor: default;
+    animation: forumCardIn 0.4s ease both;
+}
+
+.ip-unit-card.active:hover {
+    transform: none;
+    box-shadow: 0 8px 24px var(--accent-soft);
+}
+
+.ip-unit-card.ip-hidden {
+    display: none;
+}
+
+.ip-unit-card.ip-unit-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+    border-style: dashed;
+    border-color: var(--empty-border);
+}
+
+.ip-unit-card.ip-unit-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.ip-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 18px auto 0;
+    padding: 12px 26px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+    animation: forumCardIn 0.3s ease both;
+}
+
+.ip-back-btn:hover {
+    background: var(--accent-glow);
+    box-shadow: 0 0 16px var(--accent-glow);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 600px) {
+    .ip-unit-card { padding: 20px 16px; font-size: 16.5px; border-radius: 15px; }
+    .ip-back-btn { width: 100%; padding: 13px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+    <h1>⚡ سلاسل تمارين الفيزياء</h1>
+    <p>اختر الوحدة لعرض سلسلة تمارينها كاملة</p>
+</section>
+
+<div class="ip-wrap">
+    <div class="ip-units" id="ipUnits"></div>
+    <button type="button" class="ip-back-btn" id="ipBackBtn">⬅ العودة إلى الوحدات</button>
+</div>
+
+<main class="lessons" id="ipLessons"></main>
+
+<a href="../index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© BacOrbit جميع الحقوق محفوظة
+</footer>
+
+<script>
+(function () {
+'use strict';
+
+/* بيانات الوحدات: المفتاح، الاسم الظاهر، بادئة اسم الملف الفعلي داخل
+   مجلد I_physic، وعدد الصور الحقيقي لكل وحدة (تم التحقق منه على الملفات
+   الفعلية الموجودة في المجلد، وليس افتراضًا).
+   وحدة "الظواهر الاهتزازية" غير مفعّلة لعدم وجود صور فعلية لها حاليًا
+   داخل مجلد I_physic — ستُفعَّل تلقائيًا فور توفر صورها لاحقًا. */
+var UNITS = [
+    { key: 'kinetics',  name: '⏱️ المتابعة الزمنية',                 prefix: 'المتابعة الزمنية', count: 57, enabled: true },
+    { key: 'mech',      name: '⚙️ تطور جملة ميكانيكية',              prefix: 'ميكانيك',          count: 49, enabled: true },
+    { key: 'elec',      name: '🔌 تطور جملة كهربائية RC, RL',         prefix: 'كهرباء',           count: 40, enabled: true },
+    { key: 'ph',        name: '🧪 المعايرة pH مترية',                 prefix: 'ph',               count: 36, enabled: true },
+    { key: 'nuclear',   name: '☢️ الفيزياء النووية',                  prefix: 'النووي',           count: 53, enabled: true },
+    { key: 'ester',     name: '🧫 الأسترة',                           prefix: 'استرة',            count: 34, enabled: true },
+    { key: 'columns',   name: '⚗️ الأعمدة',                          prefix: 'اعمدة',            count: 3,  enabled: true },
+    { key: 'vibration', name: '🌊 الظواهر الاهتزازية',                prefix: null,               count: 0,  enabled: false }
+];
+
+var unitsWrap = document.getElementById('ipUnits');
+var backBtn = document.getElementById('ipBackBtn');
+var lessonsEl = document.getElementById('ipLessons');
+var cards = [];
+
+function buildCards() {
+    UNITS.forEach(function (u) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ip-unit-card' + (u.enabled ? '' : ' ip-unit-disabled');
+        btn.textContent = (u.enabled ? '' : '🔒 ') + u.name + (u.enabled ? '' : ' (قريباً)');
+        btn.dataset.key = u.key;
+
+        if (!u.enabled) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.title = 'هذه الوحدة غير متاحة حاليًا';
+        } else {
+            btn.addEventListener('click', function () { selectUnit(u); });
+        }
+
+        unitsWrap.appendChild(btn);
+        cards.push(btn);
+    });
+}
+
+function renderImages(u) {
+    lessonsEl.innerHTML = '';
+    var plainName = u.name.replace(/^\S+\s/, '');
+    for (var i = 1; i <= u.count; i++) {
+        var div = document.createElement('div');
+        div.className = 'lesson';
+
+        var img = document.createElement('img');
+        img.src = 'I_physic/' + u.prefix + i + '.jpg';
+        img.alt = plainName + ' - تمرين ' + i;
+        img.loading = (i === 1) ? 'eager' : 'lazy';
+
+        div.appendChild(img);
+        lessonsEl.appendChild(div);
+    }
+    /* إعادة تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة حديثًا */
+    if (typeof window.bacEnhanceLessonImages === 'function') {
+        window.bacEnhanceLessonImages();
+    }
+}
+
+function toggleZoomBar(show) {
+    var bar = document.getElementById('bacLessonZoomBar');
+    if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+
+function selectUnit(u) {
+    cards.forEach(function (c) {
+        if (c.dataset.key === u.key) {
+            c.classList.add('active');
+            c.classList.remove('ip-hidden');
+        } else {
+            c.classList.add('ip-hidden');
+        }
+    });
+    backBtn.style.display = 'inline-flex';
+    renderImages(u);
+    toggleZoomBar(true);
+}
+
+function goBack() {
+    cards.forEach(function (c) {
+        c.classList.remove('active', 'ip-hidden');
+    });
+    backBtn.style.display = 'none';
+    lessonsEl.innerHTML = '';
+    toggleZoomBar(false);
+}
+
+function init() {
+    buildCards();
+    backBtn.addEventListener('click', goBack);
+    toggleZoomBar(false);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})();
+</script>
+
+</body>
+</html>

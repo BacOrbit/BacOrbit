@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مواضيع الرياضيات- BacOrbit</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1>مواضيع الرياضيات</h1>
+<p>اختر السنة التي تريد مراجعتها</p>
+</section>
+
+<section class="subjects">
+
+<div class="card card-empty">
+<h2>📄 باكلوريا 2026 (قريباً)</h2>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(19).pdf', '_blank')">
+    <h2>📄 باكلوريا 2025</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(19).pdf', '(19).pdf')" aria-label="تنزيل باكلوريا 2025">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(18).pdf', '_blank')">
+    <h2>📄 باكلوريا 2024</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(18).pdf', '(18).pdf')" aria-label="تنزيل باكلوريا 2024">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(17).pdf', '_blank')">
+    <h2>📄 باكلوريا 2023</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(17).pdf', '(17).pdf')" aria-label="تنزيل باكلوريا 2023">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(16).pdf', '_blank')">
+    <h2>📄 باكلوريا 2022</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(16).pdf', '(16).pdf')" aria-label="تنزيل باكلوريا 2022">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(15).pdf', '_blank')">
+    <h2>📄 باكلوريا 2021</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(15).pdf', '(15).pdf')" aria-label="تنزيل باكلوريا 2021">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(14).pdf', '_blank')">
+    <h2>📄 باكلوريا 2020</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(14).pdf', '(14).pdf')" aria-label="تنزيل باكلوريا 2020">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(13).pdf', '_blank')">
+    <h2>📄 باكلوريا 2019</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(13).pdf', '(13).pdf')" aria-label="تنزيل باكلوريا 2019">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(12).pdf', '_blank')">
+    <h2>📄 باكلوريا 2018</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(12).pdf', '(12).pdf')" aria-label="تنزيل باكلوريا 2018">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(10).pdf', '_blank')">
+    <h2>📄 باكلوريا 2017</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(10).pdf', '(10).pdf')" aria-label="تنزيل باكلوريا 2017">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(11).pdf', '_blank')">
+    <h2>⭐ الدورة الاستثنائية 2017</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(11).pdf', '(11).pdf')" aria-label="تنزيل الدورة الاستثنائية 2017">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(9).pdf', '_blank')">
+    <h2>📄 باكلوريا 2016</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(9).pdf', '(9).pdf')" aria-label="تنزيل باكلوريا 2016">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(8).pdf', '_blank')">
+    <h2>📄 باكلوريا 2015</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(8).pdf', '(8).pdf')" aria-label="تنزيل باكلوريا 2015">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(7).pdf', '_blank')">
+    <h2>📄 باكلوريا 2014</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(7).pdf', '(7).pdf')" aria-label="تنزيل باكلوريا 2014">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(6).pdf', '_blank')">
+    <h2>📄 باكلوريا 2013</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(6).pdf', '(6).pdf')" aria-label="تنزيل باكلوريا 2013">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(5).pdf', '_blank')">
+    <h2>📄 باكلوريا 2012</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(5).pdf', '(5).pdf')" aria-label="تنزيل باكلوريا 2012">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(4).pdf', '_blank')">
+    <h2>📄 باكلوريا 2011</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(4).pdf', '(4).pdf')" aria-label="تنزيل باكلوريا 2011">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(3).pdf', '_blank')">
+    <h2>📄 باكلوريا 2010</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(3).pdf', '(3).pdf')" aria-label="تنزيل باكلوريا 2010">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(2).pdf', '_blank')">
+    <h2>📄 باكلوريا 2009</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(2).pdf', '(2).pdf')" aria-label="تنزيل باكلوريا 2009">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+<div class="card topic-card" onclick="window.open('S_math_m/(1).pdf', '_blank')">
+    <h2>📄 باكلوريا 2008</h2>
+    <button class="topic-download-btn" type="button" onclick="downloadTopic(event, 'S_math_m/(1).pdf', '(1).pdf')" aria-label="تنزيل باكلوريا 2008">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>        <span>تنزيل الموضوع</span>
+    </button>
+</div>
+
+</section>
+
+<a class="back" href="../index.html">العودة للرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<script>
+
+    function openBac(fileName){
+        if(fileName) {
+            window.open(fileName, '_blank');
+        }
+    }
+</script>
+
+</body>
+</html>
