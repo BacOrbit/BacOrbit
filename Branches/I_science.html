@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سلاسل تمارين علوم الطبيعة والحياة - BacOrbit</title>
+<meta name="description" content="سلاسل تمارين شاملة في علوم الطبيعة والحياة: تركيب البروتين، العلاقة بين بنية ووظيفة البروتين، النشاط الإنزيمي، المناعة، الاتصال العصبي، التركيب الضوئي، التنفس والتخمر، والتكتونية العامة.">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة «سلاسل تمارين علوم الطبيعة والحياة» فقط (لا تعدّل style.css المشترك) ══ */
+
+.is-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 6px;
+}
+
+.is-units {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.is-unit-card {
+    display: block;
+    width: 100%;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 22px;
+    text-align: center;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    animation: forumCardIn 0.35s ease both;
+}
+
+.is-unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 22px var(--accent-soft);
+}
+
+.is-unit-card.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    cursor: default;
+    animation: forumCardIn 0.4s ease both;
+}
+
+.is-unit-card.active:hover {
+    transform: none;
+    box-shadow: 0 8px 24px var(--accent-soft);
+}
+
+.is-unit-card.is-hidden {
+    display: none;
+}
+
+.is-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 18px auto 0;
+    padding: 12px 26px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+    animation: forumCardIn 0.3s ease both;
+}
+
+.is-back-btn:hover {
+    background: var(--accent-glow);
+    box-shadow: 0 0 16px var(--accent-glow);
+    transform: translateY(-2px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+    <h1>🧬 سلاسل تمارين علوم الطبيعة والحياة</h1>
+    <p>اختر الوحدة لعرض سلسلة تمارينها كاملة</p>
+</section>
+
+<div class="is-wrap">
+    <div class="is-units" id="isUnits"></div>
+    <button type="button" class="is-back-btn" id="isBackBtn">⬅ العودة إلى الوحدات</button>
+</div>
+
+<main class="lessons" id="isLessons"></main>
+
+<a href="../index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© BacOrbit جميع الحقوق محفوظة
+</footer>
+
+<script>
+(function () {
+'use strict';
+
+/* بيانات الوحدات: المفتاح، الاسم الظاهر، بادئة اسم الملف الفعلي داخل
+   مجلد I_science، وعدد الصور الحقيقي لكل وحدة (تم التحقق منه على الملفات
+   الفعلية الموجودة في المجلد، وليس افتراضًا). الترتيب مطابق للترتيب
+   المطلوب تمامًا. */
+var UNITS = [
+    { key: 'protein_struct',  name: '🧬 تركيب البروتين',                                    prefix: 'تركيب البروتين',                      count: 95 },
+    { key: 'protein_func',    name: '🔗 العلاقة بين بنية ووظيفة البروتين',                   prefix: 'العلاقة بين بنية و وظيفة البروتين',  count: 13 },
+    { key: 'enzyme',          name: '⚗️ النشاط الإنزيمي للبروتينات',                          prefix: 'النشاط الانزيمي',                     count: 19 },
+    { key: 'immunity',        name: '🛡️ دور البروتينات في الدفاع عن الذات (المناعة)',        prefix: 'المناعة',                             count: 58 },
+    { key: 'nerves',          name: '⚡ دور البروتينات في الاتصال العصبي',                    prefix: 'الاعصاب',                             count: 90 },
+    { key: 'photosynthesis',  name: '🌿 التركيب الضوئي',                                     prefix: 'التركيب الضوئي',                      count: 21 },
+    { key: 'respiration',     name: '🫁 التنفس والتخمر',                                     prefix: 'التنفس',                              count: 44 },
+    { key: 'tectonics',       name: '🌋 التكتونية العامة',                                   prefix: 'التكتونية',                           count: 55 }
+];
+
+var unitsWrap = document.getElementById('isUnits');
+var backBtn = document.getElementById('isBackBtn');
+var lessonsEl = document.getElementById('isLessons');
+var cards = [];
+
+function buildCards() {
+    UNITS.forEach(function (u) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'is-unit-card';
+        btn.textContent = u.name;
+        btn.dataset.key = u.key;
+        btn.addEventListener('click', function () { selectUnit(u); });
+        unitsWrap.appendChild(btn);
+        cards.push(btn);
+    });
+}
+
+function renderImages(u) {
+    lessonsEl.innerHTML = '';
+    var plainName = u.name.replace(/^\S+\s/, '');
+    for (var i = 1; i <= u.count; i++) {
+        var div = document.createElement('div');
+        div.className = 'lesson';
+
+        var img = document.createElement('img');
+        img.src = 'I_science/' + u.prefix + i + '.jpg';
+        img.alt = plainName + ' - تمرين ' + i;
+        img.loading = (i === 1) ? 'eager' : 'lazy';
+
+        div.appendChild(img);
+        lessonsEl.appendChild(div);
+    }
+    /* إعادة تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة حديثًا */
+    if (typeof window.bacEnhanceLessonImages === 'function') {
+        window.bacEnhanceLessonImages();
+    }
+}
+
+function toggleZoomBar(show) {
+    var bar = document.getElementById('bacLessonZoomBar');
+    if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+
+function selectUnit(u) {
+    cards.forEach(function (c) {
+        if (c.dataset.key === u.key) {
+            c.classList.add('active');
+            c.classList.remove('is-hidden');
+        } else {
+            c.classList.add('is-hidden');
+        }
+    });
+    backBtn.style.display = 'inline-flex';
+    renderImages(u);
+    toggleZoomBar(true);
+}
+
+function goBack() {
+    cards.forEach(function (c) {
+        c.classList.remove('active', 'is-hidden');
+    });
+    backBtn.style.display = 'none';
+    lessonsEl.innerHTML = '';
+    toggleZoomBar(false);
+}
+
+function init() {
+    buildCards();
+    backBtn.addEventListener('click', goBack);
+    toggleZoomBar(false);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})();
+</script>
+
+</body>
+</html>
