@@ -1,143 +1,88 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شعبة الرياضيات - BacOrbit</title>
+<title>شعبة الرياضيات - دروس ومواضيع البكالوريا | BacOrbit</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+<meta name="description" content="كل ما تحتاجه لمراجعة البكالوريا في شعبة الرياضيات: دروس وملخصات، مواضيع بكالوريا لسنوات سابقة، وتمارين لجميع المواد. راجع الآن مجاناً مع BacOrbit.">
+<meta name="keywords" content="شعبة الرياضيات, بكالوريا رياضيات, دروس رياضيات, مواضيع بكالوريا رياضيات, BacOrbit">
+<meta name="robots" content="index, follow">
+<meta name="author" content="BacOrbit">
+<link rel="canonical" href="https://bacorbit.github.io/BacOrbit/Branches/1_math.html">
 
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BacOrbit">
+<meta property="og:locale" content="ar_DZ">
+<meta property="og:title" content="شعبة الرياضيات - دروس ومواضيع البكالوريا | BacOrbit">
+<meta property="og:description" content="كل ما تحتاجه لمراجعة البكالوريا في شعبة الرياضيات: دروس وملخصات، مواضيع بكالوريا لسنوات سابقة، وتمارين لجميع المواد. راجع الآن مجاناً مع BacOrbit.">
+<meta property="og:url" content="https://bacorbit.github.io/BacOrbit/Branches/1_math.html">
+<meta property="og:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
 
-body{
-background:#0d0d0d;
-color:white;
-min-height:100vh;
-}
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="شعبة الرياضيات - دروس ومواضيع البكالوريا | BacOrbit">
+<meta name="twitter:description" content="كل ما تحتاجه لمراجعة البكالوريا في شعبة الرياضيات: دروس وملخصات، مواضيع بكالوريا لسنوات سابقة، وتمارين لجميع المواد. راجع الآن مجاناً مع BacOrbit.">
+<meta name="twitter:image" content="https://bacorbit.github.io/BacOrbit/assets/og-cover.png">
 
-header{
-text-align:center;
-padding:30px;
-border-bottom:1px solid #1aff66;
-background:#111;
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://bacorbit.github.io/BacOrbit/"},{"@type":"ListItem","position":2,"name":"شعبة الرياضيات","item":"https://bacorbit.github.io/BacOrbit/Branches/1_math.html"}]
 }
-
-.logo{
-font-size:40px;
-font-weight:bold;
-color:#1aff66;
-letter-spacing:2px;
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "شعبة الرياضيات",
+  "isPartOf": {"@type": "WebSite", "name": "BacOrbit", "url": "https://bacorbit.github.io/BacOrbit/"},
+  "inLanguage": "ar"
 }
-
-.hero{
-text-align:center;
-padding:70px 20px;
-}
-
-.hero h1{
-font-size:48px;
-margin-bottom:15px;
-}
-
-.hero p{
-font-size:18px;
-color:#bdbdbd;
-}
-
-.subjects{
-max-width:1200px;
-margin:auto;
-padding:30px;
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-gap:25px;
-align-items:start;
-}
-
-.card{
-background:#161616;
-border:2px solid #1aff66;
-border-radius:20px;
-padding:35px;
-text-align:center;
-cursor:pointer;
-transition:.3s;
-}
-
-.card:hover{
-transform:translateY(-8px);
-box-shadow:0 0 25px rgba(26,255,102,.5);
-}
-
-.card h2{
-color:#1aff66;
-font-size:24px;
-}
-
-.subject-content{
-display:none;
-margin-top:20px;
-}
-
-.mini-card{
-background:#161616;
-border:2px solid #1aff66;
-border-radius:15px;
-padding:15px;
-margin-top:12px;
-color:white;
-font-weight:bold;
-transition:.3s;
-}
-
-.mini-card:hover{
-transform:translateY(-5px);
-box-shadow:0 0 20px rgba(26,255,102,.4);
-}
-
-.mini-card.disabled-card{
-opacity:.45;
-cursor:default;
-pointer-events:none;
-}
-
-.mini-card.disabled-card:hover{
-transform:none;
-box-shadow:none;
-}
-
-.back{
-display:block;
-width:250px;
-margin:40px auto;
-padding:15px;
-text-align:center;
-background:#1aff66;
-color:black;
-font-weight:bold;
-text-decoration:none;
-border-radius:12px;
-}
-
-footer{
-text-align:center;
-padding:25px;
-color:#888;
-}
-</style>
+</script>
 
 </head>
 
 <body>
 
-<header>
-<div class="logo">BacOrbit</div>
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
 </header>
 
 <section class="hero">
@@ -149,27 +94,43 @@ color:#888;
 
 <div class="card" onclick="toggleContent(this)">
 <h2>الرياضيات</h2>
-<div class="subject-content">
-    <div class="mini-card"> دروس و ملخصات</div>
-<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
-<div class="mini-card disabled-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
+ <div class="subject-content">
+    <div class="mini-card" onclick="window.location.href='L_math.html'">
+📝 دروس و ملخصات
+</div>
+ <div class="mini-card" onclick="window.location.href='I_math.html'">
+✏️ سلاسل التمارين
+</div>
+<div class="mini-card" onclick="window.location.href='S_math_m.html'">📄 مواضيع البكالوريا مع الحل النموذجي</div>
 </div>
 </div>
 
 <div class="card" onclick="toggleContent(this)">
 <h2>الفيزياء</h2>
 <div class="subject-content">
-    <div class="mini-card"> دروس و ملخصات</div>
-<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
-<div class="mini-card disabled-card">📝 تمارين باكلوريا حسب الوحدات و المحاور</div>
+    <div class="mini-card" onclick="window.location.href='L_physic.html'">📝 دروس و ملخصات</div>
+ <div class="mini-card" onclick="window.location.href='I_physic.html'">✏️ سلاسل التمارين</div>
+<div class="mini-card" onclick="window.location.href='S_physic.html'">📄 مواضيع البكالوريا مع الحل النموذجي</div>
 </div>
 </div>
-    
+
 <div class="card" onclick="toggleContent(this)">
 <h2>العلوم الطبيعية</h2>
 <div class="subject-content">
 <div class="mini-card" onclick="window.location.href='L_science2.html'">📝 دروس و ملخصات</div>
-<div class="mini-card">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+<div class="mini-card" onclick="window.location.href='S_science2.html'">📄 مواضيع البكالوريا مع الحل النموذجي</div>
+</div>
+</div>
+
+<div class="card" onclick="toggleContent(this)">
+<h2>اللغة العربية</h2>
+<div class="subject-content">
+<div class="mini-card" onclick="window.location.href='L_Arabic.html'">
+📝 دروس و ملخصات
+</div>
+<div class="mini-card" onclick="window.location.href='S_Arabic.html'">
+📄 مواضيع البكالوريا مع الحل النموذجي
+</div>
 </div>
 </div>
 
@@ -197,6 +158,11 @@ color:#888;
 </div>
 </div>
 
+<div class="card card-empty">
+<h2>الإعلام الآلي</h2>
+<p>قريباً</p>
+</div>
+
 </section>
 
 <a class="back" href="../index.html">العودة للرئيسية</a>
@@ -219,4 +185,3 @@ content.style.display="block";
 
 </body>
 </html>
-```

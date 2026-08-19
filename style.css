@@ -72,7 +72,7 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: auto;
 }
 
 /* ---------- 2. الشريط العلوي ---------- */
@@ -798,11 +798,6 @@ footer {
     max-width: 45vw;
     accent-color: var(--accent);
     cursor: pointer;
-}
-
-@media (max-width: 600px) {
-    .bac-zoom-bar { padding: 10px 14px; gap: 10px; }
-    .bac-zoom-label { font-size: 12.5px; }
 }
 
 /* ---------- 11. المنتدى (chat.html) وبوابة التسجيل الموحدة ---------- */
@@ -1875,48 +1870,13 @@ button.bac-side-download,
     width: 20px;
 }
 
-@media (max-width: 600px) {
-    .nav-menu-panel {
-        right: 0;
-        min-width: 210px;
-        max-width: calc(100vw - 30px);
-    }
-}
-
-/* ---------- 17. تصميم متجاوب للشاشات الصغيرة والجوال ---------- */
-
-@media (max-width: 768px) {
-    .logo { font-size: 32px; }
-    .hero { padding: 55px 15px 25px; }
-    .hero h1 { font-size: 32px; }
-    .hero p { font-size: 16px; }
-    .back { width: 90%; }
-    .lesson { border-radius: 16px; margin-bottom: 30px; }
-    .lesson iframe { height: 420px; }
-    .bac-side-download { width: 44px; height: 44px; top: 10px; left: 10px; }
-}
-
-@media (max-width: 600px) {
-    .wrap { padding: 0 12px 30px; }
-    .quiz-card, .congrats, .stage-complete { padding: 24px; }
-    .question-text { font-size: 18px; }
-    .option-btn { font-size: 15px; }
-    .banner { font-size: 22px; padding: 16px 26px; }
-    .score-bar { font-size: 12px; justify-content: center; }
-    .download-all-btn { width: 100%; min-width: 0; padding: 15px 20px; font-size: 14.5px; }
-    .topic-download-btn { font-size: 12px; padding: 7px 14px; min-width: 140px; }
-    .topic-card { min-height: 160px; padding: 20px 16px; gap: 14px; }
-    .auth-card { padding: 28px 18px; }
-    .composer-title { flex-direction: column; }
-    .composer-badge { align-self: flex-start; }
-    .user-bar { align-items: flex-start; flex-direction: column; font-size: 13px; text-align: center; justify-content: center; }
-    .post { padding: 17px; border-radius: 16px; }
-    .post-actions { gap: 8px; }
-    .action-btn { padding: 7px 11px; font-size: 12px; }
-    .attachment-card { padding: 10px; }
-    .file-preview-card strong { max-width: 210px; }
-    .auth-gate { margin: 30px auto; padding: 30px 20px; }
-    .bac-side-download { width: 44px; height: 44px; }
-    .bac-image-viewer-close { top: -10px; left: -10px; width: 36px; height: 36px; }
-    .bac-image-viewer-inner img { max-height: 70vh; }
-}
+/* ---------- 17. تصميم متجاوب للشاشات الصغيرة والجوال ----------
+   بطلب صريح: نسخة الهاتف يجب أن تطابق نسخة الكمبيوتر في الهندسة والأبعاد
+   والخطوط والألوان وترتيب العناصر، دون أي تصميم مختلف أو تصغير خاص
+   بالجوال. لذلك أُزيلت جميع قواعد @media التي كانت تُغيّر المقاسات أو
+   الحشوات أو اتجاه العناصر (flex-direction) أو عرضها. العناصر تحافظ على
+   أبعادها ونسبها كما في الكمبيوتر تمامًا، وإن احتاج عنصر مساحة أكبر من
+   عرض شاشة الهاتف يُسمح بالتمرير الأفقي بدل تغيير هندسته (body أصبح
+   overflow-x: auto بدل hidden لهذا الغرض تحديدًا). العناصر التي تتكيف
+   بشكل طبيعي (مثل الشبكات auto-fit وflex-wrap) هي نفس القواعد المستخدمة
+   على الكمبيوتر أصلًا، وليست تصميمًا خاصًا بالجوال. */

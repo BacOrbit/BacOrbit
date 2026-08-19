@@ -31,6 +31,13 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 .chip-remove:hover{transform:scale(1.18)}
 .reply-form .submit-btn{width:auto;flex:1;min-width:150px}
 .report-pill{margin-inline-start:auto;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--danger);color:var(--danger);background:var(--danger-bg);padding:5px 12px;border-radius:10px;font-size:12px;font-weight:bold}
+.top-bar-right-group{display:flex;align-items:center;gap:10px}
+.notif-toggle-btn{position:relative;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:var(--track-bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;padding:0;flex-shrink:0;color:var(--footer-text);transition:background-color .3s ease,border-color .3s ease,box-shadow .25s ease,color .25s ease}
+.notif-toggle-btn:hover{box-shadow:0 0 14px var(--accent-glow)}
+.notif-toggle-btn.on{color:var(--accent)}
+.notif-toggle-btn .notif-bell-icon{width:20px;height:20px}
+.notif-dot{position:absolute;top:6px;left:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);display:none}
+.notif-toggle-btn.on .notif-dot{display:block}
 .report-btn.reported-done{border-color:var(--empty-border);color:var(--footer-text);cursor:default}
 .report-btn.reported-done:hover{background:none}
 .content-note{color:var(--footer-text);font-size:14px;padding:8px 5px;text-align:center;line-height:1.9}
@@ -41,7 +48,6 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 #toast .toast-box{background:var(--card-bg);border:2px solid var(--accent);color:var(--accent);padding:12px 24px;border-radius:14px;font-weight:bold;box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(15px);transition:opacity .3s ease,transform .3s ease,border-color .35s ease,color .35s ease;max-width:90%;text-align:center}
 #toast.show .toast-box{opacity:1;transform:translateY(0)}
 #toast.err .toast-box{border-color:var(--danger);color:var(--danger)}
-@media(max-width:600px){.chip-file{min-width:80px}.report-pill{margin-inline-start:0}}
 </style>
 </head>
 <body>
@@ -68,13 +74,23 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
     </div>
   </div>
 
-  <button class="theme-switch" id="themeSwitch" aria-label="تبديل الوضع الليلي/النهاري">
-    <span class="theme-switch-track">
-      <span class="theme-switch-icon sun">☀️</span>
-      <span class="theme-switch-icon moon">🌙</span>
-    </span>
-    <span class="theme-switch-thumb"></span>
-  </button>
+  <div class="top-bar-right-group">
+    <button id="notifToggleBtn" class="notif-toggle-btn" type="button" aria-label="تفعيل أو إيقاف إشعارات الردود على رسائلك" aria-pressed="false" title="إشعارات الردود على رسائلك">
+      <svg class="notif-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span class="notif-dot" id="notifDot"></span>
+    </button>
+
+    <button class="theme-switch" id="themeSwitch" aria-label="تبديل الوضع الليلي/النهاري">
+      <span class="theme-switch-track">
+        <span class="theme-switch-icon sun">☀️</span>
+        <span class="theme-switch-icon moon">🌙</span>
+      </span>
+      <span class="theme-switch-thumb"></span>
+    </button>
+  </div>
 
 </nav>
 
@@ -255,6 +271,102 @@ window.addEventListener('scroll',()=>{
   window.addEventListener('resize',()=>{ clearTimeout(navResizeTimer); navResizeTimer=setTimeout(closeNav,120); });
 })();
 
+/* ═══════════ 2ج) إشعارات الردود على رسائلي الشخصية ═══════════
+   زر جرس في الشريط العلوي يفعّل/يوقف إشعارات المتصفح (Notification API).
+   عند التفعيل، وكل مرة تصل ردود جديدة (عبر DB.listen)، يتم إشعار المستخدم
+   فقط بالردود الجديدة على مواضيعه الشخصية (وليس ردوده هو نفسه).
+   يعمل فقط أثناء فتح الصفحة في المتصفح (بدون Service Worker/Push خادمي). */
+const NOTIF_PREF_KEY='bacorbit_notif_enabled';
+const NOTIF_SEEN_KEY='bacorbit_notif_seen_ids';
+const NOTIF_BASELINE_KEY='bacorbit_notif_baseline_done';
+let notifEnabled=false;
+let notifSeenIds=new Set();
+let notifBaselineDone=false;
+const notifBtn=document.getElementById('notifToggleBtn');
+
+function loadNotifSeen(){
+  try{ const raw=localStorage.getItem(NOTIF_SEEN_KEY); const arr=raw?JSON.parse(raw):[];
+       return new Set(Array.isArray(arr)?arr:[]); }
+  catch(e){ return new Set(); }
+}
+function saveNotifSeen(){
+  try{ localStorage.setItem(NOTIF_SEEN_KEY, JSON.stringify(Array.from(notifSeenIds).slice(-500))); }
+  catch(e){ /* لا مشكلة إن تعذّر الحفظ */ }
+}
+function updateNotifBtnUI(){
+  if(!notifBtn) return;
+  notifBtn.classList.toggle('on',notifEnabled);
+  notifBtn.setAttribute('aria-pressed', notifEnabled?'true':'false');
+  notifBtn.title = notifEnabled ? 'إشعارات الردود مفعّلة — اضغط للإيقاف' : 'إشعارات الردود على رسائلك';
+}
+function initNotifToggle(){
+  if(!notifBtn) return;
+  try{ notifEnabled = localStorage.getItem(NOTIF_PREF_KEY)==='1'
+       && typeof Notification!=='undefined' && Notification.permission==='granted'; }
+  catch(e){ notifEnabled=false; }
+  notifSeenIds=loadNotifSeen();
+  try{ notifBaselineDone = localStorage.getItem(NOTIF_BASELINE_KEY)==='1'; }
+  catch(e){ notifBaselineDone=false; }
+  updateNotifBtnUI();
+
+  notifBtn.addEventListener('click', async ()=>{
+    if(!notifEnabled){
+      if(typeof Notification==='undefined'){
+        toast('متصفحك لا يدعم إشعارات الردود','err'); return;
+      }
+      let perm=Notification.permission;
+      if(perm==='default'){ perm=await Notification.requestPermission(); }
+      if(perm!=='granted'){
+        toast('يجب السماح بالإشعارات من إعدادات المتصفح لتفعيلها','err'); return;
+      }
+      notifEnabled=true;
+      try{ localStorage.setItem(NOTIF_PREF_KEY,'1'); }catch(e){}
+      toast('تم تفعيل إشعارات الردود 🔔');
+    }else{
+      notifEnabled=false;
+      try{ localStorage.setItem(NOTIF_PREF_KEY,'0'); }catch(e){}
+      toast('تم إيقاف إشعارات الردود 🔕');
+    }
+    updateNotifBtnUI();
+  });
+}
+/* يُستدعى مع كل تحديث لقائمة المشاركات: يحدد الردود الجديدة على مواضيعي
+   الشخصية (وليست ردودي أنا) ويرسل إشعار متصفح لكل رد جديد لم يُشعر به من قبل. */
+function checkNewReplyNotifications(list){
+  if(!notifBaselineDone){
+    /* أول مرة فقط على هذا المتصفح: لا نُشعر بأي رد قديم موجود مسبقاً، فقط نؤسس نقطة
+       البداية. بعد ذلك تبقى العلامة محفوظة فلا يُعاد تأسيسها مع كل إعادة تحميل للصفحة،
+       حتى تصل إشعارات الردود التي وصلت أثناء إغلاق الصفحة. */
+    list.forEach(item=>{ if(item.parentId) notifSeenIds.add(item.id); });
+    notifBaselineDone=true;
+    try{ localStorage.setItem(NOTIF_BASELINE_KEY,'1'); }catch(e){}
+    saveNotifSeen();
+    return;
+  }
+  if(!notifEnabled || !me || typeof Notification==='undefined' || Notification.permission!=='granted') return;
+
+  const myPostIds=new Set(
+    list.filter(p=>!p.parentId && p.uid===me.uid && !p.deleted && !p.removed).map(p=>p.id)
+  );
+  let changed=false;
+  list.forEach(item=>{
+    if(!item.parentId) return;
+    if(item.deleted || item.removed) return;
+    if(item.uid===me.uid) return;
+    if(!myPostIds.has(item.parentId)) return;
+    if(notifSeenIds.has(item.id)) return;
+
+    notifSeenIds.add(item.id); changed=true;
+    try{
+      const n=new Notification('رد جديد على رسالتك في BacOrbit', {
+        body:(item.name||'أحد الأعضاء')+': '+(item.text ? item.text.slice(0,120) : 'أرفق مرفقاً')
+      });
+      n.onclick=function(){ window.focus(); };
+    }catch(e){ /* تجاهل أي خطأ في عرض الإشعار */ }
+  });
+  if(changed) saveNotifSeen();
+}
+
 /* ═══════════ 3) محوّل Firebase ═══════════ */
 const FB={
   db:null,auth:null,storage:null,
@@ -421,7 +533,6 @@ function actionsHTML(c,mine,isReply){
       ? '<button type="button" class="action-btn report-btn reported-done" disabled>✅ تم الإبلاغ</button>'
       : '<button type="button" class="action-btn report-btn" data-report="'+c.id+'">🚩 إبلاغ</button>';
   }
-  if(c.reportCount>0) h+='<span class="report-pill">🚩 '+c.reportCount+'/'+MAX_REPORTS+'</span>';
   return h+'</div>';
 }
 function replyFormHTML(pid){
@@ -621,6 +732,7 @@ async function boot(){
 
     updateUserBar();
     $('#forumApp').style.display='block';
+    initNotifToggle();
 
     /* مراقبة حالة الحساب لحظياً — إذا أصبح banned يُطرد فوراً */
     DB.listenUser(d=>{
@@ -629,7 +741,7 @@ async function boot(){
       const was=me.banned; me.banned=!!d.banned;
       if(me.banned&&!was) showBanned();
     });
-    DB.listen(list=>{ postsData=list; renderForum(); });
+    DB.listen(list=>{ postsData=list; renderForum(); checkNewReplyNotifications(list); });
   }catch(e){
     console.error(e);
     $('#forumLoading').innerHTML='<div class="forum-error">تعذّر الدخول إلى المنتدى: '
