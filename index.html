@@ -69,11 +69,89 @@
 </script>
 
 <style>
-/* ══ إضافة خاصة بزر تثبيت الموقع في الصفحة الرئيسية فقط (لا تعدّل style.css المشترك) ══ */
+/* ══ إضافة خاصة بميزة تثبيت الموقع في الصفحة الرئيسية فقط (لا تعدّل style.css المشترك) ══
+   1) شريط عريض وواضح (banner) يظهر تلقائيًا فور توفر إمكانية التثبيت الفعلية
+      (حدث beforeinstallprompt)، ثم يختفي تلقائيًا بعد ثوانٍ.
+   2) أيقونة صغيرة دائمة في الشريط العلوي تبقى بعد اختفاء الشريط العريض،
+      لتنزيل/تثبيت الموقع في أي وقت لاحق.
+   كلا العنصرين يستدعيان التثبيت الأصلي مباشرة (deferredPrompt.prompt())
+   دون أي توجيه أو رسائل بديلة — يظهران فقط عندما يكون التثبيت المباشر متاحًا فعليًا. */
 .top-bar-right-group{display:flex;align-items:center;gap:10px}
 .pwa-install-btn{display:none}
-.pwa-install-btn.show{display:inline-flex}
+.pwa-install-btn.pwa-visible{display:inline-flex}
 .pwa-install-btn svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pwa-install-btn:disabled{opacity:.6;cursor:wait}
+
+/* الشريط العريض */
+.pwa-install-banner{
+    position:fixed;
+    top:78px;
+    left:50%;
+    width:min(94vw,600px);
+    z-index:1500;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transform:translate(-50%,-14px);
+    transition:opacity .35s ease, transform .35s ease, visibility .35s ease;
+}
+.pwa-install-banner.show{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transform:translate(-50%,0);
+}
+.pwa-install-banner-inner{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:var(--card-bg);
+    border:2px solid var(--accent);
+    border-radius:18px;
+    padding:14px 16px;
+    box-shadow:0 16px 40px rgba(0,0,0,.35);
+}
+.pwa-install-banner-icon{
+    flex-shrink:0;
+    width:44px;
+    height:44px;
+    border-radius:13px;
+    background:var(--featured-tint);
+    border:1px solid var(--accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+}
+.pwa-install-banner-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pwa-install-banner-text strong{color:var(--text);font-size:14.5px}
+.pwa-install-banner-text span{color:var(--text-secondary);font-size:12px;line-height:1.6}
+.pwa-install-banner-btn{
+    flex-shrink:0;
+    background:var(--accent);
+    color:#000;
+    border:none;
+    padding:11px 20px;
+    border-radius:12px;
+    font-weight:bold;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:inherit;
+    white-space:nowrap;
+    transition:transform .2s ease, box-shadow .25s ease;
+}
+.pwa-install-banner-btn:hover{transform:translateY(-2px);box-shadow:0 0 18px var(--accent-glow)}
+.pwa-install-banner-btn:disabled{opacity:.65;cursor:wait;transform:none}
+.pwa-install-banner-close{
+    flex-shrink:0;
+    background:none;
+    border:none;
+    color:var(--footer-text);
+    font-size:16px;
+    cursor:pointer;
+    padding:4px;
+    font-family:inherit;
+}
 </style>
 </head>
 
@@ -101,7 +179,7 @@
     </div>
 
     <div class="top-bar-right-group">
-        <button id="pwaInstallBtn" class="nav-menu-btn pwa-install-btn" type="button" aria-label="إضافة الموقع إلى سطح المكتب" title="إضافة الموقع إلى سطح المكتب">
+        <button id="pwaInstallBtn" class="nav-menu-btn pwa-install-btn" type="button" aria-label="تنزيل الموقع كتطبيق" title="تنزيل الموقع كتطبيق">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
         </button>
 
@@ -114,6 +192,18 @@
         </button>
     </div>
 
+</div>
+
+<div class="pwa-install-banner" id="pwaInstallBanner" role="region" aria-label="تنزيل تطبيق BacOrbit">
+    <div class="pwa-install-banner-inner">
+        <div class="pwa-install-banner-icon">📲</div>
+        <div class="pwa-install-banner-text">
+            <strong>نزّل BacOrbit كتطبيق</strong>
+            <span>وصول أسرع من شاشتك الرئيسية مباشرة</span>
+        </div>
+        <button type="button" class="pwa-install-banner-btn" id="pwaBannerInstallBtn">تنزيل الآن</button>
+        <button type="button" class="pwa-install-banner-close" id="pwaBannerCloseBtn" aria-label="إغلاق">✕</button>
+    </div>
 </div>
 
 <header class="site-header">
@@ -164,41 +254,83 @@
 </footer>
 
 <script>
-/* ══ تثبيت الموقع (PWA) — يعمل في هذه الصفحة (الرئيسية) فقط ══
-   يعتمد على حدث beforeinstallprompt القياسي؛ الزر يبقى مخفيًا افتراضيًا
-   ولا يظهر إلا إذا أعلن المتصفح فعليًا أن التثبيت متاح، ويختفي تلقائيًا
-   بعد التثبيت أو إن كان الموقع مثبتًا مسبقًا (وضع standalone). */
+/* ══ تنزيل/تثبيت الموقع (PWA) — يعمل في هذه الصفحة (الرئيسية) فقط ══
+   بمجرد أن يعلن المتصفح فعليًا أن التثبيت المباشر متاح (حدث beforeinstallprompt،
+   والذي يصل عادة مباشرة عند دخول أي زائر — حتى لو كان جديدًا تمامًا — بما أن
+   الـ manifest والـ service worker مستوفيان لشروط التثبيت):
+     1) يظهر فورًا شريط عريض وواضح أعلى الصفحة، ثم يختفي تلقائيًا بعد ثوانٍ.
+     2) تبقى بعده أيقونة صغيرة دائمة في الشريط العلوي لتنزيل الموقع لاحقًا.
+   الضغط على الشريط العريض أو على الأيقونة الصغيرة ينفّذ عملية التنزيل/التثبيت
+   الأصلية مباشرة عبر deferredPrompt.prompt() دون أي توجيه أو رسائل بديلة.
+   لا تُستخدم أي بيانات محفوظة (localStorage) لتحديد الظهور. */
 (function () {
 'use strict';
 
 var installBtn = document.getElementById('pwaInstallBtn');
+var banner = document.getElementById('pwaInstallBanner');
+var bannerInstallBtn = document.getElementById('pwaBannerInstallBtn');
+var bannerCloseBtn = document.getElementById('pwaBannerCloseBtn');
+if (!installBtn || !banner) return;
+
 var deferredPrompt = null;
+var bannerAutoHideTimer = null;
 
 function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
-if (installBtn && !isStandalone()) {
+function hideBanner() {
+    clearTimeout(bannerAutoHideTimer);
+    banner.classList.remove('show');
+}
+
+function showBanner() {
+    banner.classList.add('show');
+    clearTimeout(bannerAutoHideTimer);
+    bannerAutoHideTimer = setTimeout(hideBanner, 8000);
+}
+
+function hideEverything() {
+    hideBanner();
+    installBtn.classList.remove('pwa-visible');
+}
+
+/* ينفّذ التنزيل/التثبيت الأصلي مباشرة، دون توجيه الزائر لأي مكان آخر */
+function triggerInstall() {
+    if (!deferredPrompt) return;
+    var promptEvent = deferredPrompt;
+    deferredPrompt = null;
+
+    hideBanner();
+    installBtn.disabled = true;
+    bannerInstallBtn.disabled = true;
+
+    promptEvent.prompt();
+    promptEvent.userChoice.finally(function () {
+        installBtn.disabled = false;
+        bannerInstallBtn.disabled = false;
+        /* لا حاجة لإبقاء الأيقونة إن رُفض التثبيت: نفس الحدث لا يمكن إعادة
+           استخدامه، وستظهر الأيقونة مجددًا تلقائيًا إن أرسل المتصفح
+           beforeinstallprompt جديدًا لاحقًا. */
+        if (!deferredPrompt) installBtn.classList.remove('pwa-visible');
+    });
+}
+
+if (!isStandalone()) {
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         deferredPrompt = e;
-        installBtn.classList.add('show');
+        installBtn.classList.add('pwa-visible');
+        showBanner();
     });
 
-    installBtn.addEventListener('click', function () {
-        if (!deferredPrompt) return;
-        installBtn.disabled = true;
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.finally(function () {
-            deferredPrompt = null;
-            installBtn.classList.remove('show');
-            installBtn.disabled = false;
-        });
-    });
+    installBtn.addEventListener('click', triggerInstall);
+    bannerInstallBtn.addEventListener('click', triggerInstall);
+    bannerCloseBtn.addEventListener('click', hideBanner);
 
     window.addEventListener('appinstalled', function () {
-        installBtn.classList.remove('show');
         deferredPrompt = null;
+        hideEverything();
     });
 }
 
