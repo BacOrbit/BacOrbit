@@ -456,13 +456,53 @@
     return location.pathname + '|' + m[1];
   }
 
+  /* شارة "✓" الحقيقية القابلة للنقر (بدل ::before الزخرفي فقط)، تسمح
+     للمستخدم بإزالة علامة الزيارة عن أي بطاقة يدويًا. النقر عليها لا
+     يفتح الموضوع (event.stopPropagation) بل يزيل العلامة فقط، فتعود
+     البطاقة إلى مظهرها الأصلي كباقي البطاقات غير المزارة. */
+  function ensureVisitedBadge(card) {
+    if (card.querySelector('.topic-visited-badge')) return;
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'topic-visited-badge';
+    badge.textContent = '✓';
+    badge.setAttribute('aria-label', 'إزالة علامة الزيارة عن هذا الموضوع');
+    badge.title = 'إزالة علامة الزيارة';
+    on(badge, 'click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      unmarkTopicVisited(card);
+    });
+    card.appendChild(badge);
+  }
+
+  function removeVisitedBadge(card) {
+    const badge = card.querySelector('.topic-visited-badge');
+    if (badge) badge.remove();
+  }
+
   function markTopicVisited(card) {
     const key = topicCardKey(card);
     if (!key) return;
     card.classList.add('topic-visited');
+    ensureVisitedBadge(card);
     const visited = loadVisitedTopics();
     if (!visited[key]) {
       visited[key] = 1;
+      saveVisitedTopics(visited);
+    }
+  }
+
+  /* يزيل علامة الزيارة عن البطاقة ويحذف تخزينها، فتعود البطاقة بلون
+     ومظهر مثل باقي البطاقات التي لم تُزر بعد. */
+  function unmarkTopicVisited(card) {
+    card.classList.remove('topic-visited');
+    removeVisitedBadge(card);
+    const key = topicCardKey(card);
+    if (!key) return;
+    const visited = loadVisitedTopics();
+    if (visited[key]) {
+      delete visited[key];
       saveVisitedTopics(visited);
     }
   }
@@ -473,7 +513,10 @@
     const visited = loadVisitedTopics();
     cards.forEach(function (card) {
       const key = topicCardKey(card);
-      if (key && visited[key]) card.classList.add('topic-visited');
+      if (key && visited[key]) {
+        card.classList.add('topic-visited');
+        ensureVisitedBadge(card);
+      }
     });
   }
 
