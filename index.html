@@ -24,6 +24,10 @@
 
 <meta name="google-site-verification" content="_gTiZ5wcR4kqcL5H6LCgCts39QDOlzibFxzvbdBqwbg" />
 
+<!-- ══ PWA: تثبيت الموقع كتطبيق (الصفحة الرئيسية فقط تعرض زر التثبيت) ══ -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BacOrbit">
@@ -63,6 +67,14 @@
   "inLanguage": "ar"
 }
 </script>
+
+<style>
+/* ══ إضافة خاصة بزر تثبيت الموقع في الصفحة الرئيسية فقط (لا تعدّل style.css المشترك) ══ */
+.top-bar-right-group{display:flex;align-items:center;gap:10px}
+.pwa-install-btn{display:none}
+.pwa-install-btn.show{display:inline-flex}
+.pwa-install-btn svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
 </head>
 
 <body>
@@ -88,13 +100,19 @@
         </div>
     </div>
 
-    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
-        <span class="theme-switch-track">
-            <span class="theme-switch-icon sun">☀️</span>
-            <span class="theme-switch-icon moon">🌙</span>
-        </span>
-        <span class="theme-switch-thumb"></span>
-    </button>
+    <div class="top-bar-right-group">
+        <button id="pwaInstallBtn" class="nav-menu-btn pwa-install-btn" type="button" aria-label="إضافة الموقع إلى سطح المكتب" title="إضافة الموقع إلى سطح المكتب">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
+        </button>
+
+        <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+            <span class="theme-switch-track">
+                <span class="theme-switch-icon sun">☀️</span>
+                <span class="theme-switch-icon moon">🌙</span>
+            </span>
+            <span class="theme-switch-thumb"></span>
+        </button>
+    </div>
 
 </div>
 
@@ -144,6 +162,55 @@
 <footer>
     © 2026 BacOrbit
 </footer>
+
+<script>
+/* ══ تثبيت الموقع (PWA) — يعمل في هذه الصفحة (الرئيسية) فقط ══
+   يعتمد على حدث beforeinstallprompt القياسي؛ الزر يبقى مخفيًا افتراضيًا
+   ولا يظهر إلا إذا أعلن المتصفح فعليًا أن التثبيت متاح، ويختفي تلقائيًا
+   بعد التثبيت أو إن كان الموقع مثبتًا مسبقًا (وضع standalone). */
+(function () {
+'use strict';
+
+var installBtn = document.getElementById('pwaInstallBtn');
+var deferredPrompt = null;
+
+function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+if (installBtn && !isStandalone()) {
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.classList.add('show');
+    });
+
+    installBtn.addEventListener('click', function () {
+        if (!deferredPrompt) return;
+        installBtn.disabled = true;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(function () {
+            deferredPrompt = null;
+            installBtn.classList.remove('show');
+            installBtn.disabled = false;
+        });
+    });
+
+    window.addEventListener('appinstalled', function () {
+        installBtn.classList.remove('show');
+        deferredPrompt = null;
+    });
+}
+
+/* تسجيل service worker بأمان لتفعيل إمكانية التثبيت (PWA)، دون التأثير
+   على أي صفحة أخرى ودون إظهار أي شيء للمستخدم بحد ذاته. */
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    });
+}
+})();
+</script>
 
 </body>
 

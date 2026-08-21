@@ -1880,3 +1880,33 @@ button.bac-side-download,
    overflow-x: auto بدل hidden لهذا الغرض تحديدًا). العناصر التي تتكيف
    بشكل طبيعي (مثل الشبكات auto-fit وflex-wrap) هي نفس القواعد المستخدمة
    على الكمبيوتر أصلًا، وليست تصميمًا خاصًا بالجوال. */
+
+/* ---------- 18. تمييز بطاقات المواضيع التي سبق للمستخدم الدخول إليها ----------
+   تلوين أخضر هادئ وثابت (لا يتغيّر مع تبديل الوضع الداكن/الفاتح) خاص
+   حصرًا ببطاقات المواضيع (.topic-card) التي تمت زيارتها من قبل، دون أي
+   تأثير على بطاقات المواد أو "المكتسبات القبلية" أو أي عنصر آخر. الحالة
+   تُضاف ديناميكيًا عبر class="topic-visited" من script.js. */
+
+.topic-card.topic-visited {
+    border-color: rgba(34, 197, 94, 0.55);
+    background: linear-gradient(135deg, var(--card-bg), rgba(34, 197, 94, 0.10));
+}
+
+.topic-card.topic-visited::before {
+    content: "✓";
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.9);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    z-index: 2;
+}

@@ -423,6 +423,73 @@
   }
 
   /* ---------------------------------------------------------
+     6ج. تمييز المواضيع التي سبق للمستخدم الدخول إليها
+     يعمل على بطاقات المواضيع (.topic-card) فقط في كل صفحات
+     "المواضيع" (S_*.html) لجميع المواد، دون لمس أي بطاقة أخرى
+     (كبطاقات المواد أو "المكتسبات القبلية"). يُستخرج معرّف كل
+     موضوع من رابط الملف نفسه (بدون أي تعديل على onclick الحالي
+     لكل بطاقة)، ويُحفظ في localStorage بشكل مستقل لكل موضوع، بحيث
+     يبقى التمييز محفوظًا بعد إغلاق الموقع وإعادة فتحه.
+     --------------------------------------------------------- */
+  const VISITED_TOPICS_KEY = 'bacorbit_visited_topics';
+
+  function loadVisitedTopics() {
+    try {
+      const raw = localStorage.getItem(VISITED_TOPICS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveVisitedTopics(map) {
+    try { localStorage.setItem(VISITED_TOPICS_KEY, JSON.stringify(map)); }
+    catch (e) { /* التخزين المحلي قد يكون غير متاح — لا مشكلة، الميزة تتجاهل الحفظ بأمان */ }
+  }
+
+  /* يستخرج معرّفًا فريدًا للموضوع من مسار الملف الموجود أصلاً داخل
+     onclick الخاص بالبطاقة (window.open('...')) دون أي حاجة لتعديل
+     تلك الأزرار أو تكرار المسار في مكان آخر. */
+  function topicCardKey(card) {
+    const openAttr = card.getAttribute('onclick') || '';
+    const m = openAttr.match(/window\.open\(\s*['"]([^'"]+)['"]/);
+    if (!m) return null;
+    return location.pathname + '|' + m[1];
+  }
+
+  function markTopicVisited(card) {
+    const key = topicCardKey(card);
+    if (!key) return;
+    card.classList.add('topic-visited');
+    const visited = loadVisitedTopics();
+    if (!visited[key]) {
+      visited[key] = 1;
+      saveVisitedTopics(visited);
+    }
+  }
+
+  function applyVisitedTopicsState() {
+    const cards = qsa('.topic-card');
+    if (!cards.length) return;
+    const visited = loadVisitedTopics();
+    cards.forEach(function (card) {
+      const key = topicCardKey(card);
+      if (key && visited[key]) card.classList.add('topic-visited');
+    });
+  }
+
+  /* الاستماع في مرحلة الالتقاط (capture) على مستوى المستند لضمان تسجيل
+     الزيارة سواء نُقر على جسم البطاقة أو على زر التنزيل بداخلها (والذي
+     يستدعي stopPropagation في downloadTopic)، دون تعديل أي عنصر HTML. */
+  function initVisitedTopicsTracking() {
+    if (!qs('.topic-card')) return;
+    applyVisitedTopicsState();
+    document.addEventListener('click', function (e) {
+      const card = e.target.closest ? e.target.closest('.topic-card') : null;
+      if (card) markTopicVisited(card);
+    }, true);
+  }
+
+  /* ---------------------------------------------------------
      7. توافقية مستقبلية: toggleContent احتياطي
      (فقط إن لم تُعرّفه الصفحة نفسها محليًا، لا يُبطل أي كود موجود)
      --------------------------------------------------------- */
@@ -809,6 +876,7 @@
     safeRun(ensureImageViewer, 'مكبر الصور الموحّد');
     safeRun(enhanceLessonImages, 'عارض صور الدروس');
     safeRun(initLessonZoomControl, 'شريط التحكم بحجم صور الدروس');
+    safeRun(initVisitedTopicsTracking, 'تمييز المواضيع التي تمت زيارتها');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
