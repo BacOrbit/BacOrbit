@@ -909,7 +909,366 @@
       navResizeTimer = setTimeout(closeMenu, 120);
     });
   }
+  /* ---------------------------------------------------------
+     8ج. مؤقت الدراسة (Study Timer) — زر بجانب ☰ في الشريط
+     العلوي، ولوحة عائمة تبقى مستمرة عبر التنقل بين الصفحات
+     بالاعتماد على وقت مطلق (endAt) في localStorage، وليس على
+     عدّاد جافاسكريبت يتوقف عند إعادة تحميل الصفحة.
+     --------------------------------------------------------- */
+  const TIMER_KEY = 'bacorbit_timer_state_v1';
+  const TIMER_MIN_SEC = 60;
+  const TIMER_MAX_SEC = 180 * 60;
+  const TIMER_DEFAULT_SEC = 45 * 60;
 
+  function loadTimerState() {
+    try {
+      const raw = localStorage.getItem(TIMER_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object') {
+        return Object.assign({
+          totalSeconds: TIMER_DEFAULT_SEC, remaining: TIMER_DEFAULT_SEC,
+          running: false, endAt: null, hidden: true, finishedAlertShown: false
+        }, parsed);
+      }
+    } catch (e) {}
+    return {
+      totalSeconds: TIMER_DEFAULT_SEC, remaining: TIMER_DEFAULT_SEC,
+      running: false, endAt: null, hidden: true, finishedAlertShown: false
+    };
+  }
+  function saveTimerState(state) {
+    try { localStorage.setItem(TIMER_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function timerComputeRemaining(state) {
+    if (state.running && state.endAt) return Math.max(0, Math.ceil((state.endAt - Date.now()) / 1000));
+    return Math.max(0, Math.round(state.remaining));
+  }
+  function timerFormat(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    if (h > 0) {
+      return h + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+  function initStudyTimer() {
+    const navWrap = document.querySelector('.nav-menu-wrap');
+    if (!navWrap || document.getElementById('bacTimerBtn')) return;
+
+    let state = loadTimerState();
+    let intervalId = null;
+    let audioCtx = null;
+    let isEditing = false;
+    let dragging = false, dragOffsetX = 0, dragOffsetY = 0;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'bacTimerBtn';
+    btn.className = 'bac-timer-btn';
+    btn.setAttribute('aria-label', 'مؤقت الدراسة');
+    btn.title = 'مؤقت الدراسة';
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>' +
+      '<span class="bac-timer-badge" id="bacTimerBadge"></span>';
+    navWrap.appendChild(btn);
+
+    const widget = document.createElement('div');
+    widget.id = 'bacTimerWidget';
+    widget.className = 'bac-timer-widget';
+    widget.setAttribute('role', 'region');
+    widget.setAttribute('aria-label', 'مؤقت الدراسة');
+    widget.innerHTML =
+      '<div class="bac-timer-head" id="bacTimerHead">' +
+        '<span class="bac-timer-drag-dots" aria-hidden="true">⠿⠿</span>' +
+        '<span class="bac-timer-title">⏱️ مؤقت الدراسة</span>' +
+        '<button type="button" class="bac-timer-close" id="bacTimerClose" aria-label="إخفاء المؤقت">✕</button>' +
+      '</div>' +
+      '<div class="bac-timer-body">' +
+        '<button type="button" class="bac-timer-adjust-btn" data-delta="-15">−15</button>' +
+        '<div class="bac-timer-display-wrap">' +
+          '<span class="bac-timer-display" id="bacTimerDisplay" tabindex="0" title="اضغط للتعديل">45:00</span>' +
+          '<input type="text" id="bacTimerEditInput" class="bac-timer-edit-input" inputmode="numeric" autocomplete="off">' +
+        '</div>' +
+        '<button type="button" class="bac-timer-adjust-btn" data-delta="15">+15</button>' +
+      '</div>' +
+      '<div class="bac-timer-controls">' +
+        '<button type="button" class="bac-timer-primary-btn" id="bacTimerToggle">▶ ابدأ</button>' +
+        '<button type="button" class="bac-timer-secondary-btn" id="bacTimerReset">↺</button>' +
+      '</div>' +
+      '<p class="bac-timer-hint">كل دقيقة دراسة تقرّبك من هدفك 🌟</p>';
+    document.body.appendChild(widget);
+
+    const badgeEl = btn.querySelector('#bacTimerBadge');
+    const displayEl = widget.querySelector('#bacTimerDisplay');
+    const editInput = widget.querySelector('#bacTimerEditInput');
+    const toggleBtn = widget.querySelector('#bacTimerToggle');
+    const resetBtn = widget.querySelector('#bacTimerReset');
+    const closeBtn = widget.querySelector('#bacTimerClose');
+    const headEl = widget.querySelector('#bacTimerHead');
+
+    function ensureAudio() {
+      if (audioCtx) return audioCtx;
+      try { const Ctx = window.AudioContext || window.webkitAudioContext; if (Ctx) audioCtx = new Ctx(); } catch (e) {}
+      return audioCtx;
+    }
+    function playChime() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      try {
+        [0, 0.22, 0.44].forEach(function (delay, i) {
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = 'sine'; osc.frequency.value = i === 2 ? 880 : 660;
+          gain.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+          gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + delay + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.35);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.4);
+        });
+      } catch (e) {}
+    }
+
+    let finishOverlay = null;
+    function ensureFinishOverlay() {
+      if (finishOverlay) return finishOverlay;
+      finishOverlay = document.createElement('div');
+      finishOverlay.className = 'bac-timer-finish-overlay';
+      finishOverlay.innerHTML =
+        '<div class="bac-timer-finish-card">' +
+          '<div class="bac-timer-finish-icon">⏰</div>' +
+          '<h3>انتهى وقت الدراسة!</h3>' +
+          '<p>أحسنت، خذ استراحة قصيرة ثم عد بحماس 💪</p>' +
+          '<button type="button" class="restart-btn" id="bacTimerFinishOk">حسنًا</button>' +
+        '</div>';
+      document.body.appendChild(finishOverlay);
+      finishOverlay.querySelector('#bacTimerFinishOk').addEventListener('click', hideFinishOverlay);
+      finishOverlay.addEventListener('click', function (e) { if (e.target === finishOverlay) hideFinishOverlay(); });
+      return finishOverlay;
+    }
+    let finishTitleTimer = null;
+    const originalTitle = document.title;
+    function showFinishOverlay() {
+      ensureFinishOverlay().classList.add('show');
+      playChime();
+      let blink = false;
+      clearInterval(finishTitleTimer);
+      finishTitleTimer = setInterval(function () {
+        document.title = blink ? originalTitle : '⏰ انتهى الوقت!';
+        blink = !blink;
+      }, 1200);
+    }
+    function hideFinishOverlay() {
+      if (finishOverlay) finishOverlay.classList.remove('show');
+      clearInterval(finishTitleTimer);
+      document.title = originalTitle;
+    }
+
+    function persist() { saveTimerState(state); }
+
+    function applyPosition() {
+      if (state.pos && typeof state.pos.left === 'number' && !dragging) {
+        const maxLeft = window.innerWidth - widget.offsetWidth - 6;
+        const maxTop = window.innerHeight - widget.offsetHeight - 6;
+        const left = Math.max(6, Math.min(state.pos.left, maxLeft));
+        const top = Math.max(6, Math.min(state.pos.top, maxTop));
+        widget.style.left = left + 'px';
+        widget.style.top = top + 'px';
+        widget.style.bottom = 'auto';
+        widget.style.right = 'auto';
+      }
+    }
+
+    function render() {
+      const rem = timerComputeRemaining(state);
+      if (!isEditing) {
+        displayEl.textContent = timerFormat(rem);
+        displayEl.classList.toggle('bac-timer-display-long', rem >= 3600);
+      }
+      toggleBtn.textContent = state.running ? '⏸ إيقاف' : (rem <= 0 ? '▶ ابدأ' : '▶ استئناف');
+      btn.classList.toggle('active', state.running);
+      badgeEl.textContent = state.running ? timerFormat(rem) : '';
+      widget.classList.toggle('open', !state.hidden);
+      btn.setAttribute('aria-expanded', state.hidden ? 'false' : 'true');
+      btn.title = state.running ? 'مؤقت الدراسة — ' + timerFormat(rem) + ' متبقية' : 'مؤقت الدراسة';
+      if (!state.hidden) applyPosition();
+    }
+
+    function tick() {
+      const rem = timerComputeRemaining(state);
+      if (state.running && rem <= 0 && !state.finishedAlertShown) {
+        state.running = false; state.endAt = null; state.remaining = 0; state.finishedAlertShown = true;
+        persist(); showFinishOverlay();
+      }
+      render();
+      manageInterval();
+    }
+    function manageInterval() {
+      const needsTick = state.running;
+      if (needsTick && !intervalId) intervalId = setInterval(tick, 500);
+      else if (!needsTick && intervalId) { clearInterval(intervalId); intervalId = null; }
+    }
+
+    function startTimer() {
+      const rem = timerComputeRemaining(state);
+      const startFrom = rem > 0 ? rem : state.totalSeconds;
+      state.remaining = startFrom;
+      state.endAt = Date.now() + startFrom * 1000;
+      state.running = true; state.finishedAlertShown = false;
+      hideFinishOverlay(); persist(); render(); manageInterval();
+    }
+    function pauseTimer() {
+      state.remaining = timerComputeRemaining(state);
+      state.running = false; state.endAt = null;
+      persist(); render(); manageInterval();
+    }
+    function resetTimer() {
+      state.running = false; state.endAt = null;
+      state.remaining = state.totalSeconds; state.finishedAlertShown = false;
+      hideFinishOverlay(); persist(); render(); manageInterval();
+    }
+    function adjustMinutes(deltaMin) {
+      const deltaSec = deltaMin * 60;
+      const rem = timerComputeRemaining(state);
+      if (state.running) {
+        const newRem = Math.max(0, Math.min(TIMER_MAX_SEC, rem + deltaSec));
+        state.totalSeconds = Math.max(TIMER_MIN_SEC, Math.min(TIMER_MAX_SEC, state.totalSeconds + deltaSec));
+        state.remaining = newRem;
+        state.endAt = Date.now() + newRem * 1000;
+      } else {
+        const newTotal = Math.max(TIMER_MIN_SEC, Math.min(TIMER_MAX_SEC, state.totalSeconds + deltaSec));
+        state.totalSeconds = newTotal; state.remaining = newTotal;
+      }
+      state.finishedAlertShown = false;
+      persist(); render();
+    }
+    function toggleWidget() { state.hidden = !state.hidden; persist(); render(); }
+    function hideWidget() { if (state.hidden) return; state.hidden = true; persist(); render(); }
+
+    /* ── تعديل الوقت مباشرة بالنقر على الرقم ── */
+    function enterEditMode() {
+      if (isEditing) return;
+      isEditing = true;
+      const rem = timerComputeRemaining(state);
+      editInput.value = timerFormat(rem);
+      editInput.classList.toggle('long', rem >= 3600);
+      displayEl.classList.add('bac-timer-display-hidden');
+      editInput.classList.add('show');
+      editInput.focus();
+      editInput.select();
+    }
+    function exitEditMode(apply) {
+      if (!isEditing) return;
+      isEditing = false;
+      displayEl.classList.remove('bac-timer-display-hidden');
+      editInput.classList.remove('show');
+      if (apply) applyEditedValue(editInput.value);
+      else render();
+    }
+    function applyEditedValue(raw) {
+      raw = (raw || '').trim();
+      let totalSec = null;
+      if (/^\d{1,2}:\d{1,2}:\d{1,2}$/.test(raw)) {
+        const parts = raw.split(':');
+        const h = parseInt(parts[0], 10), m = Math.min(59, parseInt(parts[1], 10)), s = Math.min(59, parseInt(parts[2], 10));
+        if (!isNaN(h) && !isNaN(m) && !isNaN(s)) totalSec = h * 3600 + m * 60 + s;
+      } else if (/^\d{1,3}:\d{1,2}$/.test(raw)) {
+        const parts = raw.split(':');
+        const m = parseInt(parts[0], 10), s = Math.min(59, parseInt(parts[1], 10));
+        if (!isNaN(m) && !isNaN(s)) totalSec = m * 60 + s;
+      } else if (/^\d{1,3}$/.test(raw)) {
+        totalSec = parseInt(raw, 10) * 60;
+      }
+      if (totalSec === null || isNaN(totalSec) || totalSec <= 0) { render(); return; }
+      totalSec = Math.max(TIMER_MIN_SEC, Math.min(TIMER_MAX_SEC, totalSec));
+      state.totalSeconds = totalSec;
+      state.remaining = totalSec;
+      if (state.running) state.endAt = Date.now() + totalSec * 1000;
+      state.finishedAlertShown = false;
+      persist(); render();
+    }
+
+    /* ── سحب اللافتة لتغيير موضعها ── */
+    function dragStart(clientX, clientY) {
+      dragging = true;
+      const rect = widget.getBoundingClientRect();
+      dragOffsetX = clientX - rect.left;
+      dragOffsetY = clientY - rect.top;
+      widget.classList.add('dragging');
+    }
+    function dragMove(clientX, clientY) {
+      if (!dragging) return;
+      let left = clientX - dragOffsetX;
+      let top = clientY - dragOffsetY;
+      const maxLeft = window.innerWidth - widget.offsetWidth - 6;
+      const maxTop = window.innerHeight - widget.offsetHeight - 6;
+      left = Math.max(6, Math.min(left, maxLeft));
+      top = Math.max(6, Math.min(top, maxTop));
+      widget.style.left = left + 'px';
+      widget.style.top = top + 'px';
+      widget.style.bottom = 'auto';
+      widget.style.right = 'auto';
+    }
+    function dragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      widget.classList.remove('dragging');
+      const rect = widget.getBoundingClientRect();
+      state.pos = { left: rect.left, top: rect.top };
+      persist();
+    }
+
+    on(btn, 'click', toggleWidget);
+    on(closeBtn, 'click', hideWidget);
+    on(toggleBtn, 'click', function () { state.running ? pauseTimer() : startTimer(); });
+    on(resetBtn, 'click', resetTimer);
+    qsa('.bac-timer-adjust-btn', widget).forEach(function (b) {
+      on(b, 'click', function () { adjustMinutes(parseInt(b.dataset.delta, 10)); });
+    });
+
+    on(displayEl, 'click', enterEditMode);
+    on(displayEl, 'keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEditMode(); } });
+    on(editInput, 'keydown', function (e) {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); exitEditMode(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); exitEditMode(false); }
+    });
+    on(editInput, 'blur', function () { exitEditMode(true); });
+
+    on(headEl, 'mousedown', function (e) {
+      if (e.target.closest('.bac-timer-close')) return;
+      dragStart(e.clientX, e.clientY);
+    });
+    on(document, 'mousemove', function (e) { dragMove(e.clientX, e.clientY); });
+    on(document, 'mouseup', dragEnd);
+    on(headEl, 'touchstart', function (e) {
+      if (e.target.closest('.bac-timer-close')) return;
+      const t = e.touches[0]; dragStart(t.clientX, t.clientY);
+    }, { passive: true });
+    on(document, 'touchmove', function (e) { if (!dragging) return; const t = e.touches[0]; dragMove(t.clientX, t.clientY); }, { passive: true });
+    on(document, 'touchend', dragEnd);
+
+    on(document, 'keydown', function (e) {
+      if (state.hidden || isEditing) return;
+      const tag = (e.target && e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) return;
+      if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); state.running ? pauseTimer() : startTimer(); }
+      else if (e.key === 'r' || e.key === 'R') { resetTimer(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); adjustMinutes(e.shiftKey ? 15 : 1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); adjustMinutes(e.shiftKey ? -15 : -1); }
+      else if (e.key === 'Escape') { hideWidget(); }
+    });
+
+    on(window, 'storage', function (e) {
+      if (e.key !== TIMER_KEY) return;
+      state = loadTimerState();
+      hideFinishOverlay(); render(); manageInterval();
+    });
+    on(window, 'resize', function () { applyPosition(); });
+
+    render();
+    manageInterval();
+  }
+ 
   /* ---------------------------------------------------------
      9. التهيئة العامة
      --------------------------------------------------------- */
@@ -922,6 +1281,7 @@
     safeRun(initVisitedTopicsTracking, 'تمييز المواضيع التي تمت زيارتها');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
+    safeRun(initStudyTimer, 'مؤقت الدراسة');   /* ← هذا هو السطر الجديد فقط */
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
     safeRun(initClickEffects, 'تأثير النقر');
   }
