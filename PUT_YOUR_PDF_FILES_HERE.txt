@@ -1,0 +1,16 @@
+ضع ملفات الـ PDF الخاصة بالمكتبة هنا (بنفس الأسماء المذكورة في library-books.js تمامًا):
+
+arabic-final-review-haygoun.pdf
+arabic-nawabigh-science.pdf
+english-summary-mansouri.pdf
+history-geo-purple-bournan-v5.pdf
+islamic-purple-series.pdf
+islamic-review-chamseddine.pdf
+math-silver-complex-numbers.pdf
+math-silver-exercises-v4.pdf
+math-silver-probabilities-v4.pdf
+math-silver-sequences-nourddine.pdf
+nasri-anglais-2.pdf
+science-methodology-ketfi.pdf
+
+يمكنك حذف هذا الملف النصي بعد رفع كل ملفات الـ PDF الفعلية.

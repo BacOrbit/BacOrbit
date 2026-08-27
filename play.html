@@ -45,6 +45,17 @@
 }
 </script>
 
+<style>
+/* ══ إضافة صغيرة خاصة بزر «تخطي إلى مرحلة» في صفحة المكتسبات القبلية فقط
+   (تجميع بصري فقط عبر top-bar-right-group، وتُعاد استخدام كلاسات
+   nav-menu-wrap / nav-menu-panel / nav-menu-item الموجودة أصلًا في
+   style.css دون أي تكرار لتنسيقها) ══ */
+.top-bar-right-group{display:flex;align-items:center;gap:10px}
+.stage-skip-wrap{position:absolute;top:100%;right:16px;margin-top:10px}
+.stage-skip-btn{width:auto;padding:0 16px}
+.stage-skip-icon{font-size:13px;line-height:1;font-weight:bold;white-space:nowrap}
+</style>
+
 </head>
 
 <body>
@@ -63,6 +74,7 @@
         <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
             <a href="index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>الصفحة الرئيسية</a>
             <a href="chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="library.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📖</span>مكتبة الكتب</a>
             <a href="guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
             <a href="calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
             <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
@@ -70,13 +82,23 @@
         </div>
     </div>
 
-    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
-        <span class="theme-switch-track">
-            <span class="theme-switch-icon sun">☀️</span>
-            <span class="theme-switch-icon moon">🌙</span>
-        </span>
-        <span class="theme-switch-thumb"></span>
-    </button>
+    <div class="top-bar-right-group">
+
+        <div class="nav-menu-wrap stage-skip-wrap">
+            <button id="stageSkipBtn" class="nav-menu-btn stage-skip-btn" type="button" aria-label="تخطي المرحلة الحالية" title="تخطي المرحلة الحالية">
+         <span class="stage-skip-icon" style="color: #1aff66 !important;">تخطي المرحلة</span>         
+           </button>
+        </div>
+
+        <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+            <span class="theme-switch-track">
+                <span class="theme-switch-icon sun">☀️</span>
+                <span class="theme-switch-icon moon">🌙</span>
+            </span>
+            <span class="theme-switch-thumb"></span>
+        </button>
+
+    </div>
 
 </div>
 
@@ -276,6 +298,7 @@ const finalScoreText = document.getElementById("finalScoreText");
 const stageCompleteTitle = document.getElementById("stageCompleteTitle");
 const stageCompleteText = document.getElementById("stageCompleteText");
 const stageContinueBtn = document.getElementById("stageContinueBtn");
+const stageSkipBtn = document.getElementById("stageSkipBtn");
 
 let pendingAfterStageComplete = null;
 
@@ -357,6 +380,28 @@ progressInner.style.width = totalWrong > 0 ? Math.max(0, Math.round((doneCount /
 }
 
 }
+
+/* ---------- زر «تخطي المرحلة» (أعلى الصفحة) ----------
+   نقرة واحدة على الزر تنقل المستخدم مباشرة إلى المرحلة التالية،
+   دون أي قائمة منسدلة. إن كانت هذه آخر مرحلة رئيسية، ينتقل إلى
+   مرحلة مراجعة الأخطاء إن وجدت، وإلا يعرض شاشة الإنجاز مباشرة. */
+
+function skipCurrentStage(){
+pendingAfterStageComplete = null;
+stageCompleteScreen.style.display = "none";
+congratsScreen.style.display = "none";
+quizCard.style.display = "block";
+
+if(mode === "main" && stageIdx < stagesDef.length - 1){
+startStage(stageIdx + 1);
+}else if(wrongIds.size > 0){
+startReview();
+}else{
+showCongrats();
+}
+}
+
+stageSkipBtn.addEventListener("click", skipCurrentStage);
 
 function renderQuestion(qid, isReview){
 

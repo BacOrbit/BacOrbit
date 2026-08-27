@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فقرات جاهزة - اللغة الإنجليزية - BacOrbit</title>
+<meta name="description" content="فقرات جاهزة لمادة اللغة الإنجليزية: Safety First، Ethics in Business، وAstronomy.">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة «فقرات جاهزة - الإنجليزية» فقط (لا تعدّل style.css المشترك) ══ */
+
+.pe-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 6px;
+}
+
+.pe-units {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pe-unit-card {
+    display: block;
+    width: 100%;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 22px;
+    text-align: center;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    animation: forumCardIn 0.35s ease both;
+}
+
+.pe-unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 22px var(--accent-soft);
+}
+
+.pe-unit-card.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    cursor: default;
+    animation: forumCardIn 0.4s ease both;
+}
+
+.pe-unit-card.active:hover {
+    transform: none;
+    box-shadow: 0 8px 24px var(--accent-soft);
+}
+
+.pe-unit-card.pe-hidden {
+    display: none;
+}
+
+.pe-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 18px auto 0;
+    padding: 12px 26px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+    animation: forumCardIn 0.3s ease both;
+}
+
+.pe-back-btn:hover {
+    background: var(--accent-glow);
+    box-shadow: 0 0 16px var(--accent-glow);
+    transform: translateY(-2px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+    <h1>✍️ فقرات جاهزة - اللغة الإنجليزية</h1>
+    <p>ينصح بقراءة الفقرات بعناية وفهم الأفكار بدل الحفظ المباشر</p>
+</section>
+
+<div class="pe-wrap">
+    <div class="pe-units" id="peUnits"></div>
+    <button type="button" class="pe-back-btn" id="peBackBtn">⬅ العودة إلى الوحدات</button>
+</div>
+
+<main class="lessons" id="peLessons"></main>
+
+<a href="../index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>
+© BacOrbit جميع الحقوق محفوظة
+</footer>
+
+<script>
+(function () {
+'use strict';
+
+/* بيانات الوحدات: المفتاح، الاسم الظاهر، وقائمة أسماء الصور الحقيقية
+   كما هي موجودة فعليًا داخل مجلد P_english (دون أي تعديل أو تصحيح
+   لأي اسم، حتى لو كان يحتوي خطأ إملائيًا مثل "busniss")، مرتبة بنفس
+   الترتيب المطلوب: Safety First ثم Ethics in Business ثم Astronomy. */
+var UNITS = [
+    {
+        key: 'safety',
+        name: '🦺 Safety First',
+        files: ['safety first.png', 'safety first (2).png']
+    },
+    {
+        key: 'ethics',
+        name: '💼 Ethics in Business',
+        files: ['ethics in busniss.png', 'ethics in busniss (2).png']
+    },
+    {
+        key: 'astronomy',
+        name: '🔭 Astronomy',
+        files: ['Astronomy.png', 'Astronomy (2).png']
+    }
+];
+
+var unitsWrap = document.getElementById('peUnits');
+var backBtn = document.getElementById('peBackBtn');
+var lessonsEl = document.getElementById('peLessons');
+var cards = [];
+
+function buildCards() {
+    UNITS.forEach(function (u) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pe-unit-card';
+        btn.textContent = u.name;
+        btn.dataset.key = u.key;
+        btn.addEventListener('click', function () { selectUnit(u); });
+        unitsWrap.appendChild(btn);
+        cards.push(btn);
+    });
+}
+
+function renderImages(u) {
+    lessonsEl.innerHTML = '';
+    var plainName = u.name.replace(/^\S+\s/, '');
+    u.files.forEach(function (fileName, idx) {
+        var div = document.createElement('div');
+        div.className = 'lesson';
+
+        var img = document.createElement('img');
+        img.src = 'P_english/' + fileName;
+        img.alt = plainName + ' - فقرة ' + (idx + 1);
+        img.loading = (idx === 0) ? 'eager' : 'lazy';
+
+        div.appendChild(img);
+        lessonsEl.appendChild(div);
+    });
+    /* إعادة تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة حديثًا */
+    if (typeof window.bacEnhanceLessonImages === 'function') {
+        window.bacEnhanceLessonImages();
+    }
+}
+
+function toggleZoomBar(show) {
+    var bar = document.getElementById('bacLessonZoomBar');
+    if (bar) bar.style.display = show ? 'flex' : 'none';
+}
+
+function selectUnit(u) {
+    cards.forEach(function (c) {
+        if (c.dataset.key === u.key) {
+            c.classList.add('active');
+            c.classList.remove('pe-hidden');
+        } else {
+            c.classList.add('pe-hidden');
+        }
+    });
+    backBtn.style.display = 'inline-flex';
+    renderImages(u);
+    toggleZoomBar(true);
+}
+
+function goBack() {
+    cards.forEach(function (c) {
+        c.classList.remove('active', 'pe-hidden');
+    });
+    backBtn.style.display = 'none';
+    lessonsEl.innerHTML = '';
+    toggleZoomBar(false);
+}
+
+function init() {
+    buildCards();
+    backBtn.addEventListener('click', goBack);
+    toggleZoomBar(false);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+})();
+</script>
+
+</body>
+</html>
