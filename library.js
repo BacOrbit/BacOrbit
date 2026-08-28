@@ -266,6 +266,34 @@ function loadCover(cardEl) {
 
     coverWrap.dataset.loaded = "1";
 
+    /* إن كان الكتاب يملك حقل coverImage (غلاف مخصص ثابت)، تُستخدم هذه
+       الصورة مباشرة بدل توليد الغلاف من صفحة الـPDF عبر pdf.js. هذا خاص
+       فقط بالكتب التي تحمل هذا الحقل، ولا يغيّر آلية توليد الأغلفة
+       الافتراضية (من الصفحة الأولى أو coverPage) لبقية كتب المكتبة. */
+    if (book.coverImage) {
+        var customImg = new Image();
+        customImg.alt = book.title;
+        customImg.loading = "lazy";
+        customImg.style.width = "100%";
+        customImg.style.height = "100%";
+        customImg.style.objectFit = "cover";
+        customImg.style.display = "block";
+        customImg.onload = function () {
+            coverWrap.innerHTML = "";
+            coverWrap.appendChild(customImg);
+        };
+        customImg.onerror = function () {
+            console.error(
+                '[BacOrbit][مكتبة] تعذّر تحميل صورة الغلاف المخصصة للكتاب "' + book.title + '" من: ' + book.coverImage +
+                (isFileProtocol() ? ' — ' + FILE_PROTOCOL_HINT : ' — تحقّق من أنّ الصورة موجودة فعليًا بهذا المسار.')
+            );
+            coverWrap.dataset.loaded = "0";
+            coverWrap.innerHTML = '<span class="book-cover-icon book-cover-fallback">📕</span>';
+        };
+        customImg.src = book.coverImage;
+        return;
+    }
+
     var loadingTask = window.pdfjsLib.getDocument({ url: book.pdf, rangeChunkSize: 65536 });
 
     loadingTask.promise.then(function (pdf) {

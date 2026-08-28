@@ -20,6 +20,15 @@
    لهذا الكتاب تحديدًا. إن لم يُذكر، يُستخدم الغلاف من الصفحة 1
    تلقائيًا (نفس السلوك الافتراضي القديم). لتغيير غلاف أي كتاب
    لاحقًا يكفي إضافة/تعديل هذا الحقل فقط، دون أي تعديل آخر.
+
+   ✅ تحديث: تمت إضافة 19 كتابًا جديدًا كانت ملفاتها موجودة فعليًا
+   داخل مجلد library/ لكنها لم تكن مُدرجة هنا بعد (تم اكتشافها
+   بمقارنة محتوى المجلد الفعلي مع هذه القائمة). الأسماء المستخدمة
+   في حقل "pdf" هي نفسها أسماء الملفات الحقيقية حرفيًا (بما في ذلك
+   المسافات والأحرف الكبيرة/الصغيرة)، حتى تعمل القراءة والتنزيل
+   والغلاف لكل كتاب دون أي خطأ 404. العناوين والمواد والمستوى
+   وُضعت بأفضل تخمين ممكن استنادًا لاسم كل ملف — يمكنك تعديل أي
+   عنوان لاحقًا بكل حرية دون التأثير على عمل الكتاب.
    ============================================================ */
 
 var LIBRARY_BOOKS = [
@@ -99,6 +108,126 @@ var LIBRARY_BOOKS = [
         subject: "علوم الطبيعة والحياة",
         level: "الثالثة ثانوي",
         pdf: "library/science-methodology-ketfi.pdf"
+    },
+
+    /* ══ الكتب الجديدة (تمت إضافتها بعد مطابقة محتوى مجلد library/) ══ */
+
+    {
+        title: "الهدى في الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/Al-Huda in Mathematics.pdf"
+    },
+    {
+        title: "المغني في التاريخ والجغرافيا - السنة الثالثة ثانوي",
+        subject: "التاريخ والجغرافيا",
+        level: "الثالثة ثانوي",
+        pdf: "library/Al-Mughni in History and Geography - 3rd Year.pdf"
+    },
+    {
+        title: "الفصل الأول: العلاقات - رياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/chapitre1al3emlaq.pdf"
+    },
+    {
+        title: "كليك ماث في الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/Click_maths_3as.pdf"
+    },
+    {
+        title: "الجديد في الرياضيات - الجزء الأول",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/El_djadid_math_3AS.pdf"
+    },
+    {
+        title: "الجديد في الرياضيات - الجزء الثاني",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/El_djadid_math_Partie2_3AS.pdf"
+    },
+    {
+        title: "الجديد في الرياضيات - الجزء الثالث",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/El_djadid_math_Partie3_3AS.pdf"
+    },
+    {
+        title: "الحديث في الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/El_hadite_maths_3as.pdf"
+    },
+    {
+        title: "الميسر في الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/El_meyasser_maths_3AS.pdf"
+    },
+    {
+        title: "المراجعة النهائية للبكالوريا - اللغة العربية",
+        subject: "اللغة العربية",
+        level: "الثالثة ثانوي",
+        pdf: "library/Final BAC Revison Arabic.pdf"
+    },
+    {
+        title: "المراجعة النهائية للبكالوريا - الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/Final BAC Revison MATH.pdf"
+    },
+    {
+        title: "المراجعة النهائية للبكالوريا - الفيزياء",
+        subject: "الفيزياء",
+        level: "الثالثة ثانوي",
+        pdf: "library/Final BAC Revison Physique.pdf"
+    },
+    {
+        title: "المراجعة النهائية للبكالوريا - علوم الطبيعة والحياة",
+        subject: "علوم الطبيعة والحياة",
+        level: "الثالثة ثانوي",
+        pdf: "library/Final_BAC_Revison_Science.pdf"
+    },
+    {
+        title: "باز في الرياضيات",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/math3as-baz.pdf"
+    },
+    {
+        title: "المتميز في الرياضيات - الأعداد المركبة",
+        subject: "الرياضيات",
+        level: "الثالثة ثانوي",
+        pdf: "library/Motameyez_maths_nom_com_3AS.pdf"
+    },
+    {
+        title: "Success Key - مفتاح النجاح في اللغة الإنجليزية",
+        subject: "الإنجليزية",
+        level: "الثالثة ثانوي",
+        pdf: "library/success-key-3SE.pdf"
+    },
+    {
+        title: "تأشيرة النجاح في العلوم الفيزيائية - الجزء الأول",
+        subject: "الفيزياء",
+        level: "الثالثة ثانوي",
+        pdf: "library/Success Visa in Physical Sciences - Part 1.pdf"
+    },
+    {
+        title: "تأشيرة النجاح في العلوم الفيزيائية - الجزء الثاني",
+        subject: "الفيزياء",
+        level: "الثالثة ثانوي",
+        pdf: "library/Success Visa in Physical Sciences - Part 2.pdf"
+    },
+    {
+        title: "تأشيرة النجاح في العلوم الفيزيائية - الجزء الثالث",
+        subject: "الفيزياء",
+        level: "الثالثة ثانوي",
+        pdf: "library/Success Visa in Physical Sciences - Part 3.pdf",
+        /* غلاف مخصص لهذا الكتاب فقط: صورة ثابتة بدل الغلاف المولَّد تلقائيًا
+           من الصفحة الأولى للـPDF. لا تؤثر على أي كتاب آخر في المكتبة. */
+        coverImage: "library/covers/success-visa-part3-cover.png"
     }
 
 ];
