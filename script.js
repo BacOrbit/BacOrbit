@@ -3,6 +3,16 @@
    الملف المركزي لكل التفاعلات: الثيم، الشريط العلوي، تأثير النبض،
    الإشعارات، تنزيل المواضيع والدروس، وعارض تكبير/تنزيل الصور.
    مصمم ليعمل بأمان على أي صفحة حتى لو كانت بعض العناصر غير موجودة.
+
+   ⚠️ تعديل جديد (فقط القسم 0ب أدناه): إصلاح اختفاء أيقونة الموقع
+   (favicon) في الصفحات الداخلية. السبب الحقيقي بعد الفحص: صفحة
+   index.html فقط كانت تحتوي على <link rel="icon">، بينما كل بقية
+   صفحات الموقع (حتى الجذرية مثل calculator.html) لم تحتوِ على أي
+   وسم favicon إطلاقًا — وليس مسارًا نسبيًا خاطئًا. بما أن هذا الملف
+   (script.js) مُحمَّل فعليًا في كل صفحات الموقع بدون استثناء، فإن
+   الحل الموحّد والآمن هو حقن وسوم الأيقونة هنا بمسار مطلق (absolute
+   URL) لا يتأثر بعمق المجلد (يعمل من الجذر أو من داخل Branches/ بنفس
+   الطريقة)، بدل تعديل عشرات الملفات يدويًا وتكرار احتمال الخطأ.
    ============================================================ */
 
 (function () {
@@ -21,6 +31,33 @@
   }
 
   /* ---------------------------------------------------------
+     0ب. ضمان ظهور أيقونة BacOrbit (favicon) في كل صفحة
+     يعمل على كل الصفحات (الجذرية وصفحات Branches/ على حد سواء)
+     لأن هذا الملف مُحمَّل في كل مكان. لا يلمس أي أيقونة موجودة
+     مسبقًا (مثل index.html) ولا يُنشئ أي تصميم جديد — فقط يستخدم
+     نفس ملفات favicon.png / icon-192.png الموجودة أصلاً في جذر
+     المشروع، بمسار مطلق ثابت لا ينكسر بغض النظر عن عمق الصفحة.
+     --------------------------------------------------------- */
+  var SITE_ROOT = 'https://bacorbit.github.io/BacOrbit/';
+
+  function ensureFavicon() {
+    if (document.querySelector('link[rel="icon"]')) return; // موجودة مسبقًا (index.html) — لا تكرار
+
+    var icon = document.createElement('link');
+    icon.rel = 'icon';
+    icon.type = 'image/png';
+    icon.href = SITE_ROOT + 'favicon.png';
+    document.head.appendChild(icon);
+
+    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+      var apple = document.createElement('link');
+      apple.rel = 'apple-touch-icon';
+      apple.href = SITE_ROOT + 'icon-192.png';
+      document.head.appendChild(apple);
+    }
+  }
+
+  /* ---------------------------------------------------------
      1. الوضع الداكن / الفاتح (Theme)
      نفس المفتاح المستخدم في chat.html (bacorbit_theme) لضمان
      تزامن التفضيل عبر كامل الموقع.
@@ -36,6 +73,7 @@
     } catch (e) { /* localStorage قد يكون غير متاح (وضع خاص مثلاً) */ }
   }
   applyStoredTheme(); // ينفَّذ فورًا (قبل رسم الصفحة) لمنع وميض الثيم
+  safeRun(ensureFavicon, 'أيقونة الموقع (favicon)'); // ينفَّذ مبكرًا أيضًا لتقليل تأخر ظهور الأيقونة
 
   function initThemeToggle() {
     const btn = document.getElementById('themeToggle');
@@ -1273,6 +1311,7 @@
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
+    safeRun(ensureFavicon, 'أيقونة الموقع (favicon)'); /* استدعاء ثانٍ آمن (idempotent) بعد جاهزية DOM بالكامل */
     safeRun(initThemeToggle, 'الوضع الداكن/الفاتح');
     safeRun(initTopBarScroll, 'الشريط العلوي');
     safeRun(ensureImageViewer, 'مكبر الصور الموحّد');
