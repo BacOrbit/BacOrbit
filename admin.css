@@ -1,0 +1,136 @@
+/* ============================================================
+   BacOrbit — admin.css
+   تنسيقات خاصة بلوحة الإدارة (admin.html) فقط.
+   يعتمد بالكامل على متغيرات التصميم الموجودة في style.css
+   (--accent, --card-bg, --border...) ليتطابق تلقائيًا مع هوية
+   الموقع ويتكيف مع الوضعين الداكن والفاتح دون أي تكرار للألوان.
+   ============================================================ */
+
+.admin-wrap{max-width:1150px;margin:0 auto;padding:10px 20px 60px}
+
+/* ---- بوابة الدخول ---- */
+.admin-login-card{
+  max-width:420px;margin:40px auto;
+  background:var(--card-bg);border:2px solid var(--border);border-radius:22px;
+  padding:34px 28px;text-align:center;box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+.admin-login-icon{
+  width:60px;height:60px;margin:0 auto 16px;border-radius:16px;
+  background:var(--featured-tint);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+}
+.admin-login-card h2{color:var(--accent);margin-bottom:8px}
+.admin-login-card p{color:var(--text-secondary);font-size:13.5px;line-height:1.8;margin-bottom:20px}
+.admin-input{
+  width:100%;background:var(--bg);border:2px solid var(--empty-border);border-radius:12px;
+  padding:12px 14px;color:var(--text);font-size:14.5px;margin-bottom:12px;font-family:inherit;
+  transition:border-color .25s ease;
+}
+.admin-input:focus{outline:none;border-color:var(--accent)}
+.admin-login-btn{
+  width:100%;padding:13px;background:var(--accent);color:#000;font-weight:bold;
+  border:none;border-radius:12px;cursor:pointer;font-size:15px;font-family:inherit;
+  transition:transform .2s ease,box-shadow .25s ease;
+}
+.admin-login-btn:hover{transform:translateY(-2px);box-shadow:0 0 18px var(--accent-glow)}
+.admin-login-btn:disabled{opacity:.6;cursor:wait;transform:none}
+.admin-login-error{
+  margin-top:14px;padding:10px 12px;border:1px solid var(--danger);background:var(--danger-bg);
+  color:var(--danger);border-radius:10px;font-size:13px;line-height:1.7;display:none;
+}
+.admin-login-error.show{display:block}
+
+/* ---- شريط الحالة العلوي داخل اللوحة ---- */
+.admin-topbar{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  margin-bottom:22px;padding:14px 18px;background:var(--card-bg);border:1px solid var(--empty-border);
+  border-radius:16px;
+}
+.admin-whoami{color:var(--text-secondary);font-size:13.5px}
+.admin-whoami strong{color:var(--accent)}
+.admin-signout-btn{
+  background:transparent;border:1.5px solid var(--danger);color:var(--danger);
+  padding:8px 16px;border-radius:10px;font-weight:bold;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:background-color .2s ease;
+}
+.admin-signout-btn:hover{background:var(--danger-bg)}
+
+/* ---- تبويبات اللوحة ---- */
+.admin-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.admin-tab-btn{
+  background:var(--card-bg);border:2px solid var(--empty-border);color:var(--text-secondary);
+  padding:10px 18px;border-radius:12px;font-weight:bold;font-size:14px;cursor:pointer;font-family:inherit;
+  transition:border-color .2s ease,color .2s ease,background-color .25s ease;
+}
+.admin-tab-btn:hover{border-color:var(--accent);color:var(--text)}
+.admin-tab-btn.active{background:var(--accent);border-color:var(--accent);color:#000}
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+
+/* ---- بطاقات الإحصائيات ---- */
+.admin-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:10px}
+.admin-stat-card{
+  background:var(--card-bg);border:2px solid var(--border);border-radius:16px;padding:20px;text-align:center;
+}
+.admin-stat-value{font-size:34px;font-weight:bold;color:var(--accent);direction:ltr}
+.admin-stat-label{color:var(--text-secondary);font-size:13px;margin-top:6px}
+
+/* ---- عناصر عامة: بطاقة قائمة ---- */
+.admin-section-title{color:var(--accent);font-size:18px;margin:26px 0 14px}
+.admin-section-title:first-child{margin-top:0}
+.admin-empty-note{color:var(--footer-text);text-align:center;padding:30px;font-size:14px}
+
+.admin-list{display:flex;flex-direction:column;gap:12px}
+.admin-item{
+  background:var(--card-bg);border:1.5px solid var(--empty-border);border-radius:14px;padding:16px;
+  transition:border-color .2s ease;
+}
+.admin-item.is-reply{margin-inline-start:26px;border-inline-start:3px solid var(--accent-soft)}
+.admin-item-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.admin-item-author{color:var(--accent);font-weight:bold;font-size:14px}
+.admin-item-date{color:var(--footer-text);font-size:12px}
+.admin-item-text{color:var(--text);font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word;margin-bottom:10px}
+.admin-item-badge{
+  display:inline-block;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--gold);color:var(--gold-dark);background:rgba(255,210,77,.1);margin-inline-end:6px;
+}
+.admin-item-badge.danger{border-color:var(--danger);color:var(--danger);background:var(--danger-bg)}
+.admin-item-actions{display:flex;gap:8px;flex-wrap:wrap}
+.admin-btn{
+  border:1.5px solid var(--accent);background:transparent;color:var(--accent);
+  padding:7px 14px;border-radius:9px;font-size:12.5px;font-weight:bold;cursor:pointer;font-family:inherit;
+  transition:background-color .2s ease;
+}
+.admin-btn:hover{background:var(--accent-glow)}
+.admin-btn.danger{border-color:var(--danger);color:var(--danger)}
+.admin-btn.danger:hover{background:var(--danger-bg)}
+.admin-btn:disabled{opacity:.55;cursor:wait}
+
+/* ---- قسم الملخصات ---- */
+.admin-summary-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.admin-summary-link{
+  display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:bold;font-size:13px;
+  text-decoration:none;margin-bottom:10px;
+}
+.admin-reject-box{display:none;margin-top:10px;gap:8px;flex-wrap:wrap}
+.admin-reject-box.show{display:flex}
+.admin-reject-input{
+  flex:1;min-width:200px;background:var(--bg);border:2px solid var(--empty-border);border-radius:10px;
+  padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;
+}
+
+/* ---- توست بسيط ---- */
+#adminToast{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;z-index:3000;pointer-events:none}
+#adminToast .admin-toast-box{
+  background:var(--card-bg);border:2px solid var(--accent);color:var(--accent);padding:12px 22px;
+  border-radius:14px;font-weight:bold;box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;
+  transform:translateY(15px);transition:opacity .3s ease,transform .3s ease;max-width:90%;text-align:center;
+}
+#adminToast.show .admin-toast-box{opacity:1;transform:translateY(0)}
+#adminToast.err .admin-toast-box{border-color:var(--danger);color:var(--danger)}
+
+@media (max-width:600px){
+  .admin-item.is-reply{margin-inline-start:14px}
+  .admin-tabs{gap:8px}
+  .admin-tab-btn{flex:1 1 auto;text-align:center}
+}

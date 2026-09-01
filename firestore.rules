@@ -1,0 +1,107 @@
+rules_version = '2';
+
+/* ============================================================
+   BacOrbit — Firestore Security Rules
+   انسخ هذا الملف بالكامل والصقه في:
+   Firebase Console → Firestore Database → Rules → استبدل المحتوى → Publish
+   ============================================================ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* أدمن فقط إن كان uid المستخدم موجودًا كوثيقة داخل admins/ */
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /* ---------------------------------------------------------
+       admins — تُدار يدويًا فقط من Firebase Console (لا كتابة
+       من أي عميل إطلاقًا). كل حساب يمكنه قراءة وثيقته فقط للتحقق
+       من صلاحيته الخاصة.
+       --------------------------------------------------------- */
+    match /admins/{adminUid} {
+      allow read: if isSignedIn() && request.auth.uid == adminUid;
+      allow write: if false;
+    }
+
+    /* ---------------------------------------------------------
+       users — كما هي مستخدمة في المنتدى حاليًا (هوية مجهولة).
+       يسمح لكل مستخدم بإنشاء/تعديل وثيقته الخاصة فقط (باستثناء
+       حقل banned)، وللأدمن بكل الصلاحيات.
+       --------------------------------------------------------- */
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      allow update: if isAdmin()
+        || (
+          isSignedIn() && request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned','bannedAt','bannedFor'])
+        )
+        /* السماح بتحديث banned فقط ضمن تدفق البلاغات الحالي في المنتدى
+           (transaction) — قيد مؤقت إلى حين إضافة Cloud Function مخصصة
+           للتحقق الكامل من شرط عدد البلاغات من جهة الخادم. */
+        || (
+          isSignedIn() && request.auth.uid != userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['banned','bannedAt','bannedFor'])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    /* ---------------------------------------------------------
+       forumPosts — نفس منطق المنتدى الحالي: كل مستخدم يمكنه إنشاء
+       منشوره الخاص، حذف (وسم deleted) منشوره الخاص، أو تحديث حقول
+       البلاغ (reportCount/reports/removed) لمنشورات الآخرين. الحذف
+       النهائي الحقيقي من قاعدة البيانات للأدمن فقط.
+       --------------------------------------------------------- */
+    match /forumPosts/{postId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.deleted == false
+        && request.resource.data.removed == false;
+
+      allow update: if isAdmin()
+        || (
+          isSignedIn() && resource.data.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted'])
+        )
+        || (
+          isSignedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount','reports','removed'])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    /* ---------------------------------------------------------
+       summaries — نظام مراجعة الملخصات الجديد. المستخدم يمكنه فقط
+       إنشاء ملخص بحالة pending مرتبط بحسابه، وقراءة ملخصاته الخاصة
+       أو أي ملخص معتمد (approved). القبول/الرفض/الحذف للأدمن فقط.
+       --------------------------------------------------------- */
+    match /summaries/{summaryId} {
+      allow read: if isAdmin()
+        || resource.data.status == 'approved'
+        || (isSignedIn() && resource.data.submitterUid == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.submitterUid == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /* أي مجموعة أخرى غير معرّفة أعلاه: مرفوضة افتراضيًا */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

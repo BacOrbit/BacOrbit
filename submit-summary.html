@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رفع ملخص - شارك ملخصك مع زملائك | BacOrbit</title>
+
+<meta name="description" content="ارفع ملخصك الدراسي ليراجعه فريق BacOrbit وينشره في المكتبة ليستفيد منه بقية التلاميذ.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://bacorbit.github.io/BacOrbit/submit-summary.html">
+
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة «رفع ملخص» فقط (لا تعدّل style.css المشترك) ══ */
+.ss-wrap{max-width:640px;margin:0 auto;padding:10px 20px 60px}
+.ss-card{
+  background:var(--card-bg);border:2px solid var(--border);border-radius:22px;padding:30px 26px;
+  box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+.ss-field{margin-bottom:16px}
+.ss-field label{display:block;color:var(--text-secondary);font-size:13.5px;font-weight:bold;margin-bottom:7px}
+.ss-input,.ss-select,.ss-textarea{
+  width:100%;background:var(--bg);border:2px solid var(--empty-border);border-radius:12px;
+  padding:12px 14px;color:var(--text);font-size:14.5px;font-family:inherit;transition:border-color .25s ease;
+}
+.ss-input:focus,.ss-select:focus,.ss-textarea:focus{outline:none;border-color:var(--accent)}
+.ss-textarea{min-height:70px;resize:vertical}
+.ss-file-label{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--bg);border:2px dashed var(--accent);border-radius:12px;padding:16px;
+  color:var(--accent);cursor:pointer;font-weight:bold;font-size:14px;transition:background-color .25s ease;
+}
+.ss-file-label:hover{background:var(--accent-glow)}
+.ss-file-name{margin-top:8px;color:var(--text-secondary);font-size:12.5px;text-align:center}
+.ss-submit-btn{
+  width:100%;padding:14px;background:var(--accent);color:#000;font-weight:bold;font-size:15.5px;
+  border:none;border-radius:12px;cursor:pointer;font-family:inherit;margin-top:6px;
+  transition:transform .2s ease,box-shadow .25s ease;
+}
+.ss-submit-btn:hover{transform:translateY(-2px);box-shadow:0 0 18px var(--accent-glow)}
+.ss-submit-btn:disabled{opacity:.6;cursor:wait;transform:none}
+.ss-hint{color:var(--footer-text);font-size:12.5px;text-align:center;margin-top:14px;line-height:1.8}
+.ss-msg{margin-top:16px;padding:12px 14px;border-radius:12px;font-size:13.5px;line-height:1.8;display:none}
+.ss-msg.show{display:block}
+.ss-msg.ok{border:1px solid var(--accent);background:var(--featured-tint);color:var(--accent)}
+.ss-msg.err{border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger)}
+
+/* قائمة ملخصاتي السابقة */
+.ss-mine{margin-top:34px}
+.ss-mine-item{
+  background:var(--card-bg);border:1.5px solid var(--empty-border);border-radius:14px;padding:14px 16px;margin-bottom:10px;
+}
+.ss-mine-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ss-mine-title{color:var(--text);font-weight:bold;font-size:14px}
+.ss-status{font-size:11.5px;font-weight:bold;padding:3px 10px;border-radius:999px}
+.ss-status.pending{border:1px solid var(--gold);color:var(--gold-dark);background:rgba(255,210,77,.1)}
+.ss-status.approved{border:1px solid var(--accent);color:var(--accent);background:var(--featured-tint)}
+.ss-status.rejected{border:1px solid var(--danger);color:var(--danger);background:var(--danger-bg)}
+.ss-mine-reason{margin-top:6px;color:var(--danger);font-size:12.5px}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="library.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📖</span>مكتبة الكتب</a>
+            <a href="guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+</div>
+
+<header class="site-header"><div class="logo">BacOrbit</div></header>
+
+<section class="hero">
+    <h1>📤 رفع ملخص</h1>
+    <p>شارك ملخصك مع زملائك — يراجعه فريق BacOrbit قبل نشره في المكتبة</p>
+</section>
+
+<div class="ss-wrap">
+
+    <div class="ss-card">
+        <div class="ss-field">
+            <label for="ssTitle">عنوان الملخص</label>
+            <input type="text" id="ssTitle" class="ss-input" placeholder="مثال: ملخص شامل في الاحتمالات">
+        </div>
+        <div class="ss-field">
+            <label for="ssSubject">المادة</label>
+            <select id="ssSubject" class="ss-select"></select>
+        </div>
+        <div class="ss-field">
+            <label for="ssLevel">المستوى (اختياري)</label>
+            <input type="text" id="ssLevel" class="ss-input" placeholder="مثال: الثالثة ثانوي">
+        </div>
+        <div class="ss-field">
+            <label for="ssNote">ملاحظة إضافية (اختياري)</label>
+            <textarea id="ssNote" class="ss-textarea" placeholder="أي معلومة تريد إخبار فريق المراجعة بها…"></textarea>
+        </div>
+        <div class="ss-field">
+            <label>ملف الملخص (PDF)</label>
+            <label class="ss-file-label" for="ssFile">📎 اختر ملف PDF</label>
+            <input type="file" id="ssFile" accept="application/pdf" hidden>
+            <div class="ss-file-name" id="ssFileName">لم يتم اختيار ملف بعد</div>
+        </div>
+
+        <button type="button" class="ss-submit-btn" id="ssSubmitBtn">إرسال للمراجعة ➜</button>
+        <div class="ss-msg" id="ssMsg"></div>
+        <p class="ss-hint">لن يُنشر ملخصك مباشرة — سيراجعه فريق BacOrbit أولًا، وستظهر لك حالته أدناه بعد إرساله.</p>
+    </div>
+
+    <div class="ss-mine">
+        <h2 style="color:var(--accent);font-size:18px;margin-bottom:14px">📋 ملخصاتي المُرسَلة</h2>
+        <div id="ssMineList"></div>
+        <div id="ssMineEmpty" style="display:none;color:var(--footer-text);text-align:center;padding:20px;font-size:13.5px">لم ترسل أي ملخص بعد.</div>
+    </div>
+
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>© 2026 BacOrbit</footer>
+
+<script src="submit-summary.js"></script>
+
+</body>
+</html>
