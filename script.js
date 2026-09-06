@@ -19,6 +19,27 @@
   'use strict';
 
   /* ---------------------------------------------------------
+     0-أ. توجيه تلقائي فوري لأصحاب شعبة محفوظة عند دخول الصفحة الرئيسية
+     يعمل فقط إن كانت الصفحة الحالية هي index.html (أو مسار الجذر).
+     يُنفَّذ هنا في أعلى الملف، قبل أي شيء آخر — بما أن script.js مُحمَّل
+     بشكل متزامن (synchronous <script src>) داخل <head> في كل صفحة، فإن
+     تنفيذ هذا التحقق في هذه اللحظة بالذات يمنع أي وميض لمحتوى الصفحة
+     الرئيسية (بطاقات الشعب) قبل التوجيه الفعلي لصفحة الشعبة المحفوظة.
+     أي خطأ هنا (localStorage غير متاح، بيانات تالفة...) يعني ببساطة
+     الاستمرار في تحميل الصفحة الرئيسية بشكل طبيعي دون أي توجيه. */
+  (function redirectToSavedBranchIfHome() {
+    try {
+      var path = location.pathname;
+      var isHome = /(^|\/)index\.html$/.test(path) || /\/$/.test(path);
+      if (!isHome) return;
+      var raw = localStorage.getItem('bacorbit_saved_branch');
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (saved && saved.url) location.replace(saved.url);
+    } catch (e) { /* المتابعة بتحميل الصفحة الرئيسية عاديًا */ }
+  })();
+
+  /* ---------------------------------------------------------
      0. أدوات مساعدة عامة
      --------------------------------------------------------- */
   function qs(sel, ctx)  { return (ctx || document).querySelector(sel); }
@@ -39,6 +60,36 @@
      المشروع، بمسار مطلق ثابت لا ينكسر بغض النظر عن عمق الصفحة.
      --------------------------------------------------------- */
   var SITE_ROOT = 'https://bacorbit.github.io/BacOrbit/';
+
+  /* عنوان script.js نفسه كما حمّله المتصفح (يعمل بشكل صحيح من الجذر
+     أو من داخل Branches/ على حد سواء) — يُستخدم لتحميل الوحدات
+     الجديدة (firebase-shared.js / notifications.js / study-later.js)
+     من نفس المجلد الذي يوجد فيه script.js تحديدًا، بدل الاعتماد على
+     SITE_ROOT المطلق الذي قد يشير لنسخة الإنتاج أثناء التطوير المحلي. */
+  var CURRENT_SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
+  function siblingUrl(name) {
+    if (CURRENT_SCRIPT_SRC) {
+      return CURRENT_SCRIPT_SRC.replace(/script\.js(\?.*)?$/, '') + name;
+    }
+    return name;
+  }
+  function loadScriptTag(src) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-bac-src="' + src + '"]');
+      if (existing) {
+        if (existing.dataset.bacLoaded === '1') { resolve(); return; }
+        existing.addEventListener('load', function () { resolve(); });
+        existing.addEventListener('error', reject);
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = src;
+      s.dataset.bacSrc = src;
+      s.onload = function () { s.dataset.bacLoaded = '1'; resolve(); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
 
   function ensureFavicon() {
     if (document.querySelector('link[rel="icon"]')) return; // موجودة مسبقًا (index.html) — لا تكرار
@@ -948,6 +999,73 @@
     });
   }
   /* ---------------------------------------------------------
+     8ج-1. رابط "إضافة ملفات" داخل القائمة المنسدلة ☰
+     يُضاف ديناميكيًا في كل صفحة تحتوي على .nav-menu-panel (بدل تعديل
+     عشرات الملفات يدويًا)، بنفس نمط بقية روابط القائمة تمامًا، ولا
+     يُضاف مرتين إن وُجد مسبقًا. يعمل من الجذر ومن داخل Branches/ لأنه
+     يستخدم نفس المسار النسبي المحسوب من موقع script.js (siblingUrl). */
+  function ensureAddFilesNavLink() {
+    var panel = document.querySelector('.nav-menu-panel');
+    if (!panel) return;
+    if (panel.querySelector('a[href$="add-files.html"]')) return; // موجود مسبقًا
+
+    var link = document.createElement('a');
+    link.className = 'nav-menu-item';
+    link.setAttribute('role', 'menuitem');
+    link.href = siblingUrl('add-files.html');
+    link.innerHTML = '<span class="nav-menu-item-icon">📤</span>إضافة ملفات';
+
+    /* يُوضع بعد رابط "مكتبة الكتب" إن وُجد (أقرب سياقًا)، وإلا في
+       نهاية القائمة، حفاظًا على ترتيب منطقي دون تكرار أي منطق آخر. */
+    var libLink = panel.querySelector('a[href$="library.html"]');
+    if (libLink && libLink.nextSibling) {
+      panel.insertBefore(link, libLink.nextSibling);
+    } else if (libLink) {
+      panel.appendChild(link);
+    } else {
+      panel.appendChild(link);
+    }
+  }
+
+  /* ---------------------------------------------------------
+     8ج-2. الإشعارات (🔔) + "الدراسة لاحقًا" — ميزات Firebase اختيارية
+     تُحمَّل بكسل (lazy) فقط في الصفحات التي لا تُحمِّل Firebase أصلاً
+     (لتفادي تهيئة firebase.initializeApp مرتين وكسر صفحات المنتدى/
+     لوحة الإدارة/رفع الملخص التي تُدير اتصالها الخاص بـ Firebase
+     بالفعل). تُستخدم نفس هوية Anonymous Auth المستخدمة في المنتدى
+     (نفس المتصفح ⇐ نفس UID) حتى ترتبط بيانات "الدراسة لاحقًا"
+     والإشعارات بنفس حساب المستخدم في كل الصفحات.
+     --------------------------------------------------------- */
+  function pageManagesOwnFirebase() {
+    /* أي صفحة تُحمِّل SDK الخاص بـ Firestore بنفسها (chat.html،
+       admin.html، submit-summary.html، add-files.html) تُفترض أنها
+       تُهيّئ firebase.initializeApp بنفسها وتُدمج الإشعارات محليًا،
+       فلا نكرر التهيئة هنا لتفادي خطأ "App already exists". */
+    return !!document.querySelector('script[src*="firebase-firestore-compat"]');
+  }
+
+  function initBacCloudFeatures() {
+    if (pageManagesOwnFirebase()) return;
+
+    loadScriptTag(siblingUrl('firebase-shared.js'))
+      .then(function () {
+        return Promise.all([
+          loadScriptTag(siblingUrl('notifications.js')),
+          loadScriptTag(siblingUrl('study-later.js'))
+        ]);
+      })
+      .then(function () { return window.BacFirebase.ready(); })
+      .then(function (ctx) {
+        if (ctx && ctx.me && ctx.me.banned) return; /* حساب مقصى — لا تفعيل */
+        if (window.BacNotifications) window.BacNotifications.init(ctx);
+        if (window.BacStudyLater) window.BacStudyLater.init(ctx);
+      })
+      .catch(function (err) {
+        console.warn('[BacOrbit] تعذّر تفعيل الإشعارات/الدراسة لاحقًا (لن يؤثر على بقية الموقع)', err);
+      });
+  }
+
+  /* ---------------------------------------------------------
      8ج. مؤقت الدراسة (Study Timer) — زر بجانب ☰ في الشريط
      العلوي، ولوحة عائمة تبقى مستمرة عبر التنقل بين الصفحات
      بالاعتماد على وقت مطلق (endAt) في localStorage، وليس على
@@ -1308,6 +1426,345 @@
   }
  
   /* ---------------------------------------------------------
+     8د. العدّاد التنازلي (Flip Clock) لبكالوريا 2027
+     يعمل في أي صفحة تحتوي عنصر #bacFlipClock (الصفحة الرئيسية وصفحات
+     اختيار المادة داخل كل شعبة Branches/1_*.html)، ولا يفعل شيئًا في
+     أي صفحة أخرى. الهدف: بداية يوم 7 يونيو 2027 بتوقيت الجزائر
+     (UTC+1 ثابت، الجزائر لا تستخدم توقيتًا صيفيًا)، أي 6 يونيو 2027
+     الساعة 23:00 بتوقيت UTC — الاعتماد على طابعي زمن UTC يضمن حسابًا
+     صحيحًا لكل الزوار بغض النظر عن المنطقة الزمنية لأجهزتهم. كل خانة
+     أرقام مبنية كبطاقة "Flip" حقيقية (تنقلب ثلاثي الأبعاد عند تغيّرها)
+     عبر CSS 3D transforms بسيطة، دون أي مكتبة خارجية.
+     --------------------------------------------------------- */
+  var BAC_COUNTDOWN_TARGET_MS = Date.UTC(2027, 5, 6, 23, 0, 0);
+
+  function bacCountdownPad(n, len) {
+    var s = String(Math.max(0, n));
+    while (s.length < len) s = '0' + s;
+    return s;
+  }
+
+  function bacBuildFlipUnit(digitCount, label) {
+    var unit = document.createElement('div');
+    unit.className = 'bac-flip-unit';
+
+    var digitsWrap = document.createElement('div');
+    digitsWrap.className = 'bac-flip-digits';
+
+    var cards = [];
+    for (var i = 0; i < digitCount; i++) {
+      var card = document.createElement('div');
+      card.className = 'bac-flip-card';
+
+      var inner = document.createElement('div');
+      inner.className = 'bac-flip-card-inner';
+
+      var face1 = document.createElement('div');
+      face1.className = 'bac-flip-face bac-flip-face-front';
+      face1.textContent = '0';
+
+      var face2 = document.createElement('div');
+      face2.className = 'bac-flip-face bac-flip-face-back';
+      face2.textContent = '0';
+
+      inner.appendChild(face1);
+      inner.appendChild(face2);
+      card.appendChild(inner);
+      digitsWrap.appendChild(card);
+
+      cards.push({ inner: inner, face1: face1, face2: face2, toggled: false, current: '0' });
+    }
+
+    var labelEl = document.createElement('div');
+    labelEl.className = 'bac-flip-label';
+    labelEl.textContent = label;
+
+    unit.appendChild(digitsWrap);
+    unit.appendChild(labelEl);
+
+    return { el: unit, cards: cards };
+  }
+
+  /* يضبط القيمة الابتدائية للبطاقات مباشرة دون أي حركة انقلاب (حتى لا
+     تنقلب كل الأرقام دفعة واحدة بمجرد تحميل الصفحة). الانقلاب الفعلي
+     يبدأ فقط مع أول تغيّر حقيقي في القيمة لاحقًا عبر bacUpdateFlipUnit. */
+  function bacSetInitialFlip(unit, valueStr) {
+    for (var i = 0; i < unit.cards.length; i++) {
+      var card = unit.cards[i];
+      var digit = valueStr[i] || '0';
+      card.current = digit;
+      card.face1.textContent = digit;
+      card.face2.textContent = digit;
+    }
+  }
+
+  function bacUpdateFlipUnit(unit, valueStr) {
+    for (var i = 0; i < unit.cards.length; i++) {
+      var card = unit.cards[i];
+      var digit = valueStr[i] || '0';
+      if (digit === card.current) continue;
+      card.current = digit;
+      /* الوجه غير الظاهر حاليًا هو الذي يجب تحديثه بالقيمة الجديدة قبل
+         الانقلاب، حتى تنكشف القيمة الصحيحة فور اكتمال الحركة. */
+      if (card.toggled) card.face1.textContent = digit;
+      else card.face2.textContent = digit;
+      card.toggled = !card.toggled;
+      card.inner.classList.toggle('bac-flip-rot', card.toggled);
+    }
+  }
+
+  function bacComputeCountdownParts() {
+    var diff = BAC_COUNTDOWN_TARGET_MS - Date.now();
+    if (diff <= 0) return null;
+    return {
+      days: bacCountdownPad(Math.floor(diff / 86400000), 3),
+      hours: bacCountdownPad(Math.floor((diff % 86400000) / 3600000), 2),
+      mins: bacCountdownPad(Math.floor((diff % 3600000) / 60000), 2),
+      secs: bacCountdownPad(Math.floor((diff % 60000) / 1000), 2)
+    };
+  }
+
+  function bacShowCountdownFinished(wrap) {
+    wrap.innerHTML = '';
+    var msg = document.createElement('div');
+    msg.className = 'bac-countdown-finished';
+    msg.textContent = 'انطلقت بكالوريا 2027 🎓';
+    wrap.appendChild(msg);
+  }
+
+  function initBacCountdown() {
+    var wrap = document.getElementById('bacFlipClock');
+    if (!wrap) return; /* صفحة لا تحتوي العدّاد أصلًا — لا شيء لفعله */
+
+    var initialParts = bacComputeCountdownParts();
+    if (!initialParts) { bacShowCountdownFinished(wrap); return; }
+
+    var daysUnit = bacBuildFlipUnit(3, 'أيام');
+    var hoursUnit = bacBuildFlipUnit(2, 'ساعات');
+    var minsUnit = bacBuildFlipUnit(2, 'دقائق');
+    var secsUnit = bacBuildFlipUnit(2, 'ثوانٍ');
+
+    wrap.appendChild(daysUnit.el);
+    wrap.appendChild(hoursUnit.el);
+    wrap.appendChild(minsUnit.el);
+    wrap.appendChild(secsUnit.el);
+
+    bacSetInitialFlip(daysUnit, initialParts.days);
+    bacSetInitialFlip(hoursUnit, initialParts.hours);
+    bacSetInitialFlip(minsUnit, initialParts.mins);
+    bacSetInitialFlip(secsUnit, initialParts.secs);
+
+    var timer = setInterval(function () {
+      var parts = bacComputeCountdownParts();
+      if (!parts) { clearInterval(timer); bacShowCountdownFinished(wrap); return; }
+      bacUpdateFlipUnit(daysUnit, parts.days);
+      bacUpdateFlipUnit(hoursUnit, parts.hours);
+      bacUpdateFlipUnit(minsUnit, parts.mins);
+      bacUpdateFlipUnit(secsUnit, parts.secs);
+    }, 1000);
+  }
+
+  /* ---------------------------------------------------------
+     8هـ. حفظ شعبة المستخدم: بطاقات اختيار الشعبة في الصفحة الرئيسية،
+     رابط "تغيير الشعبة" أسفل العدّاد (أي صفحة يظهر بها)، وجعل كل روابط
+     "العودة إلى الصفحة الرئيسية" (class="back") في كامل الموقع ذكية
+     بحيث تتوجّه لصفحة الشعبة المحفوظة بدل index.html متى وُجدت شعبة
+     محفوظة. كل ذلك يعتمد على مفتاح localStorage واحد فقط
+     (bacorbit_saved_branch) بالصيغة {key, name, url}، حيث url مسار
+     نسبي من جذر المشروع (مثال: "Branches/1_math.html") — هو نفس
+     المفتاح الذي يتحقق منه التوجيه التلقائي في أعلى هذا الملف.
+     --------------------------------------------------------- */
+  var BAC_BRANCH_STORAGE_KEY = 'bacorbit_saved_branch';
+  var BAC_BRANCH_PROMPT_KEY = 'bacorbit_branch_prompt_shown';
+
+  function bacLoadSavedBranch() {
+    try {
+      var raw = localStorage.getItem(BAC_BRANCH_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && parsed.url && parsed.name) return parsed;
+      return null;
+    } catch (e) { return null; }
+  }
+  function bacSaveBranch(data) {
+    try { localStorage.setItem(BAC_BRANCH_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+  function bacClearSavedBranch() {
+    try { localStorage.removeItem(BAC_BRANCH_STORAGE_KEY); } catch (e) {}
+  }
+  function bacMarkBranchPromptShown() {
+    try { localStorage.setItem(BAC_BRANCH_PROMPT_KEY, '1'); } catch (e) {}
+  }
+  function bacWasBranchPromptShown() {
+    try { return localStorage.getItem(BAC_BRANCH_PROMPT_KEY) === '1'; } catch (e) { return false; }
+  }
+
+  /* مسار "العودة إلى الصفحة الرئيسية" الصحيح انطلاقًا من الصفحة
+     الحالية: بنية المشروع تحتوي مستوى فرعي واحدًا فقط لصفحات المواد
+     (Branches/)، فيكفي التحقق من وجود "/Branches/" في المسار الحالي. */
+  function bacHomeHrefFromCurrentPage() {
+    return location.pathname.indexOf('/Branches/') !== -1 ? '../index.html' : 'index.html';
+  }
+
+  /* يحوّل مسار شعبة محفوظ بصيغة نسبية من الجذر (Branches/1_xxx.html)
+     إلى المسار الصحيح بالنسبة للصفحة الحالية، سواء كانت في الجذر أو
+     داخل مجلد Branches/ نفسه (فلا تتكرر "Branches/" في المسار). */
+  function bacResolveBranchUrl(savedUrl) {
+    var insideBranches = location.pathname.indexOf('/Branches/') !== -1;
+    return insideBranches ? savedUrl.replace(/^Branches\//, '') : savedUrl;
+  }
+
+  /* ── نافذة "هل تريد حفظ شعبتك؟" — تُنشأ ديناميكيًا مرة واحدة فقط،
+     بنفس أسلوب باقي عناصر الموقع المُنشأة ديناميكيًا (التوست، مكبّر
+     الصور، مؤقت الدراسة...) ── */
+  var bacBranchModalOverlay = null;
+  function bacEnsureBranchModal() {
+    if (bacBranchModalOverlay) return bacBranchModalOverlay;
+    bacBranchModalOverlay = document.createElement('div');
+    bacBranchModalOverlay.className = 'bac-branch-modal-overlay';
+    bacBranchModalOverlay.innerHTML =
+      '<div class="bac-branch-modal">' +
+        '<div class="bac-branch-modal-icon">💾</div>' +
+        '<h3>هل تريد حفظ شعبتك؟</h3>' +
+        '<p>لن تضطر إلى اختيار شعبتك مرة أخرى عند زيارة الموقع.</p>' +
+        '<div class="bac-branch-modal-actions">' +
+          '<button type="button" class="bac-branch-modal-btn bac-branch-modal-save" id="bacBranchSaveBtn">حفظ</button>' +
+          '<button type="button" class="bac-branch-modal-btn bac-branch-modal-later" id="bacBranchLaterBtn">ليس الآن</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(bacBranchModalOverlay);
+    return bacBranchModalOverlay;
+  }
+  function bacOpenBranchModal(onChoice) {
+    var overlay = bacEnsureBranchModal();
+    overlay.classList.add('open');
+    var saveBtn = document.getElementById('bacBranchSaveBtn');
+    var laterBtn = document.getElementById('bacBranchLaterBtn');
+
+    function close(choice) {
+      overlay.classList.remove('open');
+      saveBtn.removeEventListener('click', onSave);
+      laterBtn.removeEventListener('click', onLater);
+      overlay.removeEventListener('click', onOverlayClick);
+      onChoice(choice);
+    }
+    function onSave() { close(true); }
+    function onLater() { close(false); }
+    function onOverlayClick(e) { if (e.target === overlay) close(false); }
+
+    saveBtn.addEventListener('click', onSave);
+    laterBtn.addEventListener('click', onLater);
+    overlay.addEventListener('click', onOverlayClick);
+  }
+
+  /* ── بطاقات اختيار الشعبة في الصفحة الرئيسية (data-branch-key) ── */
+  function initBranchSelectionCards() {
+    var cards = qsa('.card[data-branch-key]');
+    if (!cards.length) return;
+
+    cards.forEach(function (card) {
+      on(card, 'click', function () {
+        var url = card.getAttribute('data-branch-url');
+        var name = card.getAttribute('data-branch-name');
+        var key = card.getAttribute('data-branch-key');
+        var saved = bacLoadSavedBranch();
+
+        /* المستخدم لديه شعبة محفوظة بالفعل (وافق سابقًا على الحفظ):
+           تُحدَّث الشعبة المحفوظة تلقائيًا دون إعادة عرض السؤال أبدًا. */
+        if (saved) {
+          bacSaveBranch({ key: key, name: name, url: url });
+          window.location.href = url;
+          return;
+        }
+        /* السؤال ظهر من قبل (سواء وافق أو رفض) — لا يُعاد عرضه إطلاقًا. */
+        if (bacWasBranchPromptShown()) {
+          window.location.href = url;
+          return;
+        }
+
+        bacOpenBranchModal(function (wantsSave) {
+          bacMarkBranchPromptShown();
+          if (wantsSave) bacSaveBranch({ key: key, name: name, url: url });
+          window.location.href = url;
+        });
+      });
+    });
+  }
+
+  /* ── رابط "تغيير الشعبة" أسفل العدّاد التنازلي — يظهر فقط إن وُجدت
+     شعبة محفوظة، في أي صفحة تحتوي عنصر #bacCountdownBranchAction
+     (الصفحة الرئيسية وصفحات الشعب). عند الضغط عليه: تُحذف الشعبة
+     المحفوظة فورًا، وينتقل المستخدم إلى الصفحة الرئيسية ليختار شعبة
+     جديدة (والتي لن تُوجّهه تلقائيًا هذه المرة بما أنه لم تعد هناك
+     شعبة محفوظة). ابتعاده عن الأرقام (مسافة واضحة في CSS) مقصود حتى
+     لا يشتت الانتباه عن العدّاد نفسه. ── */
+  function initCountdownBranchAction() {
+    var mount = document.getElementById('bacCountdownBranchAction');
+    if (!mount) return;
+
+    var saved = bacLoadSavedBranch();
+    if (!saved) { mount.innerHTML = ''; return; }
+
+    mount.innerHTML = '<button type="button" class="bac-change-branch-link" id="bacChangeBranchLink">↺ تغيير الشعبة</button>';
+    on(document.getElementById('bacChangeBranchLink'), 'click', function () {
+      bacClearSavedBranch();
+      window.location.href = bacHomeHrefFromCurrentPage();
+    });
+  }
+
+  /* المسارات الخمسة لصفحات اختيار المادة داخل كل شعبة (Branches/1_*.html) —
+     هذه هي الصفحات التي يُستثنى فيها رابط "back" من إعادة التوجيه الذكية
+     أدناه، ويُعطى سلوكًا خاصًا به عبر initBranchPageChangeButton. */
+  var BRANCH_TOP_PAGE_RE = /\/Branches\/1_(science|math|technical|economy|info)\.html$/;
+
+  /* ── جعل كل روابط/أزرار "العودة إلى الصفحة الرئيسية" (class="back")
+     في كامل الموقع ذكية: تتوجّه لصفحة الشعبة المحفوظة بدل index.html
+     إن وُجدت شعبة محفوظة، دون أي تغيير على الرابط إن لم تكن هناك شعبة
+     محفوظة (يبقى يعيد المستخدم إلى index.html كما كان تمامًا).
+     ⚠️ استثناء مقصود: صفحات اختيار المادة الخمس نفسها (Branches/1_*.html)
+     لا تخضع لهذا التوجيه الذكي إطلاقًا — فيها يُستبدل نفس الزر بزر
+     "تغيير الشعبة" (انظر initBranchPageChangeButton أدناه) الذي يجب أن
+     يعيد المستخدم دائمًا إلى index.html فعليًا، وليس إلى نفس صفحة الشعبة
+     التي هو أصلاً بداخلها (كان هذا هو الخلل السابق). ── */
+  function initSmartBackLinks() {
+    if (BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
+
+    var saved = bacLoadSavedBranch();
+    if (!saved) return;
+
+    var target = bacResolveBranchUrl(saved.url);
+    qsa('a.back').forEach(function (link) {
+      var href = link.getAttribute('href') || '';
+      if (/(^|\/)index\.html$/.test(href)) {
+        link.setAttribute('href', target);
+      }
+    });
+  }
+
+  /* ── زر "تغيير الشعبة" في صفحات اختيار المادة الخمس تحديدًا
+     (Branches/1_science.html, 1_math.html, 1_technical.html,
+     1_economy.html, 1_info.html). يُعاد تسمية نفس رابط "back" الموجود
+     أصلاً في هذه الصفحات (class="back") إلى "🔄 تغيير الشعبة"، ويُحذف
+     اختيار الشعبة المحفوظ عند الضغط عليه قبل الانتقال، حتى لا يُعاد
+     توجيه المستخدم تلقائيًا لنفس الشعبة فور وصوله لصفحة index.html
+     (بسبب initBacCountdown/redirectToSavedBranchIfHome في أعلى هذا
+     الملف). لا يلمس أي صفحة أخرى في الموقع. ── */
+  function initBranchPageChangeButton() {
+    if (!BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
+
+    var link = document.querySelector('a.back');
+    if (!link) return;
+
+    link.textContent = '🔄 تغيير الشعبة';
+    link.setAttribute('href', '../index.html'); /* احتياطي إن تعذّر تشغيل JS لأي سبب */
+
+    on(link, 'click', function (e) {
+      e.preventDefault();
+      bacClearSavedBranch();
+      window.location.href = '../index.html';
+    });
+  }
+
+  /* ---------------------------------------------------------
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
@@ -1320,9 +1777,16 @@
     safeRun(initVisitedTopicsTracking, 'تمييز المواضيع التي تمت زيارتها');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
-    safeRun(initStudyTimer, 'مؤقت الدراسة');   /* ← هذا هو السطر الجديد فقط */
+    safeRun(ensureAddFilesNavLink, 'رابط إضافة ملفات');
+    safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
+    safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
     safeRun(initClickEffects, 'تأثير النقر');
+    safeRun(initBacCountdown, 'العدّاد التنازلي لبكالوريا 2027');
+    safeRun(initBranchSelectionCards, 'حفظ اختيار الشعبة');
+    safeRun(initCountdownBranchAction, 'رابط تغيير الشعبة أسفل العدّاد');
+    safeRun(initSmartBackLinks, 'أزرار العودة الذكية للشعبة المحفوظة');
+    safeRun(initBranchPageChangeButton, 'زر تغيير الشعبة في صفحات اختيار المادة');
   }
 
   if (document.readyState === 'loading') {

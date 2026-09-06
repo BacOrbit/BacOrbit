@@ -204,7 +204,9 @@ function buildSummaryItem(s){
     '</div>' +
     '<div class="admin-summary-meta">' +
       '<span class="admin-item-badge' + statusClass + '">' + statusLabel + '</span>' +
+      (s.branchLabel ? '<span class="admin-item-badge">🏫 ' + esc(s.branchLabel) + '</span>' : '') +
       (s.subject ? '<span class="admin-item-badge">' + esc(s.subject) + '</span>' : '') +
+      (s.category ? '<span class="admin-item-badge">' + esc(s.category) + '</span>' : '') +
       (s.level ? '<span class="admin-item-badge">' + esc(s.level) + '</span>' : '') +
     '</div>' +
     '<div class="admin-item-text">أُرسل بواسطة: ' + esc(s.submitterName || 'مستخدم') + '</div>' +

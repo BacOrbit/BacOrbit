@@ -18,6 +18,7 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="notifications.js"></script>
 
 <style>
 /* ══ إضافات خاصة بصفحة المنتدى فقط (لا تعدّل style.css المشترك) ══ */
@@ -412,7 +413,34 @@ const FB={
   base(data){ return Object.assign({},data,{uid:me.uid,name:me.name,reports:{},reportCount:0,
     removed:false,deleted:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); },
   createPost(d){ return this.db.collection('forumPosts').add(this.base(Object.assign({parentId:null},d))); },
-  createReply(pid,d){ return this.db.collection('forumPosts').add(this.base(Object.assign({parentId:pid},d))); },
+  createReply(pid,d){
+    return this.db.collection('forumPosts').add(this.base(Object.assign({parentId:pid},d))).then(ref=>{
+      /* إشعار صاحب الموضوع الأصلي بالرد الجديد (إن لم يكن هو نفسه من ردّ).
+         معرّف الإشعار ثابت (fr_<معرف الرد>) فلا يمكن أن يتكرر أبداً حتى
+         لو أُعيد تنفيذ هذا الكود لأي سبب. لا يُستخدم Cloud Function هنا
+         (خارج نطاق البنية الحالية للمشروع)، فهذا إنشاء من طرف العميل
+         (Client) نفسه، محمي بقواعد Firestore الجديدة (انظر firestore.rules). */
+      this.db.collection('forumPosts').doc(pid).get().then(parentSnap=>{
+        if(!parentSnap.exists) return;
+        const parent=parentSnap.data();
+        if(!parent.uid || parent.uid===me.uid) return; /* لا تُشعر نفسك */
+        this.db.collection('notifications').doc('fr_'+ref.id).set({
+          uid: parent.uid,
+          type: 'forum_reply',
+          title: '🔔 '+me.name+' رد على موضوعك في المنتدى',
+          body: (d.text ? d.text.slice(0,100) : 'أرفق مرفقاً'),
+          link: 'chat.html#post-'+pid,
+          fromUid: me.uid,
+          fromName: me.name,
+          postId: pid,
+          replyId: ref.id,
+          read: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(()=>{});
+      }).catch(()=>{});
+      return ref;
+    });
+  },
   async delete(id){
     const ref=this.db.collection('forumPosts').doc(id);
     await firebase.firestore().runTransaction(async tx=>{
@@ -559,6 +587,7 @@ function buildPost(p){
   const mine=p.uid===me.uid;
   const art=document.createElement('article');
   art.className='post'+(mine?' post-mine':'');
+  art.id='post-'+p.id;
   if(p.removed){ art.classList.add('removed-content');
     art.innerHTML='<div class="content-note">⚠️ تمت إزالة هذا المحتوى تلقائياً بعد تلقيه '+MAX_REPORTS+' بلاغات من أعضاء مختلفين، وتم إقصاء صاحبه.</div>';
     return art; }
@@ -735,6 +764,20 @@ async function boot(){
     $('#forumApp').style.display='block';
     initNotifToggle();
 
+    if(MODE==='firebase' && window.BacNotifications){
+      window.BacNotifications.init({ db: FB.db, me: me, firebase: firebase });
+    }
+    /* الانتقال مباشرة إلى مكان الرد عند فتح رابط إشعار المنتدى (#post-xxx) */
+    let hashScrolled=false;
+    function scrollToHashPost(){
+      if(hashScrolled) return;
+      const h=location.hash;
+      if(h && h.indexOf('#post-')===0){
+        const el=document.querySelector(h);
+        if(el){ hashScrolled=true; el.scrollIntoView({behavior:'smooth',block:'center'}); }
+      }
+    }
+
     /* مراقبة حالة الحساب لحظياً — إذا أصبح banned يُطرد فوراً */
     DB.listenUser(d=>{
       if(!d) return;
@@ -742,7 +785,7 @@ async function boot(){
       const was=me.banned; me.banned=!!d.banned;
       if(me.banned&&!was) showBanned();
     });
-    DB.listen(list=>{ postsData=list; renderForum(); checkNewReplyNotifications(list); });
+    DB.listen(list=>{ postsData=list; renderForum(); checkNewReplyNotifications(list); scrollToHashPost(); });
   }catch(e){
     console.error(e);
     $('#forumLoading').innerHTML='<div class="forum-error">تعذّر الدخول إلى المنتدى: '

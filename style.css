@@ -2317,3 +2317,181 @@ button.bac-side-download,
 @media (max-width: 480px) {
     .bac-timer-widget { width: min(88vw, 250px); }
 }
+/* ---------- 20. العدّاد التنازلي لبكالوريا 2027 + حفظ شعبة المستخدم ----------
+   يظهر عبر عنصر مشترك #bacFlipClock تديره initBacCountdown في script.js،
+   في الصفحة الرئيسية (صفحة اختيار الشعب) وفي صفحات كل شعبة على حدة
+   (Branches/1_*.html). القسم بأكمله يُفصل بصريًا عن بطاقات الصفحة بخط
+   متقطع ومسافة كبيرة أعلاه (border-top + margin-top)، ليبقى عنصرًا
+   ثانويًا واضحًا لكنه لا يشتت الطالب أثناء تصفّح الدروس والمواد. */
+
+.bac-countdown-section {
+    max-width: 720px;
+    margin: 90px auto 30px;
+    padding: 40px 20px 0;
+    border-top: 1px dashed var(--empty-border);
+    text-align: center;
+    transition: border-color 0.35s ease;
+}
+
+.bac-countdown-title {
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 24px;
+}
+
+.bac-countdown-finished {
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: bold;
+    padding: 32px 20px;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    border-radius: 18px;
+}
+
+.bac-flip-clock {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.bac-flip-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.bac-flip-digits {
+    display: flex;
+    gap: 4px;
+}
+
+.bac-flip-card {
+    position: relative;
+    width: 38px;
+    height: 54px;
+    perspective: 300px;
+    font-family: inherit;
+}
+
+.bac-flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.bac-flip-card-inner.bac-flip-rot {
+    transform: rotateX(180deg);
+}
+
+.bac-flip-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--accent);
+    font-size: 26px;
+    font-weight: bold;
+    direction: ltr;
+    backface-visibility: hidden;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.35s ease, background-color 0.35s ease, color 0.35s ease;
+}
+
+.bac-flip-face::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.28);
+    transform: translateY(-0.5px);
+}
+
+.bac-flip-face-back {
+    transform: rotateX(180deg);
+}
+
+.bac-flip-label {
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: bold;
+}
+
+/* رابط "تغيير الشعبة" أسفل الأرقام — مسافة واضحة نسبيًا حتى لا يُقرأ
+   كجزء من العدّاد نفسه، ويبقى تفصيلاً هادئًا وليس عنصرًا يجذب الانتباه. */
+.bac-countdown-branch-action {
+    margin-top: 34px;
+    min-height: 1px;
+}
+
+.bac-change-branch-link {
+    background: none;
+    border: none;
+    color: var(--footer-text);
+    font-size: 12.5px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+.bac-change-branch-link:hover {
+    color: var(--accent);
+    background: var(--accent-glow);
+}
+
+/* ══ نافذة "هل تريد حفظ شعبتك؟" ══ */
+.bac-branch-modal-overlay {
+    position: fixed; inset: 0; z-index: 6000; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.7); padding: 20px;
+}
+.bac-branch-modal-overlay.open { display: flex; }
+.bac-branch-modal {
+    max-width: 380px; width: 100%;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    animation: forumCardIn 0.3s ease both;
+}
+.bac-branch-modal-icon { font-size: 34px; margin-bottom: 10px; }
+.bac-branch-modal h3 { color: var(--accent); font-size: 18px; margin-bottom: 10px; }
+.bac-branch-modal p { color: var(--text-secondary); font-size: 13.5px; line-height: 1.8; margin-bottom: 22px; }
+.bac-branch-modal-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.bac-branch-modal-btn {
+    flex: 1; min-width: 120px;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    transition: transform 0.2s ease;
+}
+.bac-branch-modal-btn:hover { transform: translateY(-2px); }
+.bac-branch-modal-save { background: var(--accent); color: #000; }
+.bac-branch-modal-later { background: transparent; border: 1.5px solid var(--empty-border); color: var(--text-secondary); }
+
+@media (max-width: 480px) {
+    .bac-flip-card { width: 28px; height: 42px; }
+    .bac-flip-face { font-size: 18px; border-radius: 8px; }
+    .bac-flip-clock { gap: 9px; }
+    .bac-flip-digits { gap: 3px; }
+    .bac-countdown-title { font-size: 16.5px; }
+    .bac-countdown-section { margin: 60px auto 20px; padding-top: 30px; }
+}

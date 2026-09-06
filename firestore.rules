@@ -1,107 +1,86 @@
 rules_version = '2';
-
-/* ============================================================
-   BacOrbit — Firestore Security Rules
-   انسخ هذا الملف بالكامل والصقه في:
-   Firebase Console → Firestore Database → Rules → استبدل المحتوى → Publish
-   ============================================================ */
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /* أدمن فقط إن كان uid المستخدم موجودًا كوثيقة داخل admins/ */
+    function isSignedIn() { return request.auth != null; }
     function isAdmin() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function onlyChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /* ---------------------------------------------------------
-       admins — تُدار يدويًا فقط من Firebase Console (لا كتابة
-       من أي عميل إطلاقًا). كل حساب يمكنه قراءة وثيقته فقط للتحقق
-       من صلاحيته الخاصة.
-       --------------------------------------------------------- */
-    match /admins/{adminUid} {
-      allow read: if isSignedIn() && request.auth.uid == adminUid;
+    /* ── admins/{uid} ── مصدر الصلاحية الحقيقي. لا يُنشأ ولا يُعدَّل
+       إلا يدويًا من Firebase Console (انظر ADMIN_SETUP_README.md). */
+    match /admins/{uid} {
+      allow read: if isSignedIn();
       allow write: if false;
     }
 
-    /* ---------------------------------------------------------
-       users — كما هي مستخدمة في المنتدى حاليًا (هوية مجهولة).
-       يسمح لكل مستخدم بإنشاء/تعديل وثيقته الخاصة فقط (باستثناء
-       حقل banned)، وللأدمن بكل الصلاحيات.
-       --------------------------------------------------------- */
-    match /users/{userId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-
-      allow update: if isAdmin()
-        || (
-          isSignedIn() && request.auth.uid == userId
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned','bannedAt','bannedFor'])
-        )
-        /* السماح بتحديث banned فقط ضمن تدفق البلاغات الحالي في المنتدى
-           (transaction) — قيد مؤقت إلى حين إضافة Cloud Function مخصصة
-           للتحقق الكامل من شرط عدد البلاغات من جهة الخادم. */
-        || (
-          isSignedIn() && request.auth.uid != userId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['banned','bannedAt','bannedFor'])
-        );
-
-      allow delete: if isAdmin();
+    /* ── users/{uid} ── حساب كل تلميذ (مجهول الهوية). */
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isAdmin() || (isOwner(uid) && onlyChanged(['name']));
+      allow delete: if false;
     }
 
-    /* ---------------------------------------------------------
-       forumPosts — نفس منطق المنتدى الحالي: كل مستخدم يمكنه إنشاء
-       منشوره الخاص، حذف (وسم deleted) منشوره الخاص، أو تحديث حقول
-       البلاغ (reportCount/reports/removed) لمنشورات الآخرين. الحذف
-       النهائي الحقيقي من قاعدة البيانات للأدمن فقط.
-       --------------------------------------------------------- */
+    /* ── forumPosts/{postId} ── منشورات وردود المنتدى. */
     match /forumPosts/{postId} {
       allow read: if true;
-
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.deleted == false
-        && request.resource.data.removed == false;
-
-      allow update: if isAdmin()
-        || (
-          isSignedIn() && resource.data.uid == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted'])
-        )
-        || (
-          isSignedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount','reports','removed'])
-        );
-
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && (
+        (resource.data.uid == request.auth.uid && onlyChanged(['deleted'])) ||
+        onlyChanged(['reportCount', 'reports', 'removed']) ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
-    /* ---------------------------------------------------------
-       summaries — نظام مراجعة الملخصات الجديد. المستخدم يمكنه فقط
-       إنشاء ملخص بحالة pending مرتبط بحسابه، وقراءة ملخصاته الخاصة
-       أو أي ملخص معتمد (approved). القبول/الرفض/الحذف للأدمن فقط.
-       --------------------------------------------------------- */
-    match /summaries/{summaryId} {
-      allow read: if isAdmin()
-        || resource.data.status == 'approved'
-        || (isSignedIn() && resource.data.submitterUid == request.auth.uid);
-
-      allow create: if isSignedIn()
-        && request.resource.data.submitterUid == request.auth.uid
-        && request.resource.data.status == 'pending';
-
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+    /* ── summaries/{id} ── الملخصات والملفات المرسلة من submit-summary.js
+       و add-files.js على حد سواء (نفس المجموعة، نفس دورة المراجعة). */
+    match /summaries/{id} {
+      allow read: if isSignedIn() &&
+        (resource.data.status == 'approved' ||
+         resource.data.submitterUid == request.auth.uid ||
+         isAdmin());
+      allow create: if isSignedIn() &&
+        request.resource.data.submitterUid == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update: if isAdmin(); /* القبول/الرفض حصرًا من الإدارة */
+      allow delete: if isAdmin() ||
+        (isSignedIn() && resource.data.submitterUid == request.auth.uid && resource.data.status == 'pending');
     }
 
-    /* أي مجموعة أخرى غير معرّفة أعلاه: مرفوضة افتراضيًا */
-    match /{document=**} {
-      allow read, write: if false;
+    /* ── savedLessons/{id} ── ميزة "الدراسة لاحقًا". كل وثيقة تخص
+       مستخدمًا واحدًا فقط، ومعرّفها المتفق عليه هو uid + '__' + مسار
+       الصفحة (انظر study-later.js) — لا نسخ مكررة لنفس الدرس. */
+    match /savedLessons/{id} {
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() &&
+        resource.data.uid == request.auth.uid &&
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    /* ── notifications/{id} ── إشعارات "الدراسة لاحقًا" (يُنشئها
+       المستخدم لنفسه فقط) وإشعارات ردود المنتدى (ينشئها من ردّ
+       لمستخدم آخر هو صاحب الموضوع، وليس لنفسه). لا حذف من العميل. */
+    match /notifications/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() &&
+        resource.data.uid == request.auth.uid &&
+        onlyChanged(['read']);
+      allow create: if isSignedIn() && (
+        (request.resource.data.type == 'study_reminder' &&
+         request.resource.data.uid == request.auth.uid) ||
+        (request.resource.data.type == 'forum_reply' &&
+         request.resource.data.fromUid == request.auth.uid &&
+         request.resource.data.uid != request.auth.uid)
+      );
+      allow delete: if false;
     }
   }
 }
