@@ -13,6 +13,12 @@
    الحل الموحّد والآمن هو حقن وسوم الأيقونة هنا بمسار مطلق (absolute
    URL) لا يتأثر بعمق المجلد (يعمل من الجذر أو من داخل Branches/ بنفس
    الطريقة)، بدل تعديل عشرات الملفات يدويًا وتكرار احتمال الخطأ.
+
+   ⚠️ تعديل جديد (القسم 8ج-3 أدناه): رابط "الدراسة لاحقًا" في القائمة
+   المنسدلة ☰ — يُحقن ديناميكيًا بنفس أسلوب رابط "إضافة ملفات"
+   الموجود مسبقًا، بدل تعديل عشرات صفحات HTML يدويًا. يظهر بالترتيب:
+   المنتدى ← نصائح وتوجيهات ← حساب المعدل ← الدراسة لاحقًا ← الدعم ←
+   السياسة والخصوصية.
    ============================================================ */
 
 (function () {
@@ -1028,19 +1034,53 @@
   }
 
   /* ---------------------------------------------------------
+     8ج-1ب. رابط "الدراسة لاحقًا" داخل القائمة المنسدلة ☰
+     يُضاف ديناميكيًا بنفس أسلوب رابط "إضافة ملفات" أعلاه، في كل
+     صفحة تحتوي .nav-menu-panel، دون الحاجة لتعديل عشرات ملفات HTML.
+     الترتيب المطلوب: المنتدى ← نصائح وتوجيهات ← حساب المعدل ←
+     الدراسة لاحقًا ← الدعم ← السياسة والخصوصية — لذلك يُدرَج مباشرة
+     بعد رابط "حساب المعدل" إن وُجد، وإلا قبل رابط "الدعم" (فيسبوك)،
+     وإلا قبل رابط "السياسة والخصوصية"، وإلا في نهاية القائمة. */
+  function ensureStudyLaterNavLink() {
+    var panel = document.querySelector('.nav-menu-panel');
+    if (!panel) return;
+    if (panel.querySelector('a[href$="study-later.html"]')) return; // موجود مسبقًا
+
+    var link = document.createElement('a');
+    link.className = 'nav-menu-item';
+    link.setAttribute('role', 'menuitem');
+    link.href = siblingUrl('study-later.html');
+    link.innerHTML = '<span class="nav-menu-item-icon">🔖</span>الدراسة لاحقًا';
+
+    var calcLink = panel.querySelector('a[href$="calculator.html"]');
+    var supportLink = panel.querySelector('a[href*="facebook.com"]');
+    var privacyLink = panel.querySelector('a[href$="privacy.html"]');
+
+    if (calcLink) {
+      calcLink.parentNode.insertBefore(link, calcLink.nextSibling);
+    } else if (supportLink) {
+      panel.insertBefore(link, supportLink);
+    } else if (privacyLink) {
+      panel.insertBefore(link, privacyLink);
+    } else {
+      panel.appendChild(link);
+    }
+  }
+
+  /* ---------------------------------------------------------
      8ج-2. الإشعارات (🔔) + "الدراسة لاحقًا" — ميزات Firebase اختيارية
      تُحمَّل بكسل (lazy) فقط في الصفحات التي لا تُحمِّل Firebase أصلاً
      (لتفادي تهيئة firebase.initializeApp مرتين وكسر صفحات المنتدى/
-     لوحة الإدارة/رفع الملخص التي تُدير اتصالها الخاص بـ Firebase
-     بالفعل). تُستخدم نفس هوية Anonymous Auth المستخدمة في المنتدى
-     (نفس المتصفح ⇐ نفس UID) حتى ترتبط بيانات "الدراسة لاحقًا"
+     لوحة الإدارة/رفع الملخص/الدراسة لاحقًا التي تُدير اتصالها الخاص
+     بـ Firebase بالفعل). تُستخدم نفس هوية Anonymous Auth المستخدمة في
+     المنتدى (نفس المتصفح ⇐ نفس UID) حتى ترتبط بيانات "الدراسة لاحقًا"
      والإشعارات بنفس حساب المستخدم في كل الصفحات.
      --------------------------------------------------------- */
   function pageManagesOwnFirebase() {
     /* أي صفحة تُحمِّل SDK الخاص بـ Firestore بنفسها (chat.html،
-       admin.html، submit-summary.html، add-files.html) تُفترض أنها
-       تُهيّئ firebase.initializeApp بنفسها وتُدمج الإشعارات محليًا،
-       فلا نكرر التهيئة هنا لتفادي خطأ "App already exists". */
+       admin.html، submit-summary.html، add-files.html، study-later.html)
+       تُفترض أنها تُهيّئ firebase.initializeApp بنفسها وتُدمج الإشعارات
+       محليًا، فلا نكرر التهيئة هنا لتفادي خطأ "App already exists". */
     return !!document.querySelector('script[src*="firebase-firestore-compat"]');
   }
 
@@ -1516,11 +1556,18 @@
   function bacComputeCountdownParts() {
     var diff = BAC_COUNTDOWN_TARGET_MS - Date.now();
     if (diff <= 0) return null;
+    var totalSeconds = Math.floor(diff / 1000);
+    var months = Math.floor(totalSeconds / 2629800);
+    var days = Math.floor((totalSeconds % 2629800) / 86400);
+    var hours = Math.floor((totalSeconds % 86400) / 3600);
+    var mins = Math.floor((totalSeconds % 3600) / 60);
+    var secs = totalSeconds % 60;
     return {
-      days: bacCountdownPad(Math.floor(diff / 86400000), 3),
-      hours: bacCountdownPad(Math.floor((diff % 86400000) / 3600000), 2),
-      mins: bacCountdownPad(Math.floor((diff % 3600000) / 60000), 2),
-      secs: bacCountdownPad(Math.floor((diff % 60000) / 1000), 2)
+      months: bacCountdownPad(months, 2),
+      days: bacCountdownPad(days, 2),
+      hours: bacCountdownPad(hours, 2),
+      mins: bacCountdownPad(mins, 2),
+      secs: bacCountdownPad(secs, 2)
     };
   }
 
@@ -1538,6 +1585,10 @@
 
     var initialParts = bacComputeCountdownParts();
     if (!initialParts) { bacShowCountdownFinished(wrap); return; }
+
+    /* فرض اتجاه LTR للعداد فقط حتى تبقى الأرقام مرتبة طبيعيًا:
+       الأشهر يسارًا والثواني يمينًا، دون التأثر باتجاه الصفحة العربية. */
+    wrap.style.direction = 'ltr';
 
     var daysUnit = bacBuildFlipUnit(3, 'أيام');
     var hoursUnit = bacBuildFlipUnit(2, 'ساعات');
@@ -1722,9 +1773,7 @@
      محفوظة (يبقى يعيد المستخدم إلى index.html كما كان تمامًا).
      ⚠️ استثناء مقصود: صفحات اختيار المادة الخمس نفسها (Branches/1_*.html)
      لا تخضع لهذا التوجيه الذكي إطلاقًا — فيها يُستبدل نفس الزر بزر
-     "تغيير الشعبة" (انظر initBranchPageChangeButton أدناه) الذي يجب أن
-     يعيد المستخدم دائمًا إلى index.html فعليًا، وليس إلى نفس صفحة الشعبة
-     التي هو أصلاً بداخلها (كان هذا هو الخلل السابق). ── */
+     "تغيير الشعبة" (انظر initBranchPageChangeButton أدناه). ── */
   function initSmartBackLinks() {
     if (BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
 
@@ -1740,14 +1789,11 @@
     });
   }
 
-  /* ── زر "تغيير الشعبة" في صفحات اختيار المادة الخمس تحديدًا
-     (Branches/1_science.html, 1_math.html, 1_technical.html,
-     1_economy.html, 1_info.html). يُعاد تسمية نفس رابط "back" الموجود
-     أصلاً في هذه الصفحات (class="back") إلى "🔄 تغيير الشعبة"، ويُحذف
-     اختيار الشعبة المحفوظ عند الضغط عليه قبل الانتقال، حتى لا يُعاد
-     توجيه المستخدم تلقائيًا لنفس الشعبة فور وصوله لصفحة index.html
-     (بسبب initBacCountdown/redirectToSavedBranchIfHome في أعلى هذا
-     الملف). لا يلمس أي صفحة أخرى في الموقع. ── */
+  /* ── زر "تغيير الشعبة" في صفحات اختيار المادة الخمس تحديدًا. يُعاد
+     تسمية نفس رابط "back" الموجود أصلاً في هذه الصفحات (class="back")
+     إلى "🔄 تغيير الشعبة"، ويُحذف اختيار الشعبة المحفوظ عند الضغط عليه
+     قبل الانتقال، حتى لا يُعاد توجيه المستخدم تلقائيًا لنفس الشعبة فور
+     وصوله لصفحة index.html. لا يلمس أي صفحة أخرى في الموقع. ── */
   function initBranchPageChangeButton() {
     if (!BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
 
@@ -1755,7 +1801,7 @@
     if (!link) return;
 
     link.textContent = '🔄 تغيير الشعبة';
-    link.setAttribute('href', '../index.html'); /* احتياطي إن تعذّر تشغيل JS لأي سبب */
+    link.setAttribute('href', '../index.html');
 
     on(link, 'click', function (e) {
       e.preventDefault();
@@ -1778,6 +1824,7 @@
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
     safeRun(ensureAddFilesNavLink, 'رابط إضافة ملفات');
+    safeRun(ensureStudyLaterNavLink, 'رابط الدراسة لاحقًا');
     safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
     safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');

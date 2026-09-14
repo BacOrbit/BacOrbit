@@ -1,10 +1,14 @@
 /* ============================================================
    BacOrbit — notifications.js
-   أيقونة 🔔 الإشعارات: تُضاف ديناميكيًا بجانب زر الثيم في الشريط
-   العلوي على أي صفحة، وتستمع لحظيًا (onSnapshot) لمجموعة
-   Firestore "notifications" الخاصة بالمستخدم الحالي فقط (بحسب
-   Security Rules)، وتعرض عددًا للإشعارات غير المقروءة، وتسمح
-   بفتح كل إشعار (يُصبح مقروءًا) والانتقال مباشرة إلى رابطه إن وُجد.
+   أيقونة 🔔 الإشعارات: تُضاف ديناميكيًا داخل .nav-menu-wrap مباشرة
+   بجانب زر القائمة ☰ (وليس كعنصر شقيق منفصل لـ #topBar)، حتى تظهر
+   في نفس المكان تمامًا في كل صفحات الموقع بغض النظر عن اختلاف بنية
+   الشريط العلوي (وجود .top-bar-right-group من عدمه، أو اختلاف معرّف
+   زر الثيم بين الصفحات: themeToggle مقابل themeSwitch في chat.html).
+   تستمع لحظيًا (onSnapshot) لمجموعة Firestore "notifications" الخاصة
+   بالمستخدم الحالي فقط (بحسب Security Rules)، وتعرض عددًا للإشعارات
+   غير المقروءة، وتسمح بفتح كل إشعار (يُصبح مقروءًا) والانتقال مباشرة
+   إلى رابطه إن وُجد.
 
    يُستدعى عبر window.BacNotifications.init({db, me, firebase}).
    يعمل مع أي اتصال Firebase جاهز (سواء من firebase-shared.js أو من
@@ -64,8 +68,6 @@ function init(ctx) {
 
   ensureStyles();
 
-  var anchor = document.getElementById('themeToggle') || document.getElementById('themeSwitch');
-
   var btn = document.createElement('button');
   btn.type = 'button';
   btn.id = 'bacNotifBtn';
@@ -74,10 +76,25 @@ function init(ctx) {
   btn.title = 'الإشعارات';
   btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge">0</span>';
 
-  if (anchor && anchor.parentNode) {
-    anchor.parentNode.insertBefore(btn, anchor);
+  /* حاوية موحّدة لأزرار الشريط العلوي: تجمع ☰ و 🔔 و ⏱️ في صف واحد.
+     تبقى لوحة القائمة خارجها لأنها موضوعة absolute بالنسبة إلى .nav-menu-wrap. */
+  var navBtn = document.getElementById('navMenuBtn');
+  if (navBtn && navBtn.parentNode) {
+    var navActions = navBtn.parentNode.querySelector('.bac-nav-actions');
+    if (!navActions) {
+      navActions = document.createElement('div');
+      navActions.className = 'bac-nav-actions';
+      navBtn.parentNode.insertBefore(navActions, navBtn.parentNode.firstChild);
+      navActions.appendChild(navBtn);
+    }
+    navActions.appendChild(btn);
   } else {
-    topBar.appendChild(btn);
+    var anchor = document.getElementById('themeToggle') || document.getElementById('themeSwitch');
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(btn, anchor);
+    } else {
+      topBar.appendChild(btn);
+    }
   }
 
   var panel = document.createElement('div');

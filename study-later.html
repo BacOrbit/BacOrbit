@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الدراسة لاحقًا - BacOrbit</title>
+
+<meta name="description" content="كل الدروس وسلاسل التمارين ومواضيع البكالوريا التي حفظتها لمتابعتها لاحقًا، مع إمكانية العودة مباشرة إلى نفس المكان الذي توقفت عنده.">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="notifications.js"></script>
+
+<style>
+/* ══ إضافات خاصة بصفحة «الدراسة لاحقًا» فقط (لا تعدّل style.css المشترك) ══ */
+.sl-wrap{max-width:720px;margin:0 auto;padding:10px 20px 60px}
+
+.sl-empty{
+  text-align:center;color:var(--footer-text);padding:60px 20px;font-size:15px;line-height:1.9;
+}
+
+.sl-item{
+  background:var(--card-bg);border:1.5px solid var(--empty-border);border-radius:16px;
+  padding:16px 18px;margin-bottom:14px;transition:border-color .25s ease,box-shadow .25s ease;
+}
+.sl-item:hover{border-color:var(--accent);box-shadow:0 0 16px var(--accent-soft)}
+
+.sl-item-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sl-item-icon{
+  flex-shrink:0;width:38px;height:38px;border-radius:11px;background:var(--featured-tint);
+  border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.sl-item-info{flex:1;min-width:0}
+.sl-item-title{color:var(--text);font-weight:bold;font-size:15px;line-height:1.6}
+.sl-item-meta{color:var(--footer-text);font-size:12px;margin-top:4px}
+
+.sl-item-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sl-btn{
+  flex:1;min-width:120px;padding:9px 14px;border-radius:10px;font-weight:bold;font-size:13px;
+  cursor:pointer;font-family:inherit;border:1.5px solid var(--accent);background:transparent;
+  color:var(--accent);transition:background-color .2s ease;
+}
+.sl-btn:hover{background:var(--accent-glow)}
+.sl-btn.sl-continue{background:var(--accent);color:#000}
+.sl-btn.sl-danger{border-color:var(--danger);color:var(--danger)}
+.sl-btn.sl-danger:hover{background:var(--danger-bg)}
+
+.sl-loading{text-align:center;color:var(--footer-text);padding:40px 20px;font-size:14px}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="library.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📖</span>مكتبة الكتب</a>
+            <a href="guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+</div>
+
+<header class="site-header"><div class="logo">BacOrbit</div></header>
+
+<section class="hero">
+    <h1>🔖 الدراسة لاحقًا</h1>
+    <p>كل الدروس والمواضيع التي حفظتها للمتابعة — تابع من حيث توقفت</p>
+</section>
+
+<div class="sl-wrap">
+    <div id="slLoading" class="sl-loading">جارٍ التحميل…</div>
+    <div id="slList" style="display:none"></div>
+    <div id="slEmpty" class="sl-empty" style="display:none">
+        لا يوجد لديك أي محتوى محفوظ بعد.<br>
+        اضغط أيقونة 🔖 بجانب زر الوضع الداكن/الفاتح في أي صفحة درس أو موضوع بكالوريا لحفظه هنا.
+    </div>
+</div>
+
+<a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
+
+<footer>© 2026 BacOrbit</footer>
+
+<script>
+(function () {
+'use strict';
+
+var firebaseConfig = {
+  apiKey: "AIzaSyBgh1JW8IepmDe78jko33mnvaAU2af3-fw",
+  authDomain: "bacorbit-c5d67.firebaseapp.com",
+  databaseURL: "https://bacorbit-c5d67-default-rtdb.firebaseio.com",
+  projectId: "bacorbit-c5d67",
+  storageBucket: "bacorbit-c5d67.firebasestorage.app",
+  messagingSenderId: "1047289657770",
+  appId: "1:1047289657770:web:2d814fcde45978b17493d3",
+  measurementId: "G-4J629GND42"
+};
+
+var $ = function (s) { return document.querySelector(s); };
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function ts(c) { return (c && c.toMillis) ? c.toMillis() : (typeof c === 'number' ? c : Date.now()); }
+function fmtDate(ms) {
+  if (!ms) return '';
+  return new Date(ms).toLocaleDateString('ar', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+var db, me;
+
+async function genName() {
+  for (var i = 0; i < 8; i++) {
+    var n = 'التلميذ' + (1000 + Math.floor(Math.random() * 9000));
+    var q = await db.collection('users').where('name', '==', n).limit(1).get();
+    if (q.empty) return n;
+  }
+  return 'التلميذ' + String(Date.now()).slice(-6);
+}
+
+function renderItems(docs) {
+  var list = $('#slList');
+  var empty = $('#slEmpty');
+  $('#slLoading').style.display = 'none';
+
+  if (!docs.length) {
+    empty.style.display = 'block';
+    list.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  list.style.display = 'block';
+  list.innerHTML = '';
+
+  docs.sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); });
+
+  docs.forEach(function (d) {
+    var title = d.title || d.lessonTitle || 'محتوى محفوظ';
+    var isTopic = d.kind === 'topic';
+    var url = isTopic ? d.targetUrl : (d.pageUrl || d.lessonUrl);
+    var icon = isTopic ? '📄' : '📚';
+    var typeLabel = isTopic ? 'موضوع بكالوريا' : 'درس / سلسلة تمارين';
+
+    var item = document.createElement('div');
+    item.className = 'sl-item';
+    item.innerHTML =
+      '<div class="sl-item-head">' +
+        '<span class="sl-item-icon">' + icon + '</span>' +
+        '<div class="sl-item-info">' +
+          '<div class="sl-item-title">' + esc(title) + '</div>' +
+          '<div class="sl-item-meta">' + typeLabel + ' • ' + fmtDate(ts(d.createdAt)) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sl-item-actions">' +
+        (url ? '<button type="button" class="sl-btn sl-continue" data-open="' + esc(url) + '"' + (isTopic ? ' data-newtab="1"' : '') + '>متابعة ➜</button>' : '') +
+        '<button type="button" class="sl-btn sl-danger" data-remove="' + d.id + '">🗑 حذف</button>' +
+      '</div>';
+    list.appendChild(item);
+  });
+}
+
+function loadList() {
+  db.collection('savedLessons').where('uid', '==', me.uid)
+    .onSnapshot(function (qs) {
+      renderItems(qs.docs.map(function (doc) { return Object.assign({ id: doc.id }, doc.data()); }));
+    }, function (err) {
+      console.error('[BacOrbit][الدراسة لاحقًا] تعذّر تحميل القائمة', err);
+      $('#slLoading').textContent = 'تعذّر تحميل قائمتك، أعد تحميل الصفحة.';
+    });
+}
+
+document.addEventListener('click', function (e) {
+  var openBtn = e.target.closest('[data-open]');
+  if (openBtn) {
+    var url = openBtn.getAttribute('data-open');
+    if (openBtn.getAttribute('data-newtab') === '1') window.open(url, '_blank');
+    else window.location.href = url;
+    return;
+  }
+  var delBtn = e.target.closest('[data-remove]');
+  if (delBtn) {
+    if (!confirm('هل تريد حذف هذا العنصر من قائمة الدراسة لاحقًا؟')) return;
+    db.collection('savedLessons').doc(delBtn.dataset.remove).delete().catch(function () {});
+  }
+});
+
+async function boot() {
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  db = firebase.firestore();
+
+  try {
+    var user = auth.currentUser;
+    if (!user) user = (await auth.signInAnonymously()).user;
+
+    var uRef = db.collection('users').doc(user.uid);
+    var snap = await uRef.get();
+    if (!snap.exists) {
+      var name = await genName();
+      await uRef.set({ name: name, banned: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      snap = await uRef.get();
+    }
+    me = { uid: user.uid, name: snap.data().name };
+
+    if (window.BacNotifications) {
+      window.BacNotifications.init({ db: db, me: me, firebase: firebase });
+    }
+
+    loadList();
+  } catch (err) {
+    console.error(err);
+    $('#slLoading').textContent = 'تعذّر تجهيز حسابك، أعد تحميل الصفحة.';
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+})();
+</script>
+
+</body>
+</html>

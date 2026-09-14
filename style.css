@@ -1737,6 +1737,18 @@ button.bac-side-download,
     align-items: center;
 }
 
+.bac-nav-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.bac-nav-actions .bac-notif-btn,
+.bac-nav-actions .bac-timer-btn {
+    margin: 0;
+}
+
 .nav-menu-btn {
     position: relative;
     width: 44px;
