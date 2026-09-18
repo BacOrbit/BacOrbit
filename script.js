@@ -4,21 +4,21 @@
    الإشعارات، تنزيل المواضيع والدروس، وعارض تكبير/تنزيل الصور.
    مصمم ليعمل بأمان على أي صفحة حتى لو كانت بعض العناصر غير موجودة.
 
-   ⚠️ تعديل جديد (فقط القسم 0ب أدناه): إصلاح اختفاء أيقونة الموقع
-   (favicon) في الصفحات الداخلية. السبب الحقيقي بعد الفحص: صفحة
-   index.html فقط كانت تحتوي على <link rel="icon">، بينما كل بقية
-   صفحات الموقع (حتى الجذرية مثل calculator.html) لم تحتوِ على أي
-   وسم favicon إطلاقًا — وليس مسارًا نسبيًا خاطئًا. بما أن هذا الملف
-   (script.js) مُحمَّل فعليًا في كل صفحات الموقع بدون استثناء، فإن
-   الحل الموحّد والآمن هو حقن وسوم الأيقونة هنا بمسار مطلق (absolute
-   URL) لا يتأثر بعمق المجلد (يعمل من الجذر أو من داخل Branches/ بنفس
-   الطريقة)، بدل تعديل عشرات الملفات يدويًا وتكرار احتمال الخطأ.
+   ⚠️ القسم 0ب: إصلاح اختفاء أيقونة الموقع (favicon) في الصفحات
+   الداخلية عبر حقن وسم <link rel="icon"> بمسار مطلق إن لم يكن موجودًا.
 
-   ⚠️ تعديل جديد (القسم 8ج-3 أدناه): رابط "الدراسة لاحقًا" في القائمة
-   المنسدلة ☰ — يُحقن ديناميكيًا بنفس أسلوب رابط "إضافة ملفات"
-   الموجود مسبقًا، بدل تعديل عشرات صفحات HTML يدويًا. يظهر بالترتيب:
-   المنتدى ← نصائح وتوجيهات ← حساب المعدل ← الدراسة لاحقًا ← الدعم ←
-   السياسة والخصوصية.
+   ⚠️ القسم 8ج-1 (التعديل الحالي): توحيد قائمة التنقل ☰ في كل صفحات
+   الموقع دون استثناء. بدل الاعتماد على محتوى .nav-menu-panel المكتوب
+   يدويًا داخل كل ملف HTML (وهو ما كان يسبب اختلاف الترتيب وتكرار/
+   نقصان بعض الروابط بين الصفحات)، أصبح محتوى القائمة الآن يُبنى
+   بالكامل من مصدر واحد فقط هنا (BAC_NAV_ITEMS) عبر rebuildNavMenu()،
+   التي تُفرغ .nav-menu-panel وتعيد بناءه من الصفر في كل صفحة عند
+   التحميل، بنفس الترتيب والأسماء والأيقونات:
+   الصفحة الرئيسية، المنتدى، المكتبة، نصائح وتوجيهات، إضافة ملفات،
+   حساب المعدل، الدعم، السياسة والخصوصية. هذا لا يحذف أي صفحة أو
+   ميزة من الموقع (مثل play.html "المكتسبات القبلية" التي تبقى تُفتح
+   من بطاقتها في الصفحة الرئيسية كما هي)، فقط يوحّد ما يظهر داخل
+   قائمة ☰ نفسها في كل الصفحات.
    ============================================================ */
 
 (function () {
@@ -26,13 +26,7 @@
 
   /* ---------------------------------------------------------
      0-أ. توجيه تلقائي فوري لأصحاب شعبة محفوظة عند دخول الصفحة الرئيسية
-     يعمل فقط إن كانت الصفحة الحالية هي index.html (أو مسار الجذر).
-     يُنفَّذ هنا في أعلى الملف، قبل أي شيء آخر — بما أن script.js مُحمَّل
-     بشكل متزامن (synchronous <script src>) داخل <head> في كل صفحة، فإن
-     تنفيذ هذا التحقق في هذه اللحظة بالذات يمنع أي وميض لمحتوى الصفحة
-     الرئيسية (بطاقات الشعب) قبل التوجيه الفعلي لصفحة الشعبة المحفوظة.
-     أي خطأ هنا (localStorage غير متاح، بيانات تالفة...) يعني ببساطة
-     الاستمرار في تحميل الصفحة الرئيسية بشكل طبيعي دون أي توجيه. */
+     --------------------------------------------------------- */
   (function redirectToSavedBranchIfHome() {
     try {
       var path = location.pathname;
@@ -59,19 +53,9 @@
 
   /* ---------------------------------------------------------
      0ب. ضمان ظهور أيقونة BacOrbit (favicon) في كل صفحة
-     يعمل على كل الصفحات (الجذرية وصفحات Branches/ على حد سواء)
-     لأن هذا الملف مُحمَّل في كل مكان. لا يلمس أي أيقونة موجودة
-     مسبقًا (مثل index.html) ولا يُنشئ أي تصميم جديد — فقط يستخدم
-     نفس ملفات favicon.png / icon-192.png الموجودة أصلاً في جذر
-     المشروع، بمسار مطلق ثابت لا ينكسر بغض النظر عن عمق الصفحة.
      --------------------------------------------------------- */
   var SITE_ROOT = 'https://bacorbit.github.io/BacOrbit/';
 
-  /* عنوان script.js نفسه كما حمّله المتصفح (يعمل بشكل صحيح من الجذر
-     أو من داخل Branches/ على حد سواء) — يُستخدم لتحميل الوحدات
-     الجديدة (firebase-shared.js / notifications.js / study-later.js)
-     من نفس المجلد الذي يوجد فيه script.js تحديدًا، بدل الاعتماد على
-     SITE_ROOT المطلق الذي قد يشير لنسخة الإنتاج أثناء التطوير المحلي. */
   var CURRENT_SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
   function siblingUrl(name) {
     if (CURRENT_SCRIPT_SRC) {
@@ -98,7 +82,7 @@
   }
 
   function ensureFavicon() {
-    if (document.querySelector('link[rel="icon"]')) return; // موجودة مسبقًا (index.html) — لا تكرار
+    if (document.querySelector('link[rel="icon"]')) return;
 
     var icon = document.createElement('link');
     icon.rel = 'icon';
@@ -116,8 +100,6 @@
 
   /* ---------------------------------------------------------
      1. الوضع الداكن / الفاتح (Theme)
-     نفس المفتاح المستخدم في chat.html (bacorbit_theme) لضمان
-     تزامن التفضيل عبر كامل الموقع.
      --------------------------------------------------------- */
   const THEME_KEY = 'bacorbit_theme';
 
@@ -127,14 +109,14 @@
       if (saved === 'light' || saved === 'dark') {
         document.documentElement.setAttribute('data-theme', saved);
       }
-    } catch (e) { /* localStorage قد يكون غير متاح (وضع خاص مثلاً) */ }
+    } catch (e) {}
   }
-  applyStoredTheme(); // ينفَّذ فورًا (قبل رسم الصفحة) لمنع وميض الثيم
-  safeRun(ensureFavicon, 'أيقونة الموقع (favicon)'); // ينفَّذ مبكرًا أيضًا لتقليل تأخر ظهور الأيقونة
+  applyStoredTheme();
+  safeRun(ensureFavicon, 'أيقونة الموقع (favicon)');
 
   function initThemeToggle() {
     const btn = document.getElementById('themeToggle');
-    if (!btn) return; // الصفحة لا تحتوي زر ثيم (مثل chat.html) — لا مشكلة
+    if (!btn) return;
     on(btn, 'click', function () {
       const root = document.documentElement;
       const isLight = root.getAttribute('data-theme') === 'light';
@@ -170,8 +152,7 @@
   }
 
   /* ---------------------------------------------------------
-     4. إشعارات (Toast) — عنصر يُولَّد ديناميكيًا بالكامل
-        (لا يحتاج أي تعديل في HTML)
+     4. إشعارات (Toast)
      --------------------------------------------------------- */
   let toastTimer = null;
 
@@ -213,7 +194,7 @@
   }
 
   /* ---------------------------------------------------------
-     5. تنزيل الملفات — أداة مشتركة تُستخدم في كل الأزرار
+     5. تنزيل الملفات
      --------------------------------------------------------- */
   function triggerFileDownload(url, fileName) {
     if (typeof fetch !== 'function') {
@@ -234,11 +215,10 @@
     });
   }
 
-  /* ---------- 5.1 تنزيل موضوع واحد (زر .topic-download-btn) ---------- */
   window.downloadTopic = function (event, filePath, fileName) {
     if (event) { event.preventDefault(); event.stopPropagation(); }
     const btn = event ? event.currentTarget : null;
-    if (btn && btn.dataset.busy === '1') return; // منع الضغط المتكرر
+    if (btn && btn.dataset.busy === '1') return;
 
     const textEl = btn ? btn.querySelector('span') : null;
     const originalText = textEl ? textEl.textContent : null;
@@ -273,7 +253,6 @@
     });
   };
 
-  /* ---------- 5.2 تنزيل مجلد دروس كامل (زر .download-all-btn) ---------- */
   window.downloadLessonFolder = function (button, folderName, fileNames, folderLabel) {
     if (!button || button.dataset.busy === '1') return;
     if (!Array.isArray(fileNames) || fileNames.length === 0) return;
@@ -307,7 +286,7 @@
           failed++;
         }
         updateLabel();
-        await new Promise(function (r) { setTimeout(r, 220); }); // تجنّب حجب المتصفح للتنزيلات المتتالية
+        await new Promise(function (r) { setTimeout(r, 220); });
       }
 
       button.classList.remove('loading');
@@ -338,10 +317,7 @@
   };
 
   /* ---------------------------------------------------------
-     6. عارض الصور — مكبّر مشترك واحد لكل صفحة + تنزيل جانبي لصور الدروس
-     يُنشئ المكبّر مرة واحدة في أعلى الصفحة (أول عنصر داخل body)،
-     وكل صور الدروس (بجميع المواد) تفتح داخل نفس المكبّر عند النقر عليها.
-     يعتمد على تنسيقات .bac-img-frame و.bac-image-viewer-* في style.css.
+     6. عارض الصور
      --------------------------------------------------------- */
   const DOWNLOAD_SVG =
     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
@@ -432,7 +408,7 @@
 
   function enhanceLessonImages() {
     qsa('.lesson > img').forEach(function (img) {
-      if (img.closest('.bac-img-frame')) return; // مُجهّزة مسبقًا
+      if (img.closest('.bac-img-frame')) return;
 
       const frame = document.createElement('div');
       frame.className = 'bac-img-frame';
@@ -476,16 +452,10 @@
     });
   }
 
-  /* تصدير محدود لإعادة تفعيل عارض/تنزيل الصور على صور دروس تُضاف
-     ديناميكيًا بعد التحميل الأول (مثل مبدّل الوحدات في I_math.html)،
-     دون تكرار أي منطق موجود. */
   window.bacEnhanceLessonImages = enhanceLessonImages;
 
   /* ---------------------------------------------------------
-     6ب. شريط التحكم بحجم صور الدروس (تكبير/تصغير فوري)
-     يُنشأ ديناميكياً فوق شبكة الدروس (.lessons) في أي صفحة تحتوي
-     عليها، ويتحكم بعرض الصور عبر متغير CSS واحد (--bac-lesson-zoom)
-     ضمن نطاق آمن (50%–100%) بحيث لا تتجاوز الصور حدود حاويتها أبداً.
+     6ب. شريط التحكم بحجم صور الدروس
      --------------------------------------------------------- */
   function initLessonZoomControl() {
     var lessonsEl = document.querySelector('.lessons');
@@ -519,12 +489,6 @@
 
   /* ---------------------------------------------------------
      6ج. تمييز المواضيع التي سبق للمستخدم الدخول إليها
-     يعمل على بطاقات المواضيع (.topic-card) فقط في كل صفحات
-     "المواضيع" (S_*.html) لجميع المواد، دون لمس أي بطاقة أخرى
-     (كبطاقات المواد أو "المكتسبات القبلية"). يُستخرج معرّف كل
-     موضوع من رابط الملف نفسه (بدون أي تعديل على onclick الحالي
-     لكل بطاقة)، ويُحفظ في localStorage بشكل مستقل لكل موضوع، بحيث
-     يبقى التمييز محفوظًا بعد إغلاق الموقع وإعادة فتحه.
      --------------------------------------------------------- */
   const VISITED_TOPICS_KEY = 'bacorbit_visited_topics';
 
@@ -538,12 +502,9 @@
 
   function saveVisitedTopics(map) {
     try { localStorage.setItem(VISITED_TOPICS_KEY, JSON.stringify(map)); }
-    catch (e) { /* التخزين المحلي قد يكون غير متاح — لا مشكلة، الميزة تتجاهل الحفظ بأمان */ }
+    catch (e) {}
   }
 
-  /* يستخرج معرّفًا فريدًا للموضوع من مسار الملف الموجود أصلاً داخل
-     onclick الخاص بالبطاقة (window.open('...')) دون أي حاجة لتعديل
-     تلك الأزرار أو تكرار المسار في مكان آخر. */
   function topicCardKey(card) {
     const openAttr = card.getAttribute('onclick') || '';
     const m = openAttr.match(/window\.open\(\s*['"]([^'"]+)['"]/);
@@ -551,10 +512,6 @@
     return location.pathname + '|' + m[1];
   }
 
-  /* شارة "✓" الحقيقية القابلة للنقر (بدل ::before الزخرفي فقط)، تسمح
-     للمستخدم بإزالة علامة الزيارة عن أي بطاقة يدويًا. النقر عليها لا
-     يفتح الموضوع (event.stopPropagation) بل يزيل العلامة فقط، فتعود
-     البطاقة إلى مظهرها الأصلي كباقي البطاقات غير المزارة. */
   function ensureVisitedBadge(card) {
     if (card.querySelector('.topic-visited-badge')) return;
     const badge = document.createElement('button');
@@ -588,8 +545,6 @@
     }
   }
 
-  /* يزيل علامة الزيارة عن البطاقة ويحذف تخزينها، فتعود البطاقة بلون
-     ومظهر مثل باقي البطاقات التي لم تُزر بعد. */
   function unmarkTopicVisited(card) {
     card.classList.remove('topic-visited');
     removeVisitedBadge(card);
@@ -615,9 +570,6 @@
     });
   }
 
-  /* الاستماع في مرحلة الالتقاط (capture) على مستوى المستند لضمان تسجيل
-     الزيارة سواء نُقر على جسم البطاقة أو على زر التنزيل بداخلها (والذي
-     يستدعي stopPropagation في downloadTopic)، دون تعديل أي عنصر HTML. */
   function initVisitedTopicsTracking() {
     if (!qs('.topic-card')) return;
     applyVisitedTopicsState();
@@ -629,7 +581,6 @@
 
   /* ---------------------------------------------------------
      7. توافقية مستقبلية: toggleContent احتياطي
-     (فقط إن لم تُعرّفه الصفحة نفسها محليًا، لا يُبطل أي كود موجود)
      --------------------------------------------------------- */
   function ensureToggleContentFallback() {
     if (typeof window.toggleContent === 'function') return;
@@ -642,16 +593,7 @@
 
   /* ---------------------------------------------------------
      8. الخلفية التفاعلية (شبكة جسيمات) + تأثير النقر
-     طبقتا Canvas منفصلتان تمامًا عن DOM الموقع، لا تلمسان أي عنصر
-     ولا تعترضان أي نقر أو تحديد نص (pointer-events: none دائمًا).
-     - تُقرأ الألوان من متغيرات CSS الحالية (--accent / --accent-soft)
-       فتتبدّل تلقائيًا مع تبديل الوضع الداكن/الفاتح.
-     - تحترم prefers-reduced-motion وتتوقف تمامًا عند تفعيله.
-     - تعطّل تفاعل الماوس (التنافر اللطيف) على الأجهزة اللمسية،
-       وتُبقي فقط تأثير النقر الخفيف.
-     - تتوقف عن الرسم عند إخفاء التبويب لتوفير الأداء والبطارية.
      --------------------------------------------------------- */
-
   function readAccentColors() {
     const styles = getComputedStyle(document.documentElement);
     const dot = (styles.getPropertyValue('--bg-particle-dot') || styles.getPropertyValue('--accent') || '#1aff66').trim();
@@ -663,9 +605,6 @@
     return document.documentElement.getAttribute('data-theme') === 'light';
   }
 
-  /* إعدادات بصرية مستقلة لكل وضع (شفافية النقاط/الخطوط وقوة تفاعل الماوس وتوهّج ناعم).
-     الوضع الفاتح أصبح أكثر وضوحًا وحيوية واحترافية (نقاط وخطوط أبرز مع توهج خفيف)
-     دون أن يزعج القراءة، بينما يبقى الوضع الداكن كما كان تمامًا دون أي تغيير. */
   function getVisualParams() {
     return isLightTheme()
       ? { dotAlpha: 0.72, lineAlpha: 0.38, mouseForce: 0.42, glow: 7 }
@@ -673,11 +612,11 @@
   }
 
   function initInteractiveBackground() {
-    if (document.getElementById('bacBgCanvas')) return; // مُهيأ مسبقًا
+    if (document.getElementById('bacBgCanvas')) return;
     if (typeof window.matchMedia !== 'function') return;
 
     const reduceMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reduceMotionMQ.matches) return; // احترام تفضيل تقليل الحركة فورًا
+    if (reduceMotionMQ.matches) return;
 
     const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
@@ -701,8 +640,6 @@
     function particleTarget() {
       const area = W * H;
       const light = isLightTheme();
-      /* كثافة أوضح وأكثر حيوية في الوضع الفاتح (تساوي أو تفوق كثافة الوضع الداكن)
-         مع الحفاظ على الأداء والراحة أثناء القراءة */
       const base = Math.round(area / (light ? 21000 : 24000));
       const max = hasFinePointer ? (light ? 95 : 85) : (light ? 55 : 50);
       return Math.max(14, Math.min(base, max));
@@ -715,7 +652,6 @@
         y: Math.random() * H,
         vx: (Math.random() - 0.5) * 0.16,
         vy: (Math.random() - 0.5) * 0.16,
-        /* نقاط أكبر قليلاً في الوضع الفاتح لتبرز بوضوح فوق الخلفية الفاتحة */
         r: light ? (Math.random() * 1.6 + 0.9) : (Math.random() * 1.3 + 0.6)
       };
     }
@@ -769,7 +705,6 @@
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = colors.dot;
         ctx.globalAlpha = visualParams.dotAlpha;
-        /* توهّج ناعم للنقاط في الوضع الفاتح فقط، لإضفاء حيوية واحترافية دون تشتيت */
         if (visualParams.glow) {
           ctx.shadowBlur = visualParams.glow;
           ctx.shadowColor = colors.dot;
@@ -829,13 +764,11 @@
       if (document.hidden) stop(); else start();
     });
 
-    // إعادة قراءة الألوان والإعدادات البصرية فور تبديل data-theme على <html>،
-    // بغض النظر عن أي زر أو صفحة (يعمل تلقائيًا في كل الصفحات دون إعادة تحميل)
     if (typeof MutationObserver === 'function') {
       const themeObserver = new MutationObserver(function () {
         colors = readAccentColors();
         visualParams = getVisualParams();
-        resize(); // لإعادة ضبط كثافة الجسيمات المناسبة للوضع الجديد
+        resize();
       });
       themeObserver.observe(document.documentElement, {
         attributes: true,
@@ -951,9 +884,7 @@
   }
 
   /* ---------------------------------------------------------
-     8ب. قائمة التنقل المنسدلة (Hamburger Nav Menu)
-     زر ☰ واحد يفتح لوحة تحتوي: المنتدى، حساب المعدل، الدعم،
-     السياسة والخصوصية. يعمل بأمان إن لم تحتوِ الصفحة على العناصر.
+     8ب. قائمة التنقل المنسدلة (Hamburger Nav Menu) — التفاعل (فتح/إغلاق)
      --------------------------------------------------------- */
   function initNavMenu() {
     const btn = document.getElementById('navMenuBtn');
@@ -1004,83 +935,69 @@
       navResizeTimer = setTimeout(closeMenu, 120);
     });
   }
+
   /* ---------------------------------------------------------
-     8ج-1. رابط "إضافة ملفات" داخل القائمة المنسدلة ☰
-     يُضاف ديناميكيًا في كل صفحة تحتوي على .nav-menu-panel (بدل تعديل
-     عشرات الملفات يدويًا)، بنفس نمط بقية روابط القائمة تمامًا، ولا
-     يُضاف مرتين إن وُجد مسبقًا. يعمل من الجذر ومن داخل Branches/ لأنه
-     يستخدم نفس المسار النسبي المحسوب من موقع script.js (siblingUrl). */
-  function ensureAddFilesNavLink() {
-    var panel = document.querySelector('.nav-menu-panel');
-    if (!panel) return;
-    if (panel.querySelector('a[href$="add-files.html"]')) return; // موجود مسبقًا
+     8ج-1. توحيد محتوى قائمة التنقل ☰ في كل صفحات الموقع
+     ------------------------------------------------------------
+     مصدر واحد فقط لكل روابط القائمة (BAC_NAV_ITEMS)، بنفس الترتيب
+     والأسماء والأيقونات في كل صفحة:
+       1) الصفحة الرئيسية   2) المنتدى   3) المكتبة
+       4) نصائح و توجيهات   5) المكتسبات القبلية   6) إضافة ملفات
+       7) حساب المعدل       8) الدعم   9) السياسة والخصوصية
+     rebuildNavMenu() تُفرّغ .nav-menu-panel الموجودة أصلاً في HTML كل
+     صفحة (بغض النظر عن محتواها القديم المختلف من صفحة لأخرى) وتُعيد
+     بناءها بالكامل من هذا المصدر الموحّد، بدل تعديل عشرات ملفات HTML
+     يدويًا وتكرار احتمال اختلاف الترتيب أو نسيان رابط أو تكرار آخر.
+     المسارات نسبية وتُحل تلقائيًا حسب عمق الصفحة (الجذر أو داخل
+     Branches/)، بنفس منطق "/Branches/" المستخدم أصلاً في بقية الملف.
+     لا يُحذف أي شيء آخر من الصفحة ولا أي صفحة من الموقع — رابط
+     "المكتسبات القبلية" (play.html) يبقى متاحًا كبطاقة مميزة في
+     الصفحة الرئيسية كما هو، فقط محتوى قائمة ☰ تحديدًا يُوحَّد الآن. */
+  var BAC_NAV_ITEMS = [
+    { label: 'الصفحة الرئيسية',   icon: '🏠', path: 'index.html' },
+    { label: 'المنتدى',           icon: '📚', path: 'chat.html' },
+    { label: 'المكتبة',           icon: '📖', path: 'library.html' },
+    { label: 'نصائح و توجيهات',   icon: '💡', path: 'guidance.html' },
+    { label: 'المكتسبات القبلية', icon: '🧠', path: 'play.html' },
+    { label: 'إضافة ملفات',       icon: '📤', path: 'add-files.html' },
+    { label: 'حساب المعدل',       icon: '🧮', path: 'calculator.html' },
+    { label: 'الدعم',             icon: '🎧', href: 'https://www.facebook.com/profile.php?id=61593220613025', external: true },
+    { label: 'السياسة والخصوصية', icon: '🛡️', path: 'privacy.html' }
+  ];
 
-    var link = document.createElement('a');
-    link.className = 'nav-menu-item';
-    link.setAttribute('role', 'menuitem');
-    link.href = siblingUrl('add-files.html');
-    link.innerHTML = '<span class="nav-menu-item-icon">📤</span>إضافة ملفات';
-
-    /* يُوضع بعد رابط "مكتبة الكتب" إن وُجد (أقرب سياقًا)، وإلا في
-       نهاية القائمة، حفاظًا على ترتيب منطقي دون تكرار أي منطق آخر. */
-    var libLink = panel.querySelector('a[href$="library.html"]');
-    if (libLink && libLink.nextSibling) {
-      panel.insertBefore(link, libLink.nextSibling);
-    } else if (libLink) {
-      panel.appendChild(link);
-    } else {
-      panel.appendChild(link);
-    }
+  function bacNavPathPrefix() {
+    return location.pathname.indexOf('/Branches/') !== -1 ? '../' : '';
   }
 
-  /* ---------------------------------------------------------
-     8ج-1ب. رابط "الدراسة لاحقًا" داخل القائمة المنسدلة ☰
-     يُضاف ديناميكيًا بنفس أسلوب رابط "إضافة ملفات" أعلاه، في كل
-     صفحة تحتوي .nav-menu-panel، دون الحاجة لتعديل عشرات ملفات HTML.
-     الترتيب المطلوب: المنتدى ← نصائح وتوجيهات ← حساب المعدل ←
-     الدراسة لاحقًا ← الدعم ← السياسة والخصوصية — لذلك يُدرَج مباشرة
-     بعد رابط "حساب المعدل" إن وُجد، وإلا قبل رابط "الدعم" (فيسبوك)،
-     وإلا قبل رابط "السياسة والخصوصية"، وإلا في نهاية القائمة. */
-  function ensureStudyLaterNavLink() {
+  function rebuildNavMenu() {
     var panel = document.querySelector('.nav-menu-panel');
-    if (!panel) return;
-    if (panel.querySelector('a[href$="study-later.html"]')) return; // موجود مسبقًا
+    if (!panel) return; // الصفحة لا تحتوي قائمة ☰ أصلًا — لا شيء لفعله
 
-    var link = document.createElement('a');
-    link.className = 'nav-menu-item';
-    link.setAttribute('role', 'menuitem');
-    link.href = siblingUrl('study-later.html');
-    link.innerHTML = '<span class="nav-menu-item-icon">🔖</span>الدراسة لاحقًا';
+    var prefix = bacNavPathPrefix();
+    panel.innerHTML = '';
 
-    var calcLink = panel.querySelector('a[href$="calculator.html"]');
-    var supportLink = panel.querySelector('a[href*="facebook.com"]');
-    var privacyLink = panel.querySelector('a[href$="privacy.html"]');
+    BAC_NAV_ITEMS.forEach(function (item) {
+      var link = document.createElement('a');
+      link.className = 'nav-menu-item';
+      link.setAttribute('role', 'menuitem');
 
-    if (calcLink) {
-      calcLink.parentNode.insertBefore(link, calcLink.nextSibling);
-    } else if (supportLink) {
-      panel.insertBefore(link, supportLink);
-    } else if (privacyLink) {
-      panel.insertBefore(link, privacyLink);
-    } else {
+      if (item.external) {
+        link.href = item.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      } else {
+        link.href = prefix + item.path;
+      }
+
+      link.innerHTML = '<span class="nav-menu-item-icon">' + item.icon + '</span>' + item.label;
       panel.appendChild(link);
-    }
+    });
   }
 
   /* ---------------------------------------------------------
      8ج-2. الإشعارات (🔔) + "الدراسة لاحقًا" — ميزات Firebase اختيارية
-     تُحمَّل بكسل (lazy) فقط في الصفحات التي لا تُحمِّل Firebase أصلاً
-     (لتفادي تهيئة firebase.initializeApp مرتين وكسر صفحات المنتدى/
-     لوحة الإدارة/رفع الملخص/الدراسة لاحقًا التي تُدير اتصالها الخاص
-     بـ Firebase بالفعل). تُستخدم نفس هوية Anonymous Auth المستخدمة في
-     المنتدى (نفس المتصفح ⇐ نفس UID) حتى ترتبط بيانات "الدراسة لاحقًا"
-     والإشعارات بنفس حساب المستخدم في كل الصفحات.
      --------------------------------------------------------- */
   function pageManagesOwnFirebase() {
-    /* أي صفحة تُحمِّل SDK الخاص بـ Firestore بنفسها (chat.html،
-       admin.html، submit-summary.html، add-files.html، study-later.html)
-       تُفترض أنها تُهيّئ firebase.initializeApp بنفسها وتُدمج الإشعارات
-       محليًا، فلا نكرر التهيئة هنا لتفادي خطأ "App already exists". */
     return !!document.querySelector('script[src*="firebase-firestore-compat"]');
   }
 
@@ -1096,7 +1013,7 @@
       })
       .then(function () { return window.BacFirebase.ready(); })
       .then(function (ctx) {
-        if (ctx && ctx.me && ctx.me.banned) return; /* حساب مقصى — لا تفعيل */
+        if (ctx && ctx.me && ctx.me.banned) return;
         if (window.BacNotifications) window.BacNotifications.init(ctx);
         if (window.BacStudyLater) window.BacStudyLater.init(ctx);
       })
@@ -1106,10 +1023,7 @@
   }
 
   /* ---------------------------------------------------------
-     8ج. مؤقت الدراسة (Study Timer) — زر بجانب ☰ في الشريط
-     العلوي، ولوحة عائمة تبقى مستمرة عبر التنقل بين الصفحات
-     بالاعتماد على وقت مطلق (endAt) في localStorage، وليس على
-     عدّاد جافاسكريبت يتوقف عند إعادة تحميل الصفحة.
+     8ج. مؤقت الدراسة (Study Timer)
      --------------------------------------------------------- */
   const TIMER_KEY = 'bacorbit_timer_state_v1';
   const TIMER_MIN_SEC = 60;
@@ -1340,7 +1254,6 @@
     function toggleWidget() { state.hidden = !state.hidden; persist(); render(); }
     function hideWidget() { if (state.hidden) return; state.hidden = true; persist(); render(); }
 
-    /* ── تعديل الوقت مباشرة بالنقر على الرقم ── */
     function enterEditMode() {
       if (isEditing) return;
       isEditing = true;
@@ -1383,7 +1296,6 @@
       persist(); render();
     }
 
-    /* ── سحب اللافتة لتغيير موضعها ── */
     function dragStart(clientX, clientY) {
       dragging = true;
       const rect = widget.getBoundingClientRect();
@@ -1467,14 +1379,6 @@
  
   /* ---------------------------------------------------------
      8د. العدّاد التنازلي (Flip Clock) لبكالوريا 2027
-     يعمل في أي صفحة تحتوي عنصر #bacFlipClock (الصفحة الرئيسية وصفحات
-     اختيار المادة داخل كل شعبة Branches/1_*.html)، ولا يفعل شيئًا في
-     أي صفحة أخرى. الهدف: بداية يوم 7 يونيو 2027 بتوقيت الجزائر
-     (UTC+1 ثابت، الجزائر لا تستخدم توقيتًا صيفيًا)، أي 6 يونيو 2027
-     الساعة 23:00 بتوقيت UTC — الاعتماد على طابعي زمن UTC يضمن حسابًا
-     صحيحًا لكل الزوار بغض النظر عن المنطقة الزمنية لأجهزتهم. كل خانة
-     أرقام مبنية كبطاقة "Flip" حقيقية (تنقلب ثلاثي الأبعاد عند تغيّرها)
-     عبر CSS 3D transforms بسيطة، دون أي مكتبة خارجية.
      --------------------------------------------------------- */
   var BAC_COUNTDOWN_TARGET_MS = Date.UTC(2027, 5, 6, 23, 0, 0);
 
@@ -1525,9 +1429,6 @@
     return { el: unit, cards: cards };
   }
 
-  /* يضبط القيمة الابتدائية للبطاقات مباشرة دون أي حركة انقلاب (حتى لا
-     تنقلب كل الأرقام دفعة واحدة بمجرد تحميل الصفحة). الانقلاب الفعلي
-     يبدأ فقط مع أول تغيّر حقيقي في القيمة لاحقًا عبر bacUpdateFlipUnit. */
   function bacSetInitialFlip(unit, valueStr) {
     for (var i = 0; i < unit.cards.length; i++) {
       var card = unit.cards[i];
@@ -1544,8 +1445,6 @@
       var digit = valueStr[i] || '0';
       if (digit === card.current) continue;
       card.current = digit;
-      /* الوجه غير الظاهر حاليًا هو الذي يجب تحديثه بالقيمة الجديدة قبل
-         الانقلاب، حتى تنكشف القيمة الصحيحة فور اكتمال الحركة. */
       if (card.toggled) card.face1.textContent = digit;
       else card.face2.textContent = digit;
       card.toggled = !card.toggled;
@@ -1556,18 +1455,11 @@
   function bacComputeCountdownParts() {
     var diff = BAC_COUNTDOWN_TARGET_MS - Date.now();
     if (diff <= 0) return null;
-    var totalSeconds = Math.floor(diff / 1000);
-    var months = Math.floor(totalSeconds / 2629800);
-    var days = Math.floor((totalSeconds % 2629800) / 86400);
-    var hours = Math.floor((totalSeconds % 86400) / 3600);
-    var mins = Math.floor((totalSeconds % 3600) / 60);
-    var secs = totalSeconds % 60;
     return {
-      months: bacCountdownPad(months, 2),
-      days: bacCountdownPad(days, 2),
-      hours: bacCountdownPad(hours, 2),
-      mins: bacCountdownPad(mins, 2),
-      secs: bacCountdownPad(secs, 2)
+      days: bacCountdownPad(Math.floor(diff / 86400000), 3),
+      hours: bacCountdownPad(Math.floor((diff % 86400000) / 3600000), 2),
+      mins: bacCountdownPad(Math.floor((diff % 3600000) / 60000), 2),
+      secs: bacCountdownPad(Math.floor((diff % 60000) / 1000), 2)
     };
   }
 
@@ -1581,14 +1473,10 @@
 
   function initBacCountdown() {
     var wrap = document.getElementById('bacFlipClock');
-    if (!wrap) return; /* صفحة لا تحتوي العدّاد أصلًا — لا شيء لفعله */
+    if (!wrap) return;
 
     var initialParts = bacComputeCountdownParts();
     if (!initialParts) { bacShowCountdownFinished(wrap); return; }
-
-    /* فرض اتجاه LTR للعداد فقط حتى تبقى الأرقام مرتبة طبيعيًا:
-       الأشهر يسارًا والثواني يمينًا، دون التأثر باتجاه الصفحة العربية. */
-    wrap.style.direction = 'ltr';
 
     var daysUnit = bacBuildFlipUnit(3, 'أيام');
     var hoursUnit = bacBuildFlipUnit(2, 'ساعات');
@@ -1616,14 +1504,7 @@
   }
 
   /* ---------------------------------------------------------
-     8هـ. حفظ شعبة المستخدم: بطاقات اختيار الشعبة في الصفحة الرئيسية،
-     رابط "تغيير الشعبة" أسفل العدّاد (أي صفحة يظهر بها)، وجعل كل روابط
-     "العودة إلى الصفحة الرئيسية" (class="back") في كامل الموقع ذكية
-     بحيث تتوجّه لصفحة الشعبة المحفوظة بدل index.html متى وُجدت شعبة
-     محفوظة. كل ذلك يعتمد على مفتاح localStorage واحد فقط
-     (bacorbit_saved_branch) بالصيغة {key, name, url}، حيث url مسار
-     نسبي من جذر المشروع (مثال: "Branches/1_math.html") — هو نفس
-     المفتاح الذي يتحقق منه التوجيه التلقائي في أعلى هذا الملف.
+     8هـ. حفظ شعبة المستخدم
      --------------------------------------------------------- */
   var BAC_BRANCH_STORAGE_KEY = 'bacorbit_saved_branch';
   var BAC_BRANCH_PROMPT_KEY = 'bacorbit_branch_prompt_shown';
@@ -1649,24 +1530,15 @@
     try { return localStorage.getItem(BAC_BRANCH_PROMPT_KEY) === '1'; } catch (e) { return false; }
   }
 
-  /* مسار "العودة إلى الصفحة الرئيسية" الصحيح انطلاقًا من الصفحة
-     الحالية: بنية المشروع تحتوي مستوى فرعي واحدًا فقط لصفحات المواد
-     (Branches/)، فيكفي التحقق من وجود "/Branches/" في المسار الحالي. */
   function bacHomeHrefFromCurrentPage() {
     return location.pathname.indexOf('/Branches/') !== -1 ? '../index.html' : 'index.html';
   }
 
-  /* يحوّل مسار شعبة محفوظ بصيغة نسبية من الجذر (Branches/1_xxx.html)
-     إلى المسار الصحيح بالنسبة للصفحة الحالية، سواء كانت في الجذر أو
-     داخل مجلد Branches/ نفسه (فلا تتكرر "Branches/" في المسار). */
   function bacResolveBranchUrl(savedUrl) {
     var insideBranches = location.pathname.indexOf('/Branches/') !== -1;
     return insideBranches ? savedUrl.replace(/^Branches\//, '') : savedUrl;
   }
 
-  /* ── نافذة "هل تريد حفظ شعبتك؟" — تُنشأ ديناميكيًا مرة واحدة فقط،
-     بنفس أسلوب باقي عناصر الموقع المُنشأة ديناميكيًا (التوست، مكبّر
-     الصور، مؤقت الدراسة...) ── */
   var bacBranchModalOverlay = null;
   function bacEnsureBranchModal() {
     if (bacBranchModalOverlay) return bacBranchModalOverlay;
@@ -1707,7 +1579,6 @@
     overlay.addEventListener('click', onOverlayClick);
   }
 
-  /* ── بطاقات اختيار الشعبة في الصفحة الرئيسية (data-branch-key) ── */
   function initBranchSelectionCards() {
     var cards = qsa('.card[data-branch-key]');
     if (!cards.length) return;
@@ -1719,14 +1590,11 @@
         var key = card.getAttribute('data-branch-key');
         var saved = bacLoadSavedBranch();
 
-        /* المستخدم لديه شعبة محفوظة بالفعل (وافق سابقًا على الحفظ):
-           تُحدَّث الشعبة المحفوظة تلقائيًا دون إعادة عرض السؤال أبدًا. */
         if (saved) {
           bacSaveBranch({ key: key, name: name, url: url });
           window.location.href = url;
           return;
         }
-        /* السؤال ظهر من قبل (سواء وافق أو رفض) — لا يُعاد عرضه إطلاقًا. */
         if (bacWasBranchPromptShown()) {
           window.location.href = url;
           return;
@@ -1741,13 +1609,6 @@
     });
   }
 
-  /* ── رابط "تغيير الشعبة" أسفل العدّاد التنازلي — يظهر فقط إن وُجدت
-     شعبة محفوظة، في أي صفحة تحتوي عنصر #bacCountdownBranchAction
-     (الصفحة الرئيسية وصفحات الشعب). عند الضغط عليه: تُحذف الشعبة
-     المحفوظة فورًا، وينتقل المستخدم إلى الصفحة الرئيسية ليختار شعبة
-     جديدة (والتي لن تُوجّهه تلقائيًا هذه المرة بما أنه لم تعد هناك
-     شعبة محفوظة). ابتعاده عن الأرقام (مسافة واضحة في CSS) مقصود حتى
-     لا يشتت الانتباه عن العدّاد نفسه. ── */
   function initCountdownBranchAction() {
     var mount = document.getElementById('bacCountdownBranchAction');
     if (!mount) return;
@@ -1762,18 +1623,8 @@
     });
   }
 
-  /* المسارات الخمسة لصفحات اختيار المادة داخل كل شعبة (Branches/1_*.html) —
-     هذه هي الصفحات التي يُستثنى فيها رابط "back" من إعادة التوجيه الذكية
-     أدناه، ويُعطى سلوكًا خاصًا به عبر initBranchPageChangeButton. */
   var BRANCH_TOP_PAGE_RE = /\/Branches\/1_(science|math|technical|economy|info)\.html$/;
 
-  /* ── جعل كل روابط/أزرار "العودة إلى الصفحة الرئيسية" (class="back")
-     في كامل الموقع ذكية: تتوجّه لصفحة الشعبة المحفوظة بدل index.html
-     إن وُجدت شعبة محفوظة، دون أي تغيير على الرابط إن لم تكن هناك شعبة
-     محفوظة (يبقى يعيد المستخدم إلى index.html كما كان تمامًا).
-     ⚠️ استثناء مقصود: صفحات اختيار المادة الخمس نفسها (Branches/1_*.html)
-     لا تخضع لهذا التوجيه الذكي إطلاقًا — فيها يُستبدل نفس الزر بزر
-     "تغيير الشعبة" (انظر initBranchPageChangeButton أدناه). ── */
   function initSmartBackLinks() {
     if (BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
 
@@ -1789,11 +1640,6 @@
     });
   }
 
-  /* ── زر "تغيير الشعبة" في صفحات اختيار المادة الخمس تحديدًا. يُعاد
-     تسمية نفس رابط "back" الموجود أصلاً في هذه الصفحات (class="back")
-     إلى "🔄 تغيير الشعبة"، ويُحذف اختيار الشعبة المحفوظ عند الضغط عليه
-     قبل الانتقال، حتى لا يُعاد توجيه المستخدم تلقائيًا لنفس الشعبة فور
-     وصوله لصفحة index.html. لا يلمس أي صفحة أخرى في الموقع. ── */
   function initBranchPageChangeButton() {
     if (!BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
 
@@ -1814,7 +1660,7 @@
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
-    safeRun(ensureFavicon, 'أيقونة الموقع (favicon)'); /* استدعاء ثانٍ آمن (idempotent) بعد جاهزية DOM بالكامل */
+    safeRun(ensureFavicon, 'أيقونة الموقع (favicon)');
     safeRun(initThemeToggle, 'الوضع الداكن/الفاتح');
     safeRun(initTopBarScroll, 'الشريط العلوي');
     safeRun(ensureImageViewer, 'مكبر الصور الموحّد');
@@ -1823,8 +1669,7 @@
     safeRun(initVisitedTopicsTracking, 'تمييز المواضيع التي تمت زيارتها');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
-    safeRun(ensureAddFilesNavLink, 'رابط إضافة ملفات');
-    safeRun(ensureStudyLaterNavLink, 'رابط الدراسة لاحقًا');
+    safeRun(rebuildNavMenu, 'توحيد قائمة التنقل الجانبية');
     safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
     safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
