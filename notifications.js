@@ -119,10 +119,13 @@ function init(ctx) {
 
   ctx.db.collection('notifications')
     .where('uid', '==', ctx.me.uid)
-    .orderBy('createdAt', 'desc')
-    .limit(30)
+    .limit(100)
     .onSnapshot(function (qs) {
-      var items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      /* الترتيب على العميل: الجمع بين where(uid) وorderBy(createdAt) كان يتطلب
+         فهرسًا مركّبًا في Firestore، وبدونه يفشل الاستماع بصمت فلا يظهر أي إشعار. */
+      var items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); })
+        .slice(0, 30);
       var unread = items.filter(function (n) { return !n.read; }).length;
       badge.textContent = unread > 9 ? '9+' : String(unread);
       badge.classList.toggle('show', unread > 0);

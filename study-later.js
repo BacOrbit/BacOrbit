@@ -1,20 +1,24 @@
 /* ============================================================
-   BacOrbit — study-later.js
-   ميزة "الدراسة لاحقًا" — نسخة محدَّثة:
-   - زر واحد صغير 🔖 يُدرَج بجانب زر تغيير الوضع الليلي/الفاتح مباشرة
-     (وليس زرًا كبيرًا فوق الدروس كما كان سابقًا)، في أي صفحة تحتوي
-     .lessons (دروس/سلاسل تمارين) أو .subjects مع .topic-card (مواضيع
-     البكالوريا).
-   - في صفحات الدروس/التمارين: يُحفظ موضع التمرير الحالي، ومع صفحات
-     الوحدات (I_math / I_physic / I_science / I_Islamic / P_english)
-     تُحفظ الوحدة النشطة أيضًا حتى تُفتح تلقائيًا عند العودة.
-   - في صفحات مواضيع البكالوريا (S_*.html): يعرض الزر قائمة اختيار
-     لتحديد الموضوع (السنة) المطلوب حفظه تحديدًا، ويحفظ رابط ملف PDF
-     الخاص بذلك الموضوع فقط.
-   - التذكيرات تعتمد بالكامل على نظام notifications.js/🔔 الموجود
-     أصلًا (نفس مجموعة Firestore "notifications")، دون أي نظام مواز.
-   - متوافقة رجوعًا مع الوثائق القديمة (lessonTitle/lessonUrl) التي
-     أنشأتها النسخة السابقة من هذا الملف.
+   BacOrbit — study-later.js  (نسخة مُصلَحة)
+   ميزة «الدراسة لاحقًا» — زر 🔖 واحد بجانب زر الوضع الداكن/الفاتح
+   في: صفحات الدروس (L_*)، صفحات المواضيع (S_*)، سلاسل التمارين (I_*)
+   وفقرات الإنجليزية (P_english).
+
+   ما تغيّر مقارنةً بالنسخة السابقة (نفس النظام ونفس المجموعتين
+   savedLessons و notifications، دون أي نظام موازٍ):
+   1) معرّف الوثيقة أصبح خاصًا بالمحتوى نفسه لا بالصفحة فقط:
+        - درس: الصفحة (كما كان تمامًا، فلا تتأثر الوثائق القديمة).
+        - سلسلة تمارين: الصفحة + الوحدة النشطة.
+        - موضوع بكالوريا: الصفحة + ملف الـPDF المختار.
+      فلا يتكرر الحفظ لنفس المحتوى، ولا يُمسح موضوع عند حفظ آخر.
+   2) نافذة اختيار المواضيع تُظهر ✓ للمحفوظ منها، وتتيح الحفظ/الإزالة لكل موضوع.
+   3) حالة الزر تُحدَّث لحظيًا (onSnapshot) وتتبع تغيير الوحدة في صفحات التمارين.
+   4) استعلامات بلا فهارس مركّبة (uid فقط، والتصفية على العميل) — كان
+      الاستعلام السابق (uid + reminderCount<3) يحتاج فهرسًا مركّبًا
+      فيفشل بصمت ولا تظهر أي تذكيرات.
+   5) أخطاء الحفظ تظهر للمستخدم بسبب واضح (مثل permission-denied) بدل
+      رسالة عامة، وتُطبع تفاصيلها في الـ Console.
+   6) زر 🔖 يُدرج داخل مجموعة واحدة مع زر الثيم (لا يقف وسط الشريط).
 
    يُستدعى عبر window.BacStudyLater.init({db, me, firebase}).
    ============================================================ */
@@ -23,6 +27,8 @@
 
 var SESSION_KEY = 'bacorbit_study_reminded_session';
 var RESUME_PARAM = 'bacResume';
+var UNIT_PARAM = 'bacUnit';
+var MAX_REMINDERS = 3;
 
 /* ═══════════ أدوات عامة ═══════════ */
 function sessionShown() {
@@ -35,56 +41,69 @@ function markSessionShown(id) {
   try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(Array.from(s))); } catch (e) {}
 }
 function sanitize(s) {
-  return String(s).replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 140);
+  return String(s).replace(/[^a-zA-Z0-9_\-]/g, '_');
 }
-function lessonKeyFor() {
+function hash36(s) {
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+function pagePath() {
   return location.pathname.replace(/\/+$/, '') || '/';
 }
-function docIdFor(uid, key) {
-  return uid + '__' + sanitize(key);
+/* المعرّف القديم للصفحة (يبقى كما هو للدروس العادية حفاظًا على الوثائق المحفوظة سابقًا) */
+function pageDocId(uid) {
+  return uid + '__' + sanitize(pagePath()).slice(0, 140);
 }
-function esc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/* معرّف خاص بمحتوى فرعي داخل الصفحة (وحدة تمارين / موضوع بكالوريا) */
+function subDocId(uid, sub) {
+  var base = sanitize(pagePath()).slice(-60);
+  return uid + '__' + base + '__' + hash36(pagePath() + '|' + sub);
+}
+function cleanTitle(s) {
+  return String(s || '').replace(/^[^\u0600-\u06FFA-Za-z0-9]+/, '').trim();
+}
+function heroTitle() {
+  var h = document.querySelector('.hero h1');
+  return cleanTitle(h ? h.textContent : document.title);
 }
 function findThemeToggle() {
   return document.getElementById('themeToggle') || document.getElementById('themeSwitch');
 }
 
-/* يحدد سياق الصفحة الحالية: هل هي صفحة دروس/تمارين، أم صفحة مواضيع
-   بكالوريا (سنوات)، أم لا شيء من هذا (فلا يظهر الزر إطلاقًا). */
+/* سياق الصفحة: دروس/تمارين (lesson) أو مواضيع بكالوريا (topic) أو لا شيء */
 function getPageContext() {
   if (document.querySelector('.lessons')) return 'lesson';
   if (document.querySelector('.subjects') && document.querySelector('.topic-card')) return 'topic';
   return null;
 }
 
-/* حاوية أزرار الوحدات (إن وُجدت) في صفحات I_math/I_physic/I_science/
-   I_Islamic/P_english — جميعها تبني أزرارًا بـ data-key وتُضيف كلاس
-   "active" على الزر النشط، فهذا الكشف عام ولا يحتاج تخصيصًا لكل صفحة. */
+/* صفحات التمارين: حاوية أزرار الوحدات (iiUnits/imUnits/ipUnits/isUnits/peUnits) */
 function findUnitsContainer() {
   return document.querySelector('[id$="Units"]');
 }
-function currentActiveUnitKey() {
+function activeUnit() {
   var wrap = findUnitsContainer();
   if (!wrap) return null;
-  var activeBtn = wrap.querySelector('button.active');
-  return activeBtn ? activeBtn.dataset.key : null;
+  var b = wrap.querySelector('button.active');
+  return b ? { key: b.dataset.key, name: cleanTitle(b.textContent) } : null;
 }
 
-/* ═══════════ الأنماط (تُحقن مرة واحدة فقط) ═══════════ */
+/* ═══════════ الأنماط ═══════════ */
 function ensureStyles() {
   if (document.getElementById('bacStudyLaterStyles')) return;
   var style = document.createElement('style');
   style.id = 'bacStudyLaterStyles';
   style.textContent =
+    '.bac-sl-group{display:flex;align-items:center;gap:8px;flex-shrink:0}' +
     '.bac-sl-btn{position:relative;width:44px;height:44px;display:inline-flex;align-items:center;' +
     'justify-content:center;background:var(--track-bg,#0a0a0a);border:1px solid var(--border,#1aff66);' +
-    'border-radius:12px;cursor:pointer;padding:0;margin-inline-end:8px;flex-shrink:0;font-size:19px;' +
+    'border-radius:12px;cursor:pointer;padding:0;flex-shrink:0;font-size:19px;' +
     'line-height:1;color:var(--footer-text,#888);transition:box-shadow .25s ease,transform .15s ease,color .25s ease;font-family:inherit}' +
     '.bac-sl-btn:hover{box-shadow:0 0 14px var(--accent-glow,rgba(26,255,102,.4))}' +
     '.bac-sl-btn:active{transform:scale(.94)}' +
-    '.bac-sl-btn.saved{color:var(--accent,#1aff66);border-color:var(--accent,#1aff66)}' +
+    '.bac-sl-btn:disabled{opacity:.6;cursor:wait}' +
+    '.bac-sl-btn.saved{color:var(--accent,#1aff66);border-color:var(--accent,#1aff66);background:var(--featured-tint,#0f2b1a)}' +
     '.bac-sl-modal-overlay{position:fixed;inset:0;z-index:6100;display:none;align-items:center;' +
     'justify-content:center;background:rgba(0,0,0,.72);padding:20px}' +
     '.bac-sl-modal-overlay.open{display:flex}' +
@@ -94,29 +113,32 @@ function ensureStyles() {
     '.bac-sl-modal h3{color:var(--accent,#1aff66);font-size:16.5px;margin-bottom:6px;text-align:center}' +
     '.bac-sl-modal p{color:var(--text-secondary,#bdbdbd);font-size:12.5px;text-align:center;margin-bottom:16px;line-height:1.7}' +
     '.bac-sl-modal-list{display:flex;flex-direction:column;gap:8px}' +
-    '.bac-sl-modal-item{background:var(--bg,#0d0d0d);border:1.5px solid var(--empty-border,#333);' +
+    '.bac-sl-modal-item{display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+    'background:var(--bg,#0d0d0d);border:1.5px solid var(--empty-border,#333);' +
     'color:var(--text,#fff);border-radius:11px;padding:11px 14px;font-size:14px;font-weight:bold;' +
     'cursor:pointer;font-family:inherit;text-align:right;transition:border-color .2s ease,color .2s ease}' +
     '.bac-sl-modal-item:hover{border-color:var(--accent,#1aff66);color:var(--accent,#1aff66)}' +
+    '.bac-sl-modal-item.saved{border-color:var(--accent,#1aff66);color:var(--accent,#1aff66);background:var(--featured-tint,#0f2b1a)}' +
+    '.bac-sl-modal-item .bac-sl-mark{font-size:12px;font-weight:bold;white-space:nowrap}' +
     '.bac-sl-modal-close{display:block;margin:14px auto 0;background:none;border:none;' +
     'color:var(--footer-text,#888);font-size:12.5px;cursor:pointer;font-family:inherit}';
   document.head.appendChild(style);
 }
 
-/* ═══════════ توست بسيط (نفس أسلوب باقي الموقع) ═══════════ */
+/* ═══════════ توست ═══════════ */
 var toastTimer;
 function toast(msg) {
   var host = document.getElementById('bacSlToastHost');
   if (!host) {
     host = document.createElement('div');
     host.id = 'bacSlToastHost';
-    host.style.cssText = 'position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;z-index:5000;pointer-events:none';
-    var box = document.createElement('div');
-    box.id = 'bacSlToastBox';
-    box.style.cssText = 'background:var(--card-bg,#161616);border:2px solid var(--accent,#1aff66);color:var(--accent,#1aff66);' +
+    host.style.cssText = 'position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;z-index:7000;pointer-events:none;padding:0 14px';
+    var b = document.createElement('div');
+    b.id = 'bacSlToastBox';
+    b.style.cssText = 'background:var(--card-bg,#161616);border:2px solid var(--accent,#1aff66);color:var(--accent,#1aff66);' +
       'padding:11px 20px;border-radius:13px;font-weight:bold;font-size:13.5px;box-shadow:0 8px 26px rgba(0,0,0,.4);' +
-      'opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease;max-width:90%;text-align:center';
-    host.appendChild(box);
+      'opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease;max-width:92%;text-align:center;line-height:1.7';
+    host.appendChild(b);
     document.body.appendChild(host);
   }
   var box = document.getElementById('bacSlToastBox');
@@ -127,8 +149,26 @@ function toast(msg) {
   toastTimer = setTimeout(function () {
     box.style.opacity = '0';
     box.style.transform = 'translateY(14px)';
-  }, 2600);
+  }, 3200);
 }
+
+function explainError(err) {
+  console.error('[BacOrbit][الدراسة لاحقًا]', err);
+  var code = err && err.code;
+  if (code === 'permission-denied') {
+    return 'تعذّر الحفظ: قواعد Firestore لا تسمح بكتابة «savedLessons» — انشر القواعد المحدّثة';
+  }
+  if (code === 'unavailable' || code === 'failed-precondition') {
+    return 'تعذّر الاتصال بقاعدة البيانات، تحقّق من الإنترنت وحاول مجددًا';
+  }
+  return 'حدث خطأ أثناء الحفظ، حاول مجددًا';
+}
+
+/* ═══════════ الحالة المشتركة ═══════════ */
+var ctxRef = null;
+var saved = new Map();        /* id -> بيانات الوثيقة (تُحدَّث لحظيًا) */
+var firstSnapshotDone = false;
+var btnEl = null;
 
 /* ═══════════ نافذة اختيار الموضوع (لصفحات S_*.html) ═══════════ */
 var modalOverlay = null;
@@ -138,10 +178,10 @@ function ensureModal() {
   modalOverlay.className = 'bac-sl-modal-overlay';
   modalOverlay.innerHTML =
     '<div class="bac-sl-modal">' +
-      '<h3>🔖 أي موضوع تريد حفظه للدراسة لاحقًا؟</h3>' +
-      '<p>سيتم تذكيرك به لاحقًا وسينقلك مباشرة إلى نفس الملف.</p>' +
+      '<h3>🔖 اختر الموضوع للدراسة لاحقًا</h3>' +
+      '<p>اضغط على موضوع لحفظه أو إزالته. سيُذكّرك به الموقع وينقلك مباشرة إلى نفس الملف.</p>' +
       '<div class="bac-sl-modal-list"></div>' +
-      '<button type="button" class="bac-sl-modal-close">إلغاء</button>' +
+      '<button type="button" class="bac-sl-modal-close">إغلاق</button>' +
     '</div>';
   document.body.appendChild(modalOverlay);
   modalOverlay.querySelector('.bac-sl-modal-close').addEventListener('click', closeModal);
@@ -149,168 +189,209 @@ function ensureModal() {
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
   return modalOverlay;
 }
-function closeModal() {
-  if (modalOverlay) modalOverlay.classList.remove('open');
-}
+function closeModal() { if (modalOverlay) modalOverlay.classList.remove('open'); }
+
 function collectTopicOptions() {
   var out = [];
   document.querySelectorAll('.topic-card').forEach(function (card) {
     var h2 = card.querySelector('h2');
-    var onclickAttr = card.getAttribute('onclick') || '';
-    var m = onclickAttr.match(/window\.open\(\s*['"]([^'"]+)['"]/);
+    var m = (card.getAttribute('onclick') || '').match(/window\.open\(\s*['"]([^'"]+)['"]/);
     if (!m) return;
-    out.push({ title: h2 ? h2.textContent.trim() : 'موضوع', relUrl: m[1] });
+    var abs;
+    try { abs = new URL(m[1], location.href).toString(); } catch (e) { abs = m[1]; }
+    out.push({
+      label: h2 ? h2.textContent.trim() : 'موضوع',
+      name: h2 ? cleanTitle(h2.textContent) : 'موضوع',
+      relUrl: m[1],
+      absUrl: abs
+    });
   });
   return out;
 }
-function openTopicPicker(onPick) {
-  ensureStyles();
-  var overlay = ensureModal();
-  var list = overlay.querySelector('.bac-sl-modal-list');
+/* بعض الصفحات (مثل S_Arabic) تكرر نفس ملف الـPDF لبطاقتين: نجعل المعرّف
+   يعتمد على الملف + اسم البطاقة حتى لا تلتبس الدورتان. */
+function topicId(opt) { return subDocId(ctxRef.me.uid, 'topic|' + opt.relUrl + '|' + opt.name); }
+
+function fillTopicPicker() {
+  var list = modalOverlay.querySelector('.bac-sl-modal-list');
   list.innerHTML = '';
   var options = collectTopicOptions();
   if (!options.length) {
-    list.innerHTML = '<p style="color:var(--footer-text,#888);font-size:13px;text-align:center">لا توجد مواضيع متاحة هنا حاليًا.</p>';
+    list.innerHTML = '<p style="margin:0">لا توجد مواضيع متاحة هنا حاليًا.</p>';
+    return;
   }
   options.forEach(function (opt) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'bac-sl-modal-item';
-    btn.textContent = opt.title;
-    btn.addEventListener('click', function () {
-      closeModal();
-      onPick(opt);
+    var id = topicId(opt);
+    var isSaved = saved.has(id);
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'bac-sl-modal-item' + (isSaved ? ' saved' : '');
+    b.innerHTML = '<span></span><span class="bac-sl-mark">' + (isSaved ? '✓ محفوظ' : '🔖 حفظ') + '</span>';
+    b.firstChild.textContent = opt.label;
+    b.addEventListener('click', function () {
+      b.disabled = true;
+      toggleTopic(opt, id).then(fillTopicPicker).catch(function () { b.disabled = false; });
     });
-    list.appendChild(btn);
-  });
-  overlay.classList.add('open');
-}
-
-/* ═══════════ الحفظ/الإزالة ═══════════ */
-function saveLessonEntry(ctx, ref, btn) {
-  var title = (document.querySelector('.hero h1') && document.querySelector('.hero h1').textContent.trim())
-    || document.title;
-  var cleanUrl = location.href.split('#')[0].split('?')[0];
-  var resumeUrl = cleanUrl + '?' + RESUME_PARAM + '=1';
-  var unitKey = currentActiveUnitKey();
-
-  return ref.set({
-    uid: ctx.me.uid,
-    kind: 'lesson',
-    title: title,
-    pageUrl: resumeUrl,
-    scrollY: window.scrollY || 0,
-    unitKey: unitKey || null,
-    reminderCount: 0,
-    createdAt: ctx.firebase.firestore.FieldValue.serverTimestamp(),
-    lastRemindedAt: null
-  }).then(function () {
-    render(btn, true);
-    toast('تم حفظ هذا الدرس للدراسة لاحقًا 🔖');
+    list.appendChild(b);
   });
 }
-
-function saveTopicEntry(ctx, ref, btn, opt) {
-  var absoluteUrl;
-  try { absoluteUrl = new URL(opt.relUrl, location.href).toString(); }
-  catch (e) { absoluteUrl = opt.relUrl; }
-
-  return ref.set({
-    uid: ctx.me.uid,
-    kind: 'topic',
-    title: opt.title,
-    targetUrl: absoluteUrl,
-    reminderCount: 0,
-    createdAt: ctx.firebase.firestore.FieldValue.serverTimestamp(),
-    lastRemindedAt: null
-  }).then(function () {
-    render(btn, true);
-    toast('تم حفظ "' + opt.title + '" للدراسة لاحقًا 🔖');
-  });
+function openTopicPicker() {
+  ensureStyles();
+  ensureModal();
+  fillTopicPicker();
+  modalOverlay.classList.add('open');
 }
 
-function render(btn, saved) {
-  btn.classList.toggle('saved', saved);
-  btn.title = saved ? 'محفوظ للدراسة لاحقًا — اضغط للإزالة' : 'حفظ للدراسة لاحقًا';
+/* ═══════════ الحفظ / الإزالة ═══════════ */
+function docRef(id) { return ctxRef.db.collection('savedLessons').doc(id); }
+function serverTs() { return ctxRef.firebase.firestore.FieldValue.serverTimestamp(); }
+
+function toggleTopic(opt, id) {
+  var ref = docRef(id);
+  return ref.get().then(function (snap) {
+    if (snap.exists) {
+      return ref.delete().then(function () {
+        saved.delete(id); refreshButton();
+        toast('تمت إزالة «' + opt.name + '» من الدراسة لاحقًا');
+      });
+    }
+    var data = {
+      uid: ctxRef.me.uid, kind: 'topic',
+      title: heroTitle() + ' — ' + opt.name,
+      targetUrl: opt.absUrl, pagePath: pagePath(),
+      reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+    };
+    return ref.set(data).then(function () {
+      saved.set(id, data); refreshButton();
+      toast('تم حفظ «' + opt.name + '» للدراسة لاحقًا 🔖');
+    });
+  }).catch(function (err) { toast(explainError(err)); throw err; });
 }
 
-/* ═══════════ زر الهيدر الموحّد ═══════════ */
-function ensureHeaderButton(ctx) {
+/* المحتوى الحالي في صفحات الدروس/التمارين (بحسب الوحدة النشطة إن وُجدت) */
+function currentLessonTarget() {
+  var hasUnits = !!findUnitsContainer();
+  var unit = activeUnit();
+  if (hasUnits && !unit) return { needUnit: true };
+  var uid = ctxRef.me.uid;
+  return {
+    unit: unit,
+    id: unit ? subDocId(uid, 'unit|' + unit.key) : pageDocId(uid)
+  };
+}
+
+function toggleLesson() {
+  var t = currentLessonTarget();
+  if (t.needUnit) { toast('اختر الوحدة أولًا ثم اضغط 🔖 لحفظها'); return Promise.resolve(); }
+  var ref = docRef(t.id);
+  return ref.get().then(function (snap) {
+    if (snap.exists) {
+      return ref.delete().then(function () {
+        saved.delete(t.id); refreshButton();
+        toast('تمت إزالة هذا العنصر من الدراسة لاحقًا');
+      });
+    }
+    var clean = location.href.split('#')[0].split('?')[0];
+    var resume = clean + '?' + RESUME_PARAM + '=1' + (t.unit ? '&' + UNIT_PARAM + '=' + encodeURIComponent(t.unit.key) : '');
+    var data = {
+      uid: ctxRef.me.uid, kind: 'lesson',
+      title: heroTitle() + (t.unit ? ' — ' + t.unit.name : ''),
+      pageUrl: resume, pagePath: pagePath(),
+      scrollY: window.scrollY || 0,
+      unitKey: t.unit ? t.unit.key : null,
+      reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+    };
+    return ref.set(data).then(function () {
+      saved.set(t.id, data); refreshButton();
+      toast('تم الحفظ للدراسة لاحقًا 🔖');
+    });
+  }).catch(function (err) { toast(explainError(err)); });
+}
+
+/* ═══════════ حالة الزر ═══════════ */
+function refreshButton() {
+  if (!btnEl || !ctxRef) return;
   var context = getPageContext();
-  if (!context) return;
-  if (document.getElementById('bacSlBtn')) return;
+  var isSaved = false;
+  if (context === 'topic') {
+    var p = pagePath();
+    saved.forEach(function (d) { if (d.kind === 'topic' && d.pagePath === p) isSaved = true; });
+    btnEl.title = isSaved ? 'لديك مواضيع محفوظة هنا — اضغط للإدارة' : 'حفظ موضوع للدراسة لاحقًا';
+  } else {
+    var t = currentLessonTarget();
+    isSaved = !t.needUnit && saved.has(t.id);
+    btnEl.title = isSaved ? 'محفوظ للدراسة لاحقًا — اضغط للإزالة' : 'حفظ للدراسة لاحقًا';
+  }
+  btnEl.classList.toggle('saved', isSaved);
+  btnEl.setAttribute('aria-pressed', isSaved ? 'true' : 'false');
+}
 
+/* ═══════════ زر الهيدر ═══════════ */
+function ensureHeaderButton() {
+  var context = getPageContext();
+  if (!context || document.getElementById('bacSlBtn')) return;
   ensureStyles();
 
-  var toggle = findThemeToggle();
-  var btn = document.createElement('button');
-  btn.type = 'button';
-  btn.id = 'bacSlBtn';
-  btn.className = 'bac-sl-btn';
-  btn.setAttribute('aria-label', 'الدراسة لاحقًا');
-  btn.title = 'حفظ للدراسة لاحقًا';
-  btn.textContent = '🔖';
+  btnEl = document.createElement('button');
+  btnEl.type = 'button';
+  btnEl.id = 'bacSlBtn';
+  btnEl.className = 'bac-sl-btn';
+  btnEl.setAttribute('aria-label', 'الدراسة لاحقًا');
+  btnEl.textContent = '🔖';
 
-  if (toggle && toggle.parentNode) {
-    toggle.parentNode.insertBefore(btn, toggle);
+  var toggle = findThemeToggle();
+  var topBar = document.getElementById('topBar');
+  if (toggle && toggle.parentNode === topBar) {
+    /* مجموعة واحدة (🔖 + الثيم) حتى لا يتوسط الزر الشريط العلوي */
+    var group = document.createElement('div');
+    group.className = 'bac-sl-group';
+    topBar.insertBefore(group, toggle);
+    group.appendChild(btnEl);
+    group.appendChild(toggle);
+  } else if (toggle && toggle.parentNode) {
+    toggle.parentNode.insertBefore(btnEl, toggle);
+  } else if (topBar) {
+    topBar.appendChild(btnEl);
   } else {
-    var topBar = document.getElementById('topBar');
-    if (topBar) topBar.appendChild(btn); else document.body.appendChild(btn);
+    document.body.appendChild(btnEl);
   }
 
-  var key = lessonKeyFor();
-  var id = docIdFor(ctx.me.uid, key);
-  var ref = ctx.db.collection('savedLessons').doc(id);
-
-  ref.get().then(function (snap) { render(btn, snap.exists); }).catch(function () {});
-
-  btn.addEventListener('click', function () {
-    btn.disabled = true;
-    ref.get().then(function (snap) {
-      if (snap.exists) {
-        return ref.delete().then(function () {
-          render(btn, false);
-          toast('تمت إزالة هذا العنصر من الدراسة لاحقًا');
-        });
-      }
-      if (context === 'topic') {
-        btn.disabled = false;
-        openTopicPicker(function (opt) {
-          btn.disabled = true;
-          saveTopicEntry(ctx, ref, btn, opt).finally(function () { btn.disabled = false; });
-        });
-        return null;
-      }
-      return saveLessonEntry(ctx, ref, btn);
-    }).catch(function (err) {
-      console.error('[BacOrbit][الدراسة لاحقًا] تعذّر الحفظ/الإزالة', err);
-      toast('حدث خطأ، حاول مجددًا');
-    }).finally(function () { btn.disabled = false; });
+  btnEl.addEventListener('click', function () {
+    if (context === 'topic') { openTopicPicker(); return; }
+    btnEl.disabled = true;
+    toggleLesson().then(function () { btnEl.disabled = false; }, function () { btnEl.disabled = false; });
   });
+
+  /* صفحات التمارين: تحديث الحالة عند تغيير الوحدة النشطة أو الرجوع للوحدات */
+  var units = findUnitsContainer();
+  if (units && typeof MutationObserver === 'function') {
+    new MutationObserver(refreshButton).observe(units, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  }
+  refreshButton();
 }
 
-/* ═══════════ استعادة الموضع المحفوظ عند العودة عبر رابط تذكير ═══════════ */
-function applyResumeIfNeeded(ctx) {
+/* ═══════════ استعادة الموضع عند العودة عبر رابط تذكير ═══════════ */
+function applyResumeIfNeeded() {
   var params;
-  try { params = new URLSearchParams(location.search); } catch (e) { params = null; }
-  if (!params || params.get(RESUME_PARAM) !== '1') return;
+  try { params = new URLSearchParams(location.search); } catch (e) { return; }
+  if (params.get(RESUME_PARAM) !== '1') return;
 
-  var key = lessonKeyFor();
-  var id = docIdFor(ctx.me.uid, key);
-  ctx.db.collection('savedLessons').doc(id).get().then(function (snap) {
-    if (!snap.exists) return;
-    var d = snap.data();
-    var scrollY = typeof d.scrollY === 'number' ? d.scrollY : 0;
+  var unitKey = params.get(UNIT_PARAM);
+  var uid = ctxRef.me.uid;
+  var id = unitKey ? subDocId(uid, 'unit|' + unitKey) : pageDocId(uid);
 
-    function doScroll() {
-      window.scrollTo({ top: scrollY, behavior: 'smooth' });
-    }
+  docRef(id).get().then(function (snap) {
+    var d = snap.exists ? snap.data() : null;
+    var scrollY = d && typeof d.scrollY === 'number' ? d.scrollY : 0;
+    var key = unitKey || (d && d.unitKey);
 
-    if (d.unitKey) {
+    function doScroll() { window.scrollTo({ top: scrollY, behavior: 'smooth' }); }
+
+    if (key) {
       var tries = 0;
       var timer = setInterval(function () {
         tries++;
-        var unitBtn = document.querySelector('[data-key="' + d.unitKey.replace(/"/g, '') + '"]');
+        var unitBtn = document.querySelector('[id$="Units"] [data-key="' + String(key).replace(/"/g, '') + '"]');
         if (unitBtn) {
           clearInterval(timer);
           unitBtn.click();
@@ -320,57 +401,65 @@ function applyResumeIfNeeded(ctx) {
           doScroll();
         }
       }, 100);
-    } else {
+    } else if (scrollY) {
       setTimeout(doScroll, 500);
     }
-  }).catch(function () {});
+  }).catch(function (err) { console.error('[BacOrbit][الدراسة لاحقًا] تعذّر الاستعادة', err); });
 }
 
-/* ═══════════ التذكيرات (نفس منطق الإشعارات 🔔 الموجود مسبقًا) ═══════════ */
-function initReminders(ctx) {
-  ctx.db.collection('savedLessons')
-    .where('uid', '==', ctx.me.uid)
-    .where('reminderCount', '<', 3)
-    .limit(15)
-    .get()
-    .then(function (qs) {
-      var shown = sessionShown();
-      qs.forEach(function (doc) {
-        if (shown.has(doc.id)) return;
-        var d = doc.data();
-        markSessionShown(doc.id);
+/* ═══════════ التذكيرات (نفس مجموعة الإشعارات 🔔) ═══════════ */
+function runRemindersOnce(docs) {
+  var shown = sessionShown();
+  docs.forEach(function (doc) {
+    var d = doc.data();
+    var count = d.reminderCount || 0;
+    if (count >= MAX_REMINDERS || shown.has(doc.id)) return;
+    markSessionShown(doc.id);
 
-        var title = d.title || d.lessonTitle || 'المحتوى المحفوظ';
-        var link = d.kind === 'topic' ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || '');
+    var title = d.title || d.lessonTitle || 'المحتوى المحفوظ';
+    var link = d.kind === 'topic' ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || '');
 
-        var notifId = 'sl_' + doc.id + '_' + (d.reminderCount || 0);
-        ctx.db.collection('notifications').doc(notifId).set({
-          uid: ctx.me.uid,
-          type: 'study_reminder',
-          title: '📚 تذكير بالدراسة',
-          body: 'لم تنسَ متابعة: ' + title,
-          link: link,
-          read: false,
-          createdAt: ctx.firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(function () {});
+    ctxRef.db.collection('notifications').doc('sl_' + doc.id + '_' + count).set({
+      uid: ctxRef.me.uid,
+      type: 'study_reminder',
+      title: '📚 تذكير بالدراسة',
+      body: 'لم تنسَ متابعة: ' + title,
+      link: link,
+      read: false,
+      createdAt: serverTs()
+    }).then(function () {
+      return doc.ref.update({ reminderCount: count + 1, lastRemindedAt: serverTs() });
+    }).catch(function (err) {
+      console.error('[BacOrbit][تذكير الدراسة لاحقًا] تعذّر إنشاء الإشعار (تحقّق من قواعد notifications)', err);
+    });
+  });
+}
 
-        doc.ref.update({
-          reminderCount: (d.reminderCount || 0) + 1,
-          lastRemindedAt: ctx.firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(function () {});
-      });
-    })
-    .catch(function (err) {
-      console.error('[BacOrbit][تذكير الدراسة لاحقًا] تعذّر التحقق من العناصر المحفوظة', err);
+/* مستمع واحد لكل عناصر المستخدم: يُحدّث حالة الزر ويُنتج التذكيرات (بلا فهارس مركّبة) */
+function startListener() {
+  ctxRef.db.collection('savedLessons').where('uid', '==', ctxRef.me.uid)
+    .onSnapshot(function (qs) {
+      saved.clear();
+      qs.forEach(function (doc) { saved.set(doc.id, doc.data()); });
+      refreshButton();
+      if (!firstSnapshotDone) {
+        firstSnapshotDone = true;
+        runRemindersOnce(qs.docs ? qs.docs.slice() : []);
+      }
+    }, function (err) {
+      console.error('[BacOrbit][الدراسة لاحقًا] تعذّر تحميل العناصر المحفوظة (على الأغلب Security Rules)', err);
     });
 }
 
+var started = false;
 window.BacStudyLater = {
   init: function (ctx) {
-    if (!ctx || !ctx.db || !ctx.me) return;
-    ensureHeaderButton(ctx);
-    applyResumeIfNeeded(ctx);
-    initReminders(ctx);
+    if (!ctx || !ctx.db || !ctx.me || started) return;
+    started = true;
+    ctxRef = ctx;
+    ensureHeaderButton();
+    applyResumeIfNeeded();
+    startListener();
   }
 };
 })();

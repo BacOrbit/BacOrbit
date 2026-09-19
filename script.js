@@ -1006,9 +1006,10 @@
 
     loadScriptTag(siblingUrl('firebase-shared.js'))
       .then(function () {
+        /* كل ملف يُحمَّل باستقلال: فشل أحدهما لا يُعطّل الآخر */
         return Promise.all([
-          loadScriptTag(siblingUrl('notifications.js')),
-          loadScriptTag(siblingUrl('study-later.js'))
+          loadScriptTag(siblingUrl('notifications.js')).catch(function (e) { console.warn('[BacOrbit] تعذّر تحميل notifications.js', e); }),
+          loadScriptTag(siblingUrl('study-later.js')).catch(function (e) { console.warn('[BacOrbit] تعذّر تحميل study-later.js', e); })
         ]);
       })
       .then(function () { return window.BacFirebase.ready(); })
