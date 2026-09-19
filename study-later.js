@@ -20,6 +20,16 @@
       رسالة عامة، وتُطبع تفاصيلها في الـ Console.
    6) زر 🔖 يُدرج داخل مجموعة واحدة مع زر الثيم (لا يقف وسط الشريط).
 
+   ⚠️ إصلاح (هذه النسخة فقط): toggleLesson() وtoggleTopic() كانا
+   يستدعيان ref.get() قبل الحفظ ليعرفا هل الوثيقة موجودة أصلاً. لكن
+   قواعد Firestore التي تتحقق من resource.data.uid ترفض دائمًا قراءة
+   وثيقة غير موجودة بعد (resource تكون null فيفشل التقييم)، فكانت كل
+   عملية حفظ أولى تفشل بـ permission-denied قبل الوصول إلى ref.set()
+   أصلاً — بصرف النظر عن صحة قاعدة savedLessons نفسها. الحل: استخدام
+   الحالة saved (المُحدَّثة أصلاً لحظيًا عبر onSnapshot في startListener)
+   بدل ref.get()، فلا حاجة لأي قراءة إضافية إطلاقًا. لم يتغيّر أي شيء
+   آخر في الملف.
+
    يُستدعى عبر window.BacStudyLater.init({db, me, firebase}).
    ============================================================ */
 (function () {
@@ -246,25 +256,29 @@ function openTopicPicker() {
 function docRef(id) { return ctxRef.db.collection('savedLessons').doc(id); }
 function serverTs() { return ctxRef.firebase.firestore.FieldValue.serverTimestamp(); }
 
+/* ⚠️ إصلاح: لا يوجد أي ref.get() هنا بعد الآن — نعتمد فقط على saved
+   (المُحدَّثة لحظيًا عبر onSnapshot في startListener) لمعرفة هل العنصر
+   محفوظ مسبقًا. سابقًا كان استدعاء ref.get() على وثيقة غير موجودة بعد
+   يُرفض دائمًا من قواعد Firestore التي تتحقق من resource.data.uid
+   (لأن resource تكون null)، فتفشل كل محاولة حفظ أولى بـ
+   permission-denied قبل الوصول لـ ref.set() أصلاً. */
 function toggleTopic(opt, id) {
   var ref = docRef(id);
-  return ref.get().then(function (snap) {
-    if (snap.exists) {
-      return ref.delete().then(function () {
-        saved.delete(id); refreshButton();
-        toast('تمت إزالة «' + opt.name + '» من الدراسة لاحقًا');
-      });
-    }
-    var data = {
-      uid: ctxRef.me.uid, kind: 'topic',
-      title: heroTitle() + ' — ' + opt.name,
-      targetUrl: opt.absUrl, pagePath: pagePath(),
-      reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
-    };
-    return ref.set(data).then(function () {
-      saved.set(id, data); refreshButton();
-      toast('تم حفظ «' + opt.name + '» للدراسة لاحقًا 🔖');
-    });
+  if (saved.has(id)) {
+    return ref.delete().then(function () {
+      saved.delete(id); refreshButton();
+      toast('تمت إزالة «' + opt.name + '» من الدراسة لاحقًا');
+    }).catch(function (err) { toast(explainError(err)); throw err; });
+  }
+  var data = {
+    uid: ctxRef.me.uid, kind: 'topic',
+    title: heroTitle() + ' — ' + opt.name,
+    targetUrl: opt.absUrl, pagePath: pagePath(),
+    reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+  };
+  return ref.set(data).then(function () {
+    saved.set(id, data); refreshButton();
+    toast('تم حفظ «' + opt.name + '» للدراسة لاحقًا 🔖');
   }).catch(function (err) { toast(explainError(err)); throw err; });
 }
 
@@ -280,31 +294,32 @@ function currentLessonTarget() {
   };
 }
 
+/* ⚠️ نفس الإصلاح: بلا ref.get() — الاعتماد على saved.has() مباشرة. */
 function toggleLesson() {
   var t = currentLessonTarget();
   if (t.needUnit) { toast('اختر الوحدة أولًا ثم اضغط 🔖 لحفظها'); return Promise.resolve(); }
   var ref = docRef(t.id);
-  return ref.get().then(function (snap) {
-    if (snap.exists) {
-      return ref.delete().then(function () {
-        saved.delete(t.id); refreshButton();
-        toast('تمت إزالة هذا العنصر من الدراسة لاحقًا');
-      });
-    }
-    var clean = location.href.split('#')[0].split('?')[0];
-    var resume = clean + '?' + RESUME_PARAM + '=1' + (t.unit ? '&' + UNIT_PARAM + '=' + encodeURIComponent(t.unit.key) : '');
-    var data = {
-      uid: ctxRef.me.uid, kind: 'lesson',
-      title: heroTitle() + (t.unit ? ' — ' + t.unit.name : ''),
-      pageUrl: resume, pagePath: pagePath(),
-      scrollY: window.scrollY || 0,
-      unitKey: t.unit ? t.unit.key : null,
-      reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
-    };
-    return ref.set(data).then(function () {
-      saved.set(t.id, data); refreshButton();
-      toast('تم الحفظ للدراسة لاحقًا 🔖');
-    });
+
+  if (saved.has(t.id)) {
+    return ref.delete().then(function () {
+      saved.delete(t.id); refreshButton();
+      toast('تمت إزالة هذا العنصر من الدراسة لاحقًا');
+    }).catch(function (err) { toast(explainError(err)); });
+  }
+
+  var clean = location.href.split('#')[0].split('?')[0];
+  var resume = clean + '?' + RESUME_PARAM + '=1' + (t.unit ? '&' + UNIT_PARAM + '=' + encodeURIComponent(t.unit.key) : '');
+  var data = {
+    uid: ctxRef.me.uid, kind: 'lesson',
+    title: heroTitle() + (t.unit ? ' — ' + t.unit.name : ''),
+    pageUrl: resume, pagePath: pagePath(),
+    scrollY: window.scrollY || 0,
+    unitKey: t.unit ? t.unit.key : null,
+    reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+  };
+  return ref.set(data).then(function () {
+    saved.set(t.id, data); refreshButton();
+    toast('تم الحفظ للدراسة لاحقًا 🔖');
   }).catch(function (err) { toast(explainError(err)); });
 }
 
