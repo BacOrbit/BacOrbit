@@ -131,7 +131,13 @@ function ensureStyles() {
     '.bac-sl-modal-item.saved{border-color:var(--accent,#1aff66);color:var(--accent,#1aff66);background:var(--featured-tint,#0f2b1a)}' +
     '.bac-sl-modal-item .bac-sl-mark{font-size:12px;font-weight:bold;white-space:nowrap}' +
     '.bac-sl-modal-close{display:block;margin:14px auto 0;background:none;border:none;' +
-    'color:var(--footer-text,#888);font-size:12.5px;cursor:pointer;font-family:inherit}';
+    'color:var(--footer-text,#888);font-size:12.5px;cursor:pointer;font-family:inherit}' +
+    '.bac-sl-banner{position:fixed;top:78px;left:50%;width:min(94vw,440px);z-index:7000;opacity:0;' +
+    'visibility:hidden;pointer-events:none;transform:translate(-50%,-14px);text-align:center;' +
+    'background:var(--card-bg,#161616);border:2px solid var(--accent,#1aff66);color:var(--text,#fff);' +
+    'border-radius:14px;padding:12px 16px;font-size:13.5px;font-weight:bold;line-height:1.7;' +
+    'box-shadow:0 16px 40px rgba(0,0,0,.35);transition:opacity .3s ease,transform .3s ease,visibility .3s ease}' +
+    '.bac-sl-banner.show{opacity:1;visibility:visible;transform:translate(-50%,0)}';
   document.head.appendChild(style);
 }
 
@@ -256,19 +262,29 @@ function openTopicPicker() {
 function docRef(id) { return ctxRef.db.collection('savedLessons').doc(id); }
 function serverTs() { return ctxRef.firebase.firestore.FieldValue.serverTimestamp(); }
 
-/* ⚠️ إصلاح: لا يوجد أي ref.get() هنا بعد الآن — نعتمد فقط على saved
-   (المُحدَّثة لحظيًا عبر onSnapshot في startListener) لمعرفة هل العنصر
-   محفوظ مسبقًا. سابقًا كان استدعاء ref.get() على وثيقة غير موجودة بعد
-   يُرفض دائمًا من قواعد Firestore التي تتحقق من resource.data.uid
-   (لأن resource تكون null)، فتفشل كل محاولة حفظ أولى بـ
-   permission-denied قبل الوصول لـ ref.set() أصلاً. */
+/* حماية من الضغط المتكرر السريع: عملية واحدة فقط لكل عنصر في نفس الوقت */
+var busy = {};
+
+/* إزالة إشعار التذكير الخاص بعنصر محفوظ (المعرّف الثابت الجديد + القديم sl_<id>_<n>) */
+function removeReminderNotif(id) {
+  ['sl_' + id, 'sl_' + id + '_0', 'sl_' + id + '_1', 'sl_' + id + '_2'].forEach(function (nid) {
+    ctxRef.db.collection('notifications').doc(nid).delete().catch(function () {});
+  });
+}
+
+/* ⚠️ لا يوجد أي ref.get() هنا — نعتمد على saved (المُحدَّثة لحظيًا عبر
+   onSnapshot) لمعرفة هل العنصر محفوظ مسبقًا، لأن قراءة وثيقة غير موجودة
+   تُرفض من قواعد Firestore (resource == null). */
 function toggleTopic(opt, id) {
+  if (busy[id]) return Promise.resolve();
+  busy[id] = true;
   var ref = docRef(id);
   if (saved.has(id)) {
     return ref.delete().then(function () {
-      saved.delete(id); refreshButton();
+      saved.delete(id); removeReminderNotif(id); refreshButton();
       toast('تمت إزالة «' + opt.name + '» من الدراسة لاحقًا');
-    }).catch(function (err) { toast(explainError(err)); throw err; });
+    }).catch(function (err) { toast(explainError(err)); throw err; })
+      .finally(function () { busy[id] = false; });
   }
   var data = {
     uid: ctxRef.me.uid, kind: 'topic',
@@ -276,10 +292,12 @@ function toggleTopic(opt, id) {
     targetUrl: opt.absUrl, pagePath: pagePath(),
     reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
   };
+  removeReminderNotif(id); /* حفظ جديد = تذكير جديد بدل بقاء أثر قديم */
   return ref.set(data).then(function () {
     saved.set(id, data); refreshButton();
     toast('تم حفظ «' + opt.name + '» للدراسة لاحقًا 🔖');
-  }).catch(function (err) { toast(explainError(err)); throw err; });
+  }).catch(function (err) { toast(explainError(err)); throw err; })
+    .finally(function () { busy[id] = false; });
 }
 
 /* المحتوى الحالي في صفحات الدروس/التمارين (بحسب الوحدة النشطة إن وُجدت) */
@@ -294,17 +312,19 @@ function currentLessonTarget() {
   };
 }
 
-/* ⚠️ نفس الإصلاح: بلا ref.get() — الاعتماد على saved.has() مباشرة. */
 function toggleLesson() {
   var t = currentLessonTarget();
   if (t.needUnit) { toast('اختر الوحدة أولًا ثم اضغط 🔖 لحفظها'); return Promise.resolve(); }
+  if (busy[t.id]) return Promise.resolve();
+  busy[t.id] = true;
   var ref = docRef(t.id);
 
   if (saved.has(t.id)) {
     return ref.delete().then(function () {
-      saved.delete(t.id); refreshButton();
+      saved.delete(t.id); removeReminderNotif(t.id); refreshButton();
       toast('تمت إزالة هذا العنصر من الدراسة لاحقًا');
-    }).catch(function (err) { toast(explainError(err)); });
+    }).catch(function (err) { toast(explainError(err)); })
+      .finally(function () { busy[t.id] = false; });
   }
 
   var clean = location.href.split('#')[0].split('?')[0];
@@ -317,10 +337,12 @@ function toggleLesson() {
     unitKey: t.unit ? t.unit.key : null,
     reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
   };
+  removeReminderNotif(t.id); /* حفظ جديد = تذكير جديد بدل بقاء أثر قديم */
   return ref.set(data).then(function () {
     saved.set(t.id, data); refreshButton();
     toast('تم الحفظ للدراسة لاحقًا 🔖');
-  }).catch(function (err) { toast(explainError(err)); });
+  }).catch(function (err) { toast(explainError(err)); })
+    .finally(function () { busy[t.id] = false; });
 }
 
 /* ═══════════ حالة الزر ═══════════ */
@@ -422,32 +444,80 @@ function applyResumeIfNeeded() {
   }).catch(function (err) { console.error('[BacOrbit][الدراسة لاحقًا] تعذّر الاستعادة', err); });
 }
 
-/* ═══════════ التذكيرات (نفس مجموعة الإشعارات 🔔) ═══════════ */
+/* ═══════════ التذكيرات (نفس مجموعة الإشعارات 🔔) ═══════════
+   - لافتة تلقائية لمدة ثانيتين عند الدخول، بحد أقصى MAX_REMINDERS مرات لكل صفحة
+     محفوظة، بعدّاد مستقل داخل وثيقة كل صفحة (reminderCount).
+   - إشعار واحد فقط لكل صفحة بمعرّف ثابت sl_<id> يُنشأ عند أول تذكير،
+     ويبقى في سجل الإشعارات حتى بعد اختفاء اللافتة. */
+var BANNER_MS = 2000;
+var bannerTimer;
+function showReminderBanner(list) {
+  ensureStyles();
+  var el = document.getElementById('bacSlBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'bacSlBanner';
+    el.className = 'bac-sl-banner';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = list.length === 1
+    ? '📚 لديك صفحة أردت دراستها سابقًا: ' + (list[0].d.title || list[0].d.lessonTitle || 'المحتوى المحفوظ')
+    : '📚 لديك ' + list.length + ' صفحات أردت دراستها سابقًا';
+  /* إعادة تشغيل الانتقال حتى لو كانت ظاهرة */
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function () { el.classList.remove('show'); }, BANNER_MS);
+}
+
 function runRemindersOnce(docs) {
   var shown = sessionShown();
+  var here = pagePath();
+  var due = [];
   docs.forEach(function (doc) {
     var d = doc.data();
     var count = d.reminderCount || 0;
-    if (count >= MAX_REMINDERS || shown.has(doc.id)) return;
+    if (count >= MAX_REMINDERS || shown.has(doc.id)) return; /* لا تكرار في نفس الزيارة */
+    if (d.pagePath === here) return;                          /* لا نُذكّره بالصفحة التي هو فيها الآن */
+    due.push({ doc: doc, d: d, count: count });
+  });
+  if (!due.length) return;
+
+  due.forEach(function (it) {
+    var doc = it.doc, d = it.d;
     markSessionShown(doc.id);
 
-    var title = d.title || d.lessonTitle || 'المحتوى المحفوظ';
-    var link = d.kind === 'topic' ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || '');
-
-    ctxRef.db.collection('notifications').doc('sl_' + doc.id + '_' + count).set({
-      uid: ctxRef.me.uid,
-      type: 'study_reminder',
-      title: '📚 تذكير بالدراسة',
-      body: 'لم تنسَ متابعة: ' + title,
-      link: link,
-      read: false,
-      createdAt: serverTs()
-    }).then(function () {
-      return doc.ref.update({ reminderCount: count + 1, lastRemindedAt: serverTs() });
+    /* العدّاد الدائم: زيادة ذرّية مستقلة لكل صفحة */
+    doc.ref.update({
+      reminderCount: ctxRef.firebase.firestore.FieldValue.increment(1),
+      lastRemindedAt: serverTs()
     }).catch(function (err) {
-      console.error('[BacOrbit][تذكير الدراسة لاحقًا] تعذّر إنشاء الإشعار (تحقّق من قواعد notifications)', err);
+      console.error('[BacOrbit][الدراسة لاحقًا] تعذّر تحديث عدّاد التذكير', err);
     });
+
+    /* إشعار السجل: مرة واحدة فقط لكل صفحة (عند أول تذكير) بمعرّف ثابت */
+    if (it.count === 0) {
+      var title = d.title || d.lessonTitle || 'المحتوى المحفوظ';
+      var isTopic = d.kind === 'topic';
+      ctxRef.db.collection('notifications').doc('sl_' + doc.id).set({
+        uid: ctxRef.me.uid,
+        type: 'study_reminder',
+        title: '📚 تذكير بالدراسة',
+        body: 'لم تنسَ متابعة: ' + title,
+        link: isTopic ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || ''),
+        newTab: isTopic,
+        savedId: doc.id,
+        read: false,
+        createdAt: serverTs()
+      }).catch(function (err) {
+        console.error('[BacOrbit][تذكير الدراسة لاحقًا] تعذّر إنشاء الإشعار (تحقّق من قواعد notifications)', err);
+      });
+    }
   });
+
+  showReminderBanner(due);
 }
 
 /* مستمع واحد لكل عناصر المستخدم: يُحدّث حالة الزر ويُنتج التذكيرات (بلا فهارس مركّبة) */

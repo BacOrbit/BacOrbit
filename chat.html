@@ -303,71 +303,27 @@ function updateNotifBtnUI(){
 }
 function initNotifToggle(){
   if(!notifBtn) return;
-  try{ notifEnabled = localStorage.getItem(NOTIF_PREF_KEY)==='1'
-       && typeof Notification!=='undefined' && Notification.permission==='granted'; }
+  try{ notifEnabled = localStorage.getItem(NOTIF_PREF_KEY)==='1'; }
   catch(e){ notifEnabled=false; }
   notifSeenIds=loadNotifSeen();
   try{ notifBaselineDone = localStorage.getItem(NOTIF_BASELINE_KEY)==='1'; }
   catch(e){ notifBaselineDone=false; }
   updateNotifBtnUI();
 
-  notifBtn.addEventListener('click', async ()=>{
-    if(!notifEnabled){
-      if(typeof Notification==='undefined'){
-        toast('متصفحك لا يدعم إشعارات الردود','err'); return;
-      }
-      let perm=Notification.permission;
-      if(perm==='default'){ perm=await Notification.requestPermission(); }
-      if(perm!=='granted'){
-        toast('يجب السماح بالإشعارات من إعدادات المتصفح لتفعيلها','err'); return;
-      }
-      notifEnabled=true;
-      try{ localStorage.setItem(NOTIF_PREF_KEY,'1'); }catch(e){}
-      toast('تم تفعيل إشعارات الردود 🔔');
-    }else{
-      notifEnabled=false;
-      try{ localStorage.setItem(NOTIF_PREF_KEY,'0'); }catch(e){}
-      toast('تم إيقاف إشعارات الردود 🔕');
-    }
+  /* التفعيل يعني فقط ظهور إشعارات الردود داخل سجل الجرس 🔔 (نقطة حمراء)،
+     دون أي لافتة أو نافذة منبثقة ودون طلب إذن المتصفح. */
+  notifBtn.addEventListener('click', ()=>{
+    notifEnabled=!notifEnabled;
+    try{ localStorage.setItem(NOTIF_PREF_KEY,notifEnabled?'1':'0'); }catch(e){}
+    toast(notifEnabled ? 'تم تفعيل إشعارات الردود 🔔' : 'تم إيقاف إشعارات الردود 🔕');
     updateNotifBtnUI();
+    if(window.BacNotifications && window.BacNotifications.refresh) window.BacNotifications.refresh();
   });
 }
-/* يُستدعى مع كل تحديث لقائمة المشاركات: يحدد الردود الجديدة على مواضيعي
-   الشخصية (وليست ردودي أنا) ويرسل إشعار متصفح لكل رد جديد لم يُشعر به من قبل. */
-function checkNewReplyNotifications(list){
-  if(!notifBaselineDone){
-    /* أول مرة فقط على هذا المتصفح: لا نُشعر بأي رد قديم موجود مسبقاً، فقط نؤسس نقطة
-       البداية. بعد ذلك تبقى العلامة محفوظة فلا يُعاد تأسيسها مع كل إعادة تحميل للصفحة،
-       حتى تصل إشعارات الردود التي وصلت أثناء إغلاق الصفحة. */
-    list.forEach(item=>{ if(item.parentId) notifSeenIds.add(item.id); });
-    notifBaselineDone=true;
-    try{ localStorage.setItem(NOTIF_BASELINE_KEY,'1'); }catch(e){}
-    saveNotifSeen();
-    return;
-  }
-  if(!notifEnabled || !me || typeof Notification==='undefined' || Notification.permission!=='granted') return;
-
-  const myPostIds=new Set(
-    list.filter(p=>!p.parentId && p.uid===me.uid && !p.deleted && !p.removed).map(p=>p.id)
-  );
-  let changed=false;
-  list.forEach(item=>{
-    if(!item.parentId) return;
-    if(item.deleted || item.removed) return;
-    if(item.uid===me.uid) return;
-    if(!myPostIds.has(item.parentId)) return;
-    if(notifSeenIds.has(item.id)) return;
-
-    notifSeenIds.add(item.id); changed=true;
-    try{
-      const n=new Notification('رد جديد على رسالتك في BacOrbit', {
-        body:(item.name||'أحد الأعضاء')+': '+(item.text ? item.text.slice(0,120) : 'أرفق مرفقاً')
-      });
-      n.onclick=function(){ window.focus(); };
-    }catch(e){ /* تجاهل أي خطأ في عرض الإشعار */ }
-  });
-  if(changed) saveNotifSeen();
-}
+/* إشعارات الردود تُسجَّل الآن فقط في سجل الجرس 🔔 (notifications.js) بمعرّف ثابت
+   لكل رد fr_<replyId> يمنع التكرار، دون أي لافتة/Popup. تُترك الدالة فارغة
+   حتى لا يتغيّر موضع استدعائها في DB.listen. */
+function checkNewReplyNotifications(list){ /* لا شيء عمدًا */ }
 
 /* ═══════════ 3) محوّل Firebase ═══════════ */
 const FB={

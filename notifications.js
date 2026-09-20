@@ -17,6 +17,10 @@
 (function () {
 'use strict';
 
+var MAX_REMINDERS = 3;
+var FORUM_PREF_KEY = 'bacorbit_notif_enabled'; /* نفس مفتاح زر الجرس في chat.html */
+var renderFn = null;
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -38,10 +42,8 @@ function ensureStyles() {
     'line-height:1;transition:box-shadow .25s ease,transform .15s ease;font-family:inherit}' +
     '.bac-notif-btn:hover{box-shadow:0 0 14px var(--accent-glow,rgba(26,255,102,.4))}' +
     '.bac-notif-btn:active{transform:scale(.94)}' +
-    '.bac-notif-badge{position:absolute;top:-6px;left:-6px;min-width:18px;height:18px;padding:0 4px;' +
-    'border-radius:999px;background:var(--danger,#ff4d4d);color:#fff;font-size:10.5px;font-weight:bold;' +
-    'display:none;align-items:center;justify-content:center;direction:ltr}' +
-    '.bac-notif-badge.show{display:flex}' +
+    '.bac-notif-badge{position:absolute;top:5px;left:5px;width:11px;height:11px;padding:0;border-radius:50%;background:var(--danger,#ff4d4d);border:2px solid var(--track-bg,#0a0a0a);display:none}' +
+    '.bac-notif-badge.show{display:block}' +
     '.bac-notif-panel{position:fixed;top:64px;left:14px;right:14px;max-width:380px;margin-inline-start:auto;' +
     'background:var(--card-bg,#161616);border:1.5px solid var(--border,#1aff66);border-radius:16px;' +
     'box-shadow:0 16px 40px rgba(0,0,0,.35);z-index:4200;max-height:70vh;overflow-y:auto;display:none;' +
@@ -74,7 +76,7 @@ function init(ctx) {
   btn.className = 'bac-notif-btn';
   btn.setAttribute('aria-label', 'الإشعارات');
   btn.title = 'الإشعارات';
-  btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge">0</span>';
+  btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge"></span>';
 
   /* حاوية موحّدة لأزرار الشريط العلوي: تجمع ☰ و 🔔 و ⏱️ في صف واحد.
      تبقى لوحة القائمة خارجها لأنها موضوعة absolute بالنسبة إلى .nav-menu-wrap. */
@@ -117,45 +119,102 @@ function init(ctx) {
 
   var badge = document.getElementById('bacNotifBadge');
 
+  var items = null;          /* كل الإشعارات (مرتبة) */
+  var savedIds = null;       /* معرّفات الصفحات المحفوظة حاليًا للدراسة لاحقًا */
+  var savedFailed = false;   /* تعذّر تحميل المحفوظات: لا نُخفي شيئًا حينها */
+
+  function isForumEnabled() {
+    try { return localStorage.getItem(FORUM_PREF_KEY) === '1'; } catch (e) { return false; }
+  }
+  /* الإشعارات القديمة كانت بمعرّف sl_<id>_<n> دون حقل savedId */
+  function savedIdOf(n) {
+    if (n.savedId) return n.savedId;
+    var m = String(n.id).match(/^sl_(.+)_\d+$/);
+    return m ? m[1] : null;
+  }
+  function visibleItems() {
+    var seen = {};
+    return items.filter(function (n) {
+      if (n.type === 'forum_reply') return isForumEnabled();
+      if (n.type === 'study_reminder') {
+        var sid = savedIdOf(n);
+        if (!savedFailed) {
+          if (!sid || !savedIds[sid]) return false;   /* صفحة لم تعد محفوظة */
+        }
+        if (sid) { if (seen[sid]) return false; seen[sid] = 1; } /* تذكير واحد لكل صفحة */
+      }
+      return true;
+    }).slice(0, 30);
+  }
+
+  function render() {
+    if (items === null || (savedIds === null && !savedFailed)) return;
+    var list = visibleItems();
+    var unread = list.filter(function (n) { return !n.read; }).length;
+    badge.textContent = '';
+    badge.classList.toggle('show', unread > 0);
+
+    var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
+    if (!list.length) {
+      panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
+      return;
+    }
+    panel.innerHTML = head;
+    list.forEach(function (n) {
+      var el = document.createElement('div');
+      el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
+      el.innerHTML =
+        '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
+        (n.body ? esc(n.body) : '') +
+        '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
+      el.addEventListener('click', function () {
+        if (!n.read) {
+          ctx.db.collection('notifications').doc(n.id).update({ read: true }).catch(function () {});
+        }
+        /* فتح تذكير الدراسة يُنهي عرض اللافتة له نهائيًا */
+        if (n.type === 'study_reminder') {
+          var sid = savedIdOf(n);
+          if (sid) {
+            ctx.db.collection('savedLessons').doc(sid).update({ reminderCount: MAX_REMINDERS }).catch(function () {});
+          }
+        }
+        closePanel();
+        if (n.link) {
+          if (n.newTab) window.open(n.link, '_blank');
+          else window.location.href = n.link;
+        }
+      });
+      panel.appendChild(el);
+    });
+  }
+  renderFn = render;
+
   ctx.db.collection('notifications')
     .where('uid', '==', ctx.me.uid)
     .limit(100)
     .onSnapshot(function (qs) {
       /* الترتيب على العميل: الجمع بين where(uid) وorderBy(createdAt) كان يتطلب
          فهرسًا مركّبًا في Firestore، وبدونه يفشل الاستماع بصمت فلا يظهر أي إشعار. */
-      var items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
-        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); })
-        .slice(0, 30);
-      var unread = items.filter(function (n) { return !n.read; }).length;
-      badge.textContent = unread > 9 ? '9+' : String(unread);
-      badge.classList.toggle('show', unread > 0);
-
-      var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
-      if (!items.length) {
-        panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
-        return;
-      }
-      panel.innerHTML = head;
-      items.forEach(function (n) {
-        var el = document.createElement('div');
-        el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
-        el.innerHTML =
-          '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
-          (n.body ? esc(n.body) : '') +
-          '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
-        el.addEventListener('click', function () {
-          if (!n.read) {
-            ctx.db.collection('notifications').doc(n.id).update({ read: true }).catch(function () {});
-          }
-          closePanel();
-          if (n.link) window.location.href = n.link;
-        });
-        panel.appendChild(el);
-      });
+      items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); });
+      render();
     }, function (err) {
       console.error('[BacOrbit][الإشعارات] تعذّر تحميل الإشعارات (على الأغلب Security Rules)', err);
     });
+
+  /* المحفوظات: تُستخدم فقط لإخفاء تذكيرات صفحات ألغى المستخدم حفظها */
+  ctx.db.collection('savedLessons')
+    .where('uid', '==', ctx.me.uid)
+    .onSnapshot(function (qs) {
+      var m = {};
+      qs.forEach(function (d) { m[d.id] = true; });
+      savedIds = m;
+      render();
+    }, function () {
+      savedFailed = true;
+      render();
+    });
 }
 
-window.BacNotifications = { init: init };
+window.BacNotifications = { init: init, refresh: function () { if (renderFn) renderFn(); } };
 })();
