@@ -474,15 +474,14 @@ function showReminderBanner(list) {
 
 function runRemindersOnce(docs) {
   var shown = sessionShown();
-  var here = pagePath();
   var due = [];
   docs.forEach(function (doc) {
     var d = doc.data();
     var count = d.reminderCount || 0;
     if (count >= MAX_REMINDERS || shown.has(doc.id)) return; /* لا تكرار في نفس الزيارة */
-    if (d.pagePath === here) return;                          /* لا نُذكّره بالصفحة التي هو فيها الآن */
     due.push({ doc: doc, d: d, count: count });
   });
+  console.info('[BacOrbit][الدراسة لاحقًا] محفوظ: ' + docs.length + ' — مستحق للتذكير الآن: ' + due.length);
   if (!due.length) return;
 
   due.forEach(function (it) {

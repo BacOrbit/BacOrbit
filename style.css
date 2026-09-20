@@ -2363,6 +2363,7 @@ button.bac-side-download,
 }
 
 .bac-flip-clock {
+    direction: ltr;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -2378,6 +2379,7 @@ button.bac-side-download,
 }
 
 .bac-flip-digits {
+    direction: ltr;
     display: flex;
     gap: 4px;
 }
