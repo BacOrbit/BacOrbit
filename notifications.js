@@ -13,13 +13,23 @@
    يُستدعى عبر window.BacNotifications.init({db, me, firebase}).
    يعمل مع أي اتصال Firebase جاهز (سواء من firebase-shared.js أو من
    اتصال الصفحة الخاص بها كما في chat.html).
+
+   ⚠️ تعديل (هذه النسخة فقط): إضافة «لافتة تذكير» تلقائية تظهر لمدة
+   ثانيتين فقط عند وجود تذكير «دراسة لاحقًا» (type === 'study_reminder')
+   لم يُقرأ بعد، دون إنشاء أي نظام إشعارات موازٍ — اللافتة تُبنى فوق
+   نفس مجموعة Firestore "notifications" الموجودة أصلًا وتُقرأ من نفس
+   الاستماع اللحظي (onSnapshot) هنا فقط. لكل تذكير عدّاد مستقل لعدد
+   مرات ظهور اللافتة (محفوظ في localStorage تحت المفتاح
+   bacorbit_study_banner_shown، بمعرّف الإشعار نفسه — وهو معرّف ثابت
+   بالفعل بحسب study-later.js: sl_<docId>_<count> — فلا يوجد أي تكرار
+   حتى لو حفظ المستخدم عشرات الصفحات). اللافتة تظهر بحد أقصى 3 مرات
+   لكل تذكير، ثم تختفي نهائيًا مع بقاء التذكير في سجل 🔔، وتظهر مرة
+   واحدة فقط لكل تحميل صفحة (تحسبًا لتكرار onSnapshot)، ولا تظهر إطلاقًا
+   لإشعارات الردود على المنتدى (type === 'forum_reply') التي تكتفي
+   بالنقطة/العداد على الجرس كما كانت.
    ============================================================ */
 (function () {
 'use strict';
-
-var MAX_REMINDERS = 3;
-var FORUM_PREF_KEY = 'bacorbit_notif_enabled'; /* نفس مفتاح زر الجرس في chat.html */
-var renderFn = null;
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -30,6 +40,22 @@ function fmtDate(ms) {
   if (!ms) return '';
   return new Date(ms).toLocaleString('ar', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+/* ═══════════ عدّاد ظهور لافتة التذكير (مستقل لكل تذكير، أقصاه 3) ═══════════ */
+var BANNER_SHOWN_KEY = 'bacorbit_study_banner_shown';
+function loadBannerCounts() {
+  try {
+    var raw = localStorage.getItem(BANNER_SHOWN_KEY);
+    var parsed = raw ? JSON.parse(raw) : {};
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (e) { return {}; }
+}
+function saveBannerCounts(map) {
+  try { localStorage.setItem(BANNER_SHOWN_KEY, JSON.stringify(map)); } catch (e) {}
+}
+/* مجموعة داخل الذاكرة فقط (لا تُحفظ) تمنع ظهور أكثر من لافتة واحدة في
+   نفس تحميل الصفحة الواحد، حتى لو أطلق onSnapshot أكثر من مرة. */
+var bannerHandledThisLoad = {};
 
 function ensureStyles() {
   if (document.getElementById('bacNotifStyles')) return;
@@ -42,8 +68,10 @@ function ensureStyles() {
     'line-height:1;transition:box-shadow .25s ease,transform .15s ease;font-family:inherit}' +
     '.bac-notif-btn:hover{box-shadow:0 0 14px var(--accent-glow,rgba(26,255,102,.4))}' +
     '.bac-notif-btn:active{transform:scale(.94)}' +
-    '.bac-notif-badge{position:absolute;top:5px;left:5px;width:11px;height:11px;padding:0;border-radius:50%;background:var(--danger,#ff4d4d);border:2px solid var(--track-bg,#0a0a0a);display:none}' +
-    '.bac-notif-badge.show{display:block}' +
+    '.bac-notif-badge{position:absolute;top:-6px;left:-6px;min-width:18px;height:18px;padding:0 4px;' +
+    'border-radius:999px;background:var(--danger,#ff4d4d);color:#fff;font-size:10.5px;font-weight:bold;' +
+    'display:none;align-items:center;justify-content:center;direction:ltr}' +
+    '.bac-notif-badge.show{display:flex}' +
     '.bac-notif-panel{position:fixed;top:64px;left:14px;right:14px;max-width:380px;margin-inline-start:auto;' +
     'background:var(--card-bg,#161616);border:1.5px solid var(--border,#1aff66);border-radius:16px;' +
     'box-shadow:0 16px 40px rgba(0,0,0,.35);z-index:4200;max-height:70vh;overflow-y:auto;display:none;' +
@@ -59,8 +87,49 @@ function ensureStyles() {
     '.bac-notif-item.unread{background:var(--featured-tint,#0f2b1a)}' +
     '.bac-notif-item strong{display:block;color:var(--accent,#1aff66);margin-bottom:3px;font-size:12.5px}' +
     '.bac-notif-item small{display:block;color:var(--footer-text,#888);margin-top:5px;font-size:11px}' +
-    '.bac-notif-empty{padding:26px 16px;text-align:center;color:var(--footer-text,#888);font-size:13px}';
+    '.bac-notif-empty{padding:26px 16px;text-align:center;color:var(--footer-text,#888);font-size:13px}' +
+    /* ── لافتة تذكير الدراسة لاحقًا (تظهر ثانيتين فقط) ── */
+    '.bac-study-banner-host{position:fixed;top:64px;left:0;right:0;display:flex;justify-content:center;' +
+    'z-index:4300;pointer-events:none;padding:0 14px}' +
+    '.bac-study-banner{pointer-events:auto;cursor:pointer;max-width:420px;width:100%;display:flex;' +
+    'align-items:center;gap:10px;background:var(--card-bg,#161616);border:1.5px solid var(--accent,#1aff66);' +
+    'color:var(--text,#fff);border-radius:14px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,.35);' +
+    'opacity:0;transform:translateY(-10px);transition:opacity .25s ease,transform .25s ease;font-size:13px;' +
+    'line-height:1.7}' +
+    '.bac-study-banner.show{opacity:1;transform:translateY(0)}' +
+    '.bac-study-banner .bac-study-banner-icon{font-size:19px;flex-shrink:0}' +
+    '.bac-study-banner strong{display:block;color:var(--accent,#1aff66);font-size:12.5px;margin-bottom:2px}';
   document.head.appendChild(style);
+}
+
+/* ═══════════ لافتة تذكير الدراسة لاحقًا ═══════════ */
+var bannerTimer = null;
+function showStudyBanner(n, onOpen) {
+  var host = document.getElementById('bacStudyBannerHost');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'bacStudyBannerHost';
+    host.className = 'bac-study-banner-host';
+    document.body.appendChild(host);
+  }
+  host.innerHTML = '';
+  var box = document.createElement('div');
+  box.className = 'bac-study-banner';
+  box.innerHTML =
+    '<span class="bac-study-banner-icon">📚</span>' +
+    '<span><strong>تذكير بالدراسة</strong>' + esc(n.body || n.title || 'لديك صفحة أردت متابعتها لاحقًا') + '</span>';
+  box.addEventListener('click', function () { onOpen(); hideStudyBanner(); });
+  host.appendChild(box);
+  /* دورة إطار لضمان تطبيق الانتقال (transition) قبل إضافة show */
+  requestAnimationFrame(function () { box.classList.add('show'); });
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(hideStudyBanner, 2000);
+}
+function hideStudyBanner() {
+  var host = document.getElementById('bacStudyBannerHost');
+  if (!host) return;
+  var box = host.querySelector('.bac-study-banner');
+  if (box) box.classList.remove('show');
 }
 
 function init(ctx) {
@@ -76,7 +145,7 @@ function init(ctx) {
   btn.className = 'bac-notif-btn';
   btn.setAttribute('aria-label', 'الإشعارات');
   btn.title = 'الإشعارات';
-  btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge"></span>';
+  btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge">0</span>';
 
   /* حاوية موحّدة لأزرار الشريط العلوي: تجمع ☰ و 🔔 و ⏱️ في صف واحد.
      تبقى لوحة القائمة خارجها لأنها موضوعة absolute بالنسبة إلى .nav-menu-wrap. */
@@ -119,75 +188,15 @@ function init(ctx) {
 
   var badge = document.getElementById('bacNotifBadge');
 
-  var items = null;          /* كل الإشعارات (مرتبة) */
-  var savedIds = null;       /* معرّفات الصفحات المحفوظة حاليًا للدراسة لاحقًا */
-  var savedFailed = false;   /* تعذّر تحميل المحفوظات: لا نُخفي شيئًا حينها */
-
-  function isForumEnabled() {
-    try { return localStorage.getItem(FORUM_PREF_KEY) === '1'; } catch (e) { return false; }
-  }
-  /* الإشعارات القديمة كانت بمعرّف sl_<id>_<n> دون حقل savedId */
-  function savedIdOf(n) {
-    if (n.savedId) return n.savedId;
-    var m = String(n.id).match(/^sl_(.+)_\d+$/);
-    return m ? m[1] : null;
-  }
-  function visibleItems() {
-    var seen = {};
-    return items.filter(function (n) {
-      if (n.type === 'forum_reply') return isForumEnabled();
-      if (n.type === 'study_reminder') {
-        var sid = savedIdOf(n);
-        if (!savedFailed) {
-          if (!sid || !savedIds[sid]) return false;   /* صفحة لم تعد محفوظة */
-        }
-        if (sid) { if (seen[sid]) return false; seen[sid] = 1; } /* تذكير واحد لكل صفحة */
-      }
-      return true;
-    }).slice(0, 30);
-  }
-
-  function render() {
-    if (items === null || (savedIds === null && !savedFailed)) return;
-    var list = visibleItems();
-    var unread = list.filter(function (n) { return !n.read; }).length;
-    badge.textContent = '';
-    badge.classList.toggle('show', unread > 0);
-
-    var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
-    if (!list.length) {
-      panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
-      return;
+  /* فتح إشعار: يُصبح مقروءًا، ثم الانتقال إلى رابطه إن وُجد — نفس
+     السلوك المستخدم سواء فُتح من اللوحة أو من اللافتة، بلا ازدواجية. */
+  function openNotification(n) {
+    if (!n.read) {
+      ctx.db.collection('notifications').doc(n.id).update({ read: true }).catch(function () {});
     }
-    panel.innerHTML = head;
-    list.forEach(function (n) {
-      var el = document.createElement('div');
-      el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
-      el.innerHTML =
-        '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
-        (n.body ? esc(n.body) : '') +
-        '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
-      el.addEventListener('click', function () {
-        if (!n.read) {
-          ctx.db.collection('notifications').doc(n.id).update({ read: true }).catch(function () {});
-        }
-        /* فتح تذكير الدراسة يُنهي عرض اللافتة له نهائيًا */
-        if (n.type === 'study_reminder') {
-          var sid = savedIdOf(n);
-          if (sid) {
-            ctx.db.collection('savedLessons').doc(sid).update({ reminderCount: MAX_REMINDERS }).catch(function () {});
-          }
-        }
-        closePanel();
-        if (n.link) {
-          if (n.newTab) window.open(n.link, '_blank');
-          else window.location.href = n.link;
-        }
-      });
-      panel.appendChild(el);
-    });
+    closePanel();
+    if (n.link) window.location.href = n.link;
   }
-  renderFn = render;
 
   ctx.db.collection('notifications')
     .where('uid', '==', ctx.me.uid)
@@ -195,26 +204,49 @@ function init(ctx) {
     .onSnapshot(function (qs) {
       /* الترتيب على العميل: الجمع بين where(uid) وorderBy(createdAt) كان يتطلب
          فهرسًا مركّبًا في Firestore، وبدونه يفشل الاستماع بصمت فلا يظهر أي إشعار. */
-      items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
-        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); });
-      render();
+      var items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); })
+        .slice(0, 30);
+      var unread = items.filter(function (n) { return !n.read; }).length;
+      badge.textContent = unread > 9 ? '9+' : String(unread);
+      badge.classList.toggle('show', unread > 0);
+
+      var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
+      if (!items.length) {
+        panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
+      } else {
+        panel.innerHTML = head;
+        items.forEach(function (n) {
+          var el = document.createElement('div');
+          el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
+          el.innerHTML =
+            '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
+            (n.body ? esc(n.body) : '') +
+            '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
+          el.addEventListener('click', function () { openNotification(n); });
+          panel.appendChild(el);
+        });
+      }
+
+      /* لافتة تذكير «الدراسة لاحقًا» (ثانيتان فقط، أقصاه 3 مرات لكل
+         تذكير) — لا تشمل إشعارات ردود المنتدى (forum_reply) إطلاقًا. */
+      var reminder = items.find(function (n) {
+        return n.type === 'study_reminder' && !n.read && !bannerHandledThisLoad[n.id];
+      });
+      if (reminder) {
+        var counts = loadBannerCounts();
+        var shown = counts[reminder.id] || 0;
+        bannerHandledThisLoad[reminder.id] = true; /* مرة واحدة فقط لكل تحميل صفحة */
+        if (shown < 3) {
+          counts[reminder.id] = shown + 1;
+          saveBannerCounts(counts);
+          showStudyBanner(reminder, function () { openNotification(reminder); });
+        }
+      }
     }, function (err) {
       console.error('[BacOrbit][الإشعارات] تعذّر تحميل الإشعارات (على الأغلب Security Rules)', err);
     });
-
-  /* المحفوظات: تُستخدم فقط لإخفاء تذكيرات صفحات ألغى المستخدم حفظها */
-  ctx.db.collection('savedLessons')
-    .where('uid', '==', ctx.me.uid)
-    .onSnapshot(function (qs) {
-      var m = {};
-      qs.forEach(function (d) { m[d.id] = true; });
-      savedIds = m;
-      render();
-    }, function () {
-      savedFailed = true;
-      render();
-    });
 }
 
-window.BacNotifications = { init: init, refresh: function () { if (renderFn) renderFn(); } };
+window.BacNotifications = { init: init };
 })();
