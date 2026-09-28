@@ -288,6 +288,169 @@ async function deleteSummary(id){
   }
 }
 
+/* ═══════════ التحليلات ═══════════
+   تُبنى فقط من بيانات موجودة أصلًا (users / forumPosts / summaries /
+   savedLessons). لا مجموعات جديدة ولا تتبع جديد ولا تعديل للقواعد. */
+let usersDocs = [];
+let savedDocs = null;
+let savedError = false;
+
+function tms(c){ return (c && c.toMillis) ? c.toMillis() : (typeof c === 'number' ? c : null); }
+function dayKey(ms){
+  const d = new Date(ms);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function loadSavedForAnalytics(){
+  db.collection('savedLessons').limit(1000).get()
+    .then(snap => { savedDocs = snap.docs.map(d => d.data()); renderAnalytics(); })
+    .catch(() => { savedError = true; renderAnalytics(); });
+}
+function topCounts(list, keyFn, n){
+  const m = new Map();
+  list.forEach(x => { const k = keyFn(x); if(k) m.set(k, (m.get(k) || 0) + 1); });
+  return Array.from(m, ([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, n);
+}
+function hBars(rows, emptyMsg){
+  if(!rows.length) return '<div class="an-note">' + esc(emptyMsg || 'لا توجد بيانات كافية بعد.') + '</div>';
+  const max = Math.max.apply(null, rows.map(r => r.value)) || 1;
+  return rows.map(r =>
+    '<div class="an-hrow"><span class="an-hlabel" title="' + esc(r.label) + '">' + esc(r.label) + '</span>' +
+    '<span class="an-htrack"><span class="an-hfill" style="width:' + Math.max(3, Math.round(r.value / max * 100)) + '%"></span></span>' +
+    '<span class="an-hval">' + r.value + '</span></div>').join('');
+}
+function colChart(items){
+  const max = Math.max.apply(null, items.map(i => i.value)) || 1;
+  return '<div class="an-cols">' + items.map(i =>
+    '<div class="an-col" title="' + esc(i.label) + ': ' + i.value + '"><span class="an-cval">' + (i.value || '') + '</span>' +
+    '<span class="an-cbar" style="height:' + (i.value ? Math.max(4, Math.round(i.value / max * 100)) : 1) + '%"></span>' +
+    '<span class="an-clabel">' + esc(i.short) + '</span></div>').join('') + '</div>';
+}
+function anCard(title, body, note, warn){
+  return '<div class="an-card"><h3>' + title + '</h3>' + body +
+    (note ? '<div class="an-note' + (warn ? ' warn' : '') + '">' + note + '</div>' : '') + '</div>';
+}
+function statCard(value, label){
+  return '<div class="admin-stat-card"><div class="admin-stat-value">' + value + '</div><div class="admin-stat-label">' + label + '</div></div>';
+}
+
+function renderAnalytics(){
+  const root = $('#analyticsBody');
+  if(!root) return;
+  const now = Date.now();
+
+  /* المستخدمون حسب الأيام (آخر 14 يومًا) من users.createdAt */
+  const days = [];
+  for(let i = 13; i >= 0; i--){
+    const t = now - i * 86400000;
+    days.push({ key: dayKey(t), label: new Date(t).toLocaleDateString('ar', { month: 'short', day: 'numeric' }), short: String(new Date(t).getDate()), value: 0 });
+  }
+  let noDate = 0;
+  usersDocs.forEach(u => {
+    const t = tms(u.createdAt);
+    if(t === null){ noDate++; return; }
+    const d = days.find(x => x.key === dayKey(t));
+    if(d) d.value++;
+  });
+  const newLast14 = days.reduce((s, d) => s + d.value, 0);
+  const banned = usersDocs.filter(u => u.banned).length;
+
+  /* النشاط المسجّل: منشورات المنتدى + الملفات المرسلة + عناصر «الدراسة لاحقًا» */
+  const activity = [];
+  postsData.forEach(p => { const t = tms(p.createdAt); if(t !== null && p.uid) activity.push({ uid: p.uid, t }); });
+  summariesData.forEach(s => { const t = tms(s.createdAt); if(t !== null && s.submitterUid) activity.push({ uid: s.submitterUid, t }); });
+  (savedDocs || []).forEach(s => { const t = tms(s.createdAt); if(t !== null && s.uid) activity.push({ uid: s.uid, t }); });
+  const activeIn = n => new Set(activity.filter(a => now - a.t <= n * 86400000).map(a => a.uid)).size;
+
+  /* أوقات النشاط حسب ساعة اليوم (توقيت متصفح الأدمن) — تشمل تاريخ إنشاء الحسابات */
+  const hours = Array.from({ length: 24 }, (_, h) => ({ label: h + ':00', short: String(h), value: 0 }));
+  activity.forEach(a => { hours[new Date(a.t).getHours()].value++; });
+  usersDocs.forEach(u => { const t = tms(u.createdAt); if(t !== null) hours[new Date(t).getHours()].value++; });
+  const hoursTotal = hours.reduce((s, h) => s + h.value, 0);
+
+  /* «الدراسة لاحقًا» */
+  let savedHtml;
+  if(savedError){
+    savedHtml = anCard('🔖 الأكثر حفظًا في «الدراسة لاحقًا»', '',
+      'غير متاح: قواعد Firestore الحالية لا تسمح للأدمن بقراءة savedLessons، ولم أعدّل القواعد كما طلبت.', true);
+  } else if(savedDocs === null){
+    savedHtml = anCard('🔖 الأكثر حفظًا في «الدراسة لاحقًا»', '<div class="an-note">جارٍ التحميل…</div>');
+  } else {
+    const titleOf = s => s.title || s.lessonTitle;
+    const isTopic = s => s.kind === 'topic';
+    const isEx = s => !isTopic(s) && /تمارين|فقرات/.test(titleOf(s) || '');
+    const topics = savedDocs.filter(isTopic);
+    const exercises = savedDocs.filter(isEx);
+    const lessons = savedDocs.filter(s => !isTopic(s) && !isEx(s));
+    const note = 'يعتمد على عدد مرات الحفظ وليس المشاهدة (بحد أقصى 1000 عنصر محفوظ).';
+    savedHtml =
+      anCard('📚 أكثر الدروس حفظًا', hBars(topCounts(lessons, titleOf, 8)), note) +
+      anCard('✏️ أكثر التمارين حفظًا', hBars(topCounts(exercises, titleOf, 8)), note) +
+      anCard('📄 أكثر مواضيع البكالوريا حفظًا', hBars(topCounts(topics, titleOf, 8)), note);
+  }
+
+  /* الملفات المرسلة */
+  const statusRows = [
+    { label: '⏳ بانتظار المراجعة', value: summariesData.filter(s => s.status === 'pending').length },
+    { label: '✅ منشور', value: summariesData.filter(s => s.status === 'approved').length },
+    { label: '❌ مرفوض', value: summariesData.filter(s => s.status === 'rejected').length }
+  ].filter(r => r.value);
+
+  /* المنتدى */
+  const tops = postsData.filter(p => !p.parentId && !p.deleted);
+  const replies = postsData.filter(p => p.parentId && !p.deleted);
+  const topPosters = topCounts(postsData.filter(p => !p.deleted), p => p.name, 5);
+
+  const kpis =
+    statCard(usersCount, 'إجمالي المستخدمين') +
+    statCard(newLast14, 'مستخدمون جدد (14 يومًا)') +
+    statCard(activeIn(7), 'نشطون آخر 7 أيام') +
+    statCard(activeIn(30), 'نشطون آخر 30 يومًا') +
+    statCard(banned, 'حسابات موقوفة');
+
+  const growth = anCard('👥 المستخدمون الجدد حسب الأيام (آخر 14 يومًا)', colChart(days),
+    'من تاريخ إنشاء الحساب في users.' + (noDate ? ' ' + noDate + ' حساب بلا تاريخ لم يُحتسب.' : ''));
+
+  const activeNote = anCard('🟢 تعريف «النشط»', '',
+    'المستخدم الذي نشر في المنتدى أو أرسل ملفًا أو حفظ عنصرًا في «الدراسة لاحقًا» خلال الفترة. ' +
+    'التصفح فقط غير مسجَّل في البيانات الحالية، فالعدد أقل من العدد الحقيقي للزوار. ' +
+    '(منشورات المنتدى المحمّلة: آخر 500.)');
+
+  const hoursCard = anCard('🕒 أوقات النشاط (حسب ساعة اليوم)',
+    hoursTotal ? colChart(hours) : '<div class="an-note">لا توجد بيانات كافية بعد.</div>',
+    'من إنشاء الحسابات والمنشورات والملفات المرسلة وعناصر «الدراسة لاحقًا»، بتوقيت هذا المتصفح.');
+
+  const forumCard = anCard('💬 المنتدى',
+    '<ul class="an-list"><li>مواضيع: ' + tops.length + '</li><li>ردود: ' + replies.length + '</li></ul>' +
+    '<div style="margin-top:10px">' + hBars(topPosters, 'لا توجد مشاركات بعد.') + '</div>',
+    'الأكثر مشاركة (منشورات + ردود).');
+
+  const filesCard = anCard('📥 الملفات المرسلة',
+    hBars(statusRows, 'لا توجد ملفات مرسلة بعد.') +
+    '<div style="margin-top:12px">' + hBars(topCounts(summariesData, s => s.branchLabel, 6), 'لا توجد بيانات شعب في الملفات.') + '</div>' +
+    '<div style="margin-top:12px">' + hBars(topCounts(summariesData, s => s.subject, 6), '') + '</div>',
+    'الشعب والمواد هنا خاصة بالملفات المرسلة وليست بتوزيع المستخدمين.');
+
+  const unavailable = anCard('⚠️ غير متاح بالبيانات الحالية', 
+    '<ul class="an-list">' +
+    '<li>الصفحات الأكثر زيارة وعدد الزيارات</li>' +
+    '<li>أكثر الدروس والتمارين فتحًا (المتاح فقط: الأكثر حفظًا)</li>' +
+    '<li>أكثر ملفات المكتبة فتحًا</li>' +
+    '<li>توزيع المستخدمين حسب الشعبة (تُحفظ في متصفح الطالب فقط، وليس في Firebase)</li>' +
+    '<li>الأجهزة المستخدمة</li>' +
+    '</ul>',
+    'هذه الأرقام غير مسجَّلة في أي مكان حاليًا، وتسجيلها يتطلب نظام تتبع جديدًا وقواعد جديدة، لذلك لم أخترع بيانات لها.', true);
+
+  root.innerHTML =
+    '<h2 class="admin-section-title">نظرة على المستخدمين</h2>' +
+    '<div class="admin-stats-grid">' + kpis + '</div>' +
+    '<div class="an-grid">' + growth + hoursCard + activeNote + '</div>' +
+    '<h2 class="admin-section-title">المحتوى</h2>' +
+    '<div class="an-grid">' + savedHtml + '</div>' +
+    '<h2 class="admin-section-title">النشاط والملفات</h2>' +
+    '<div class="an-grid">' + forumCard + filesCard + '</div>' +
+    '<div class="an-grid">' + unavailable + '</div>';
+}
+
 /* ═══════════ الأحداث العامة (تفويض نقر واحد) ═══════════ */
 document.addEventListener('click', async (e) => {
   const delPost = e.target.closest('[data-del-post]');
@@ -321,22 +484,25 @@ let listenersStarted = false;
 function initListeners(){
   if(listenersStarted) return;
   listenersStarted = true;
+  loadSavedForAnalytics();
 
   db.collection('forumPosts').orderBy('createdAt', 'desc').limit(500)
     .onSnapshot(snap => {
       postsData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       renderForum();
       renderStats();
+      renderAnalytics();
     }, err => toast('تعذّر تحميل بيانات المنتدى: ' + err.message, 'err'));
 
   db.collection('summaries').orderBy('createdAt', 'desc').limit(500)
     .onSnapshot(snap => {
       summariesData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       renderSummaries();
+      renderAnalytics();
     }, err => toast('تعذّر تحميل الملخصات: ' + err.message, 'err'));
 
   db.collection('users').get()
-    .then(snap => { usersCount = snap.size; renderStats(); })
+    .then(snap => { usersCount = snap.size; usersDocs = snap.docs.map(d => d.data()); renderStats(); renderAnalytics(); })
     .catch(() => {});
 }
 
