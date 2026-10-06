@@ -81,21 +81,14 @@
         </div>
 
         <div class="admin-tabs">
-            <button type="button" class="admin-tab-btn active" data-panel="panelStats">📊 إحصائيات</button>
+            <button type="button" class="admin-tab-btn active" data-panel="panelStats">📊 الإحصائيات والتحليلات</button>
             <button type="button" class="admin-tab-btn" data-panel="panelSummaries">📥 الملخصات والملفات</button>
             <button type="button" class="admin-tab-btn" data-panel="panelForum">💬 المنتدى</button>
-            <button type="button" class="admin-tab-btn" data-panel="panelAnalytics">📈 تحليلات</button>
         </div>
 
-        <!-- ── إحصائيات ── -->
+        <!-- ── الإحصائيات والتحليلات (مدمجة) ── -->
         <div class="admin-panel active" id="panelStats">
-            <h2 class="admin-section-title">نظرة عامة</h2>
-            <div class="admin-stats-grid">
-                <div class="admin-stat-card"><div class="admin-stat-value" id="statUsers">0</div><div class="admin-stat-label">عدد المستخدمين</div></div>
-                <div class="admin-stat-card"><div class="admin-stat-value" id="statPosts">0</div><div class="admin-stat-label">عدد المنشورات</div></div>
-                <div class="admin-stat-card"><div class="admin-stat-value" id="statPending">0</div><div class="admin-stat-label">ملخصات بانتظار المراجعة</div></div>
-                <div class="admin-stat-card"><div class="admin-stat-value" id="statReports">0</div><div class="admin-stat-label">إجمالي البلاغات</div></div>
-            </div>
+            <div id="analyticsBody"><div class="admin-empty-note">جارٍ تحميل الإحصائيات…</div></div>
         </div>
 
         <!-- ── الملخصات ── -->
@@ -115,33 +108,25 @@
             <div class="admin-empty-note" id="adminForumEmpty" style="display:none">لا توجد أي منشورات بعد.</div>
         </div>
 
-        <!-- ── تحليلات (تُبنى من البيانات الموجودة فقط) ── -->
-        <div class="admin-panel" id="panelAnalytics">
-            <div id="analyticsBody"><div class="admin-empty-note">جارٍ تحميل التحليلات…</div></div>
-        </div>
-
     </div>
 
 </div>
 
 <style>
-/* أنماط قسم التحليلات فقط — تعتمد على متغيرات style.css */
-.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px}
+/* أنماط الإحصائيات والتحليلات — تعتمد على متغيرات style.css */
+.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:16px}
 .an-card{background:var(--card-bg);border:2px solid var(--empty-border);border-radius:16px;padding:18px}
-.an-card h3{color:var(--accent);font-size:15px;margin-bottom:12px}
+.an-card h3{color:var(--accent);font-size:15px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .an-note{color:var(--footer-text);font-size:12px;line-height:1.8;margin-top:10px}
-.an-note.warn{color:var(--gold-dark)}
-.an-hrow{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12.5px}
-.an-hlabel{flex:0 0 38%;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.an-periods{display:inline-flex;gap:6px}
+.an-period{background:var(--bg);border:1.5px solid var(--empty-border);color:var(--text-secondary);padding:4px 12px;border-radius:999px;font-size:12px;font-weight:bold;cursor:pointer;font-family:inherit}
+.an-period.active{background:var(--accent);border-color:var(--accent);color:#000}
+.an-hrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px}
+.an-hrank{flex:0 0 18px;color:var(--footer-text);text-align:center}
+.an-hlabel{flex:0 0 36%;max-width:36%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .an-htrack{flex:1;height:10px;background:var(--bg);border-radius:999px;overflow:hidden}
 .an-hfill{display:block;height:100%;background:var(--accent);border-radius:999px}
-.an-hval{flex:0 0 30px;text-align:left;color:var(--text-secondary);direction:ltr}
-.an-cols{display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:14px}
-.an-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-.an-cbar{width:100%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
-.an-cval{font-size:10px;color:var(--text-secondary);height:14px}
-.an-clabel{font-size:9.5px;color:var(--footer-text);margin-top:4px;direction:ltr}
-.an-list{margin:0;padding-inline-start:18px;color:var(--text-secondary);font-size:12.5px;line-height:2}
+.an-hval{flex:0 0 34px;text-align:left;color:var(--text-secondary);direction:ltr}
 </style>
 
 <a href="index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>

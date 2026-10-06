@@ -125,18 +125,6 @@ function initTabs(){
   });
 }
 
-/* ═══════════ الإحصائيات ═══════════ */
-function renderStats(){
-  const pendingCount = summariesData.filter(s => s.status === 'pending').length;
-  const totalReports = postsData.reduce((sum, p) => sum + (p.reportCount || 0), 0);
-  const topPosts = postsData.filter(p => !p.parentId && !p.deleted).length;
-
-  $('#statUsers').textContent = usersCount;
-  $('#statPosts').textContent = topPosts;
-  $('#statPending').textContent = pendingCount;
-  $('#statReports').textContent = totalReports;
-}
-
 /* ═══════════ إدارة المنتدى ═══════════ */
 function buildForumItem(p, isReply){
   const div = document.createElement('div');
@@ -288,171 +276,220 @@ async function deleteSummary(id){
   }
 }
 
-/* ═══════════ التحليلات ═══════════
-   تُبنى فقط من بيانات موجودة أصلًا (users / forumPosts / summaries /
-   savedLessons). لا مجموعات جديدة ولا تتبع جديد ولا تعديل للقواعد. */
+/* ═══════════ الإحصائيات والتحليلات (مدمجة في لوحة واحدة) ═══════════
+   - منحنيات بسيطة (SVG) بلا أي مكتبة خارجية.
+   - الزوار والصفحات الأكثر زيارة تُقرأ من مجموعة "visits" التي يكتبها
+     script.js (وثيقة واحدة لكل زائر في اليوم: visits/{تاريخ}_{uid}). */
 let usersDocs = [];
-let savedDocs = null;
-let savedError = false;
+let visitsDocs = [];
+let visitsState = 'loading'; /* loading | ok | error */
+let rankPeriod = 7;          /* 1 = اليوم، 7 = أسبوع، 30 = شهر */
+
+const PAGE_NAMES = {
+  index: 'الصفحة الرئيسية', chat: 'المنتدى', library: 'مكتبة الكتب', guidance: 'نصائح وتوجيهات',
+  calculator: 'حساب المعدل', play: 'المكتسبات القبلية', privacy: 'السياسة والخصوصية',
+  'add-files': 'إضافة ملفات', 'submit-summary': 'رفع ملخص', 'study-later': 'الدراسة لاحقًا'
+};
+const SUBJECT_NAMES = [
+  ['accounting', 'المحاسبة'], ['civil', 'الهندسة المدنية'], ['arabic', 'اللغة العربية'], ['economy', 'الاقتصاد'],
+  ['electrical', 'الهندسة الكهربائية'], ['french', 'اللغة الفرنسية'], ['english', 'اللغة الإنجليزية'],
+  ['islamic', 'العلوم الإسلامية'], ['law', 'القانون'], ['mechanical', 'الهندسة الميكانيكية'],
+  ['math', 'الرياضيات'], ['philo', 'الفلسفة'], ['physic', 'الفيزياء'], ['science', 'العلوم الطبيعية'],
+  ['social', 'الاجتماعيات'], ['transportation', 'هندسة الطرائق'], ['info', 'الإعلام الآلي'], ['technical', 'تقني رياضي']
+];
+const PAGE_KINDS = { L: 'دروس', S: 'مواضيع', I: 'تمارين', P: 'فقرات' };
+
+function pageLabel(key){
+  if(PAGE_NAMES[key]) return PAGE_NAMES[key];
+  const m = /^([LSIP1])_(.+)$/.exec(key);
+  if(m){
+    const rest = m[2].toLowerCase();
+    const hit = SUBJECT_NAMES.find(s => rest.indexOf(s[0]) === 0);
+    const name = hit ? hit[1] : m[2];
+    return m[1] === '1' ? 'شعبة ' + name : PAGE_KINDS[m[1]] + ' ' + name;
+  }
+  return key;
+}
 
 function tms(c){ return (c && c.toMillis) ? c.toMillis() : (typeof c === 'number' ? c : null); }
+function pad2(n){ return String(n).padStart(2, '0'); }
 function dayKey(ms){
   const d = new Date(ms);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
-function loadSavedForAnalytics(){
-  db.collection('savedLessons').limit(1000).get()
-    .then(snap => { savedDocs = snap.docs.map(d => d.data()); renderAnalytics(); })
-    .catch(() => { savedError = true; renderAnalytics(); });
+/* آخر n يومًا (الأقدم أولًا) بصيغة مفاتيح yyyy-mm-dd بتوقيت المتصفح */
+function lastDays(n){
+  const out = [], now = new Date();
+  for(let i = n - 1; i >= 0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    out.push({
+      key: dayKey(d.getTime()),
+      label: d.toLocaleDateString('ar', { month: 'short', day: 'numeric' }),
+      tick: d.getDate() + '/' + (d.getMonth() + 1),
+      value: 0
+    });
+  }
+  return out;
 }
-function topCounts(list, keyFn, n){
-  const m = new Map();
-  list.forEach(x => { const k = keyFn(x); if(k) m.set(k, (m.get(k) || 0) + 1); });
-  return Array.from(m, ([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, n);
+function countByDay(list, getMs, days){
+  const map = new Map(days.map(d => [d.key, d]));
+  list.forEach(x => {
+    const t = getMs(x);
+    if(t === null || t === undefined) return;
+    const d = map.get(dayKey(t));
+    if(d) d.value++;
+  });
+  return days;
 }
-function hBars(rows, emptyMsg){
-  if(!rows.length) return '<div class="an-note">' + esc(emptyMsg || 'لا توجد بيانات كافية بعد.') + '</div>';
-  const max = Math.max.apply(null, rows.map(r => r.value)) || 1;
-  return rows.map(r =>
-    '<div class="an-hrow"><span class="an-hlabel" title="' + esc(r.label) + '">' + esc(r.label) + '</span>' +
-    '<span class="an-htrack"><span class="an-hfill" style="width:' + Math.max(3, Math.round(r.value / max * 100)) + '%"></span></span>' +
-    '<span class="an-hval">' + r.value + '</span></div>').join('');
+
+/* ── منحنى SVG ناعم ── */
+function lineChart(items, id){
+  const W = 600, H = 210, L = 34, R = 12, T = 14, B = 28;
+  const max = Math.max(1, ...items.map(i => i.value));
+  const top = max <= 4 ? 4 : Math.ceil(max / 4) * 4;
+  const n = items.length, step = (W - L - R) / Math.max(1, n - 1);
+  const yOf = v => T + (H - T - B) * (1 - v / top);
+  const pts = items.map((it, i) => ({ x: L + i * step, y: yOf(it.value), it }));
+  const clampY = y => Math.max(T, Math.min(H - B, y));
+
+  let d = 'M' + pts[0].x + ' ' + pts[0].y;
+  for(let i = 0; i < pts.length - 1; i++){
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = clampY(p1.y + (p2.y - p0.y) / 6);
+    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = clampY(p2.y - (p3.y - p1.y) / 6);
+    d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
+  }
+  const base = H - B;
+  const area = d + ' L' + pts[pts.length - 1].x + ' ' + base + ' L' + pts[0].x + ' ' + base + ' Z';
+
+  let grid = '';
+  for(let k = 0; k <= 4; k++){
+    const v = top * k / 4, y = yOf(v);
+    grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" style="stroke:var(--empty-border)" stroke-dasharray="3 4"/>' +
+            '<text x="' + (L - 6) + '" y="' + (y + 3.5) + '" text-anchor="end" font-size="10" style="fill:var(--footer-text)">' + Math.round(v) + '</text>';
+  }
+  const every = Math.ceil(n / 7);
+  let xl = '';
+  pts.forEach((p, i) => {
+    if(i % every === 0 || i === n - 1) xl += '<text x="' + p.x + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" style="fill:var(--footer-text)">' + esc(p.it.tick) + '</text>';
+  });
+  const dots = pts.map(p =>
+    '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + (n <= 14 ? 3.2 : 2.4) + '" style="fill:var(--accent)"><title>' + esc(p.it.label) + ': ' + p.it.value + '</title></circle>' +
+    '<circle cx="' + p.x + '" cy="' + p.y + '" r="9" fill="transparent"><title>' + esc(p.it.label) + ': ' + p.it.value + '</title></circle>'
+  ).join('');
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;direction:ltr;display:block" role="img">' +
+    '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" style="stop-color:var(--accent);stop-opacity:.35"/><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>' +
+    grid + '<path d="' + area + '" fill="url(#' + id + ')"/>' +
+    '<path d="' + d + '" fill="none" style="stroke:var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    dots + xl + '</svg>';
 }
-function colChart(items){
-  const max = Math.max.apply(null, items.map(i => i.value)) || 1;
-  return '<div class="an-cols">' + items.map(i =>
-    '<div class="an-col" title="' + esc(i.label) + ': ' + i.value + '"><span class="an-cval">' + (i.value || '') + '</span>' +
-    '<span class="an-cbar" style="height:' + (i.value ? Math.max(4, Math.round(i.value / max * 100)) : 1) + '%"></span>' +
-    '<span class="an-clabel">' + esc(i.short) + '</span></div>').join('') + '</div>';
-}
-function anCard(title, body, note, warn){
-  return '<div class="an-card"><h3>' + title + '</h3>' + body +
-    (note ? '<div class="an-note' + (warn ? ' warn' : '') + '">' + note + '</div>' : '') + '</div>';
+
+function anCard(title, body, note){
+  return '<div class="an-card"><h3>' + title + '</h3>' + body + (note ? '<div class="an-note">' + note + '</div>' : '') + '</div>';
 }
 function statCard(value, label){
   return '<div class="admin-stat-card"><div class="admin-stat-value">' + value + '</div><div class="admin-stat-label">' + label + '</div></div>';
 }
+function sumValues(items){ return items.reduce((s, i) => s + i.value, 0); }
 
-function renderAnalytics(){
+function computeVisits(){
+  const days = lastDays(30);
+  const keyIndex = new Map(days.map(d => [d.key, d]));
+  const last7 = new Set(days.slice(-7).map(d => d.key));
+  const today = days[days.length - 1].key;
+  const u1 = new Set(), u7 = new Set(), u30 = new Set();
+  visitsDocs.forEach(v => {
+    const d = keyIndex.get(v.date);
+    if(!d) return;
+    d.value++; /* وثيقة واحدة = زائر واحد في هذا اليوم */
+    u30.add(v.uid);
+    if(last7.has(v.date)) u7.add(v.uid);
+    if(v.date === today) u1.add(v.uid);
+  });
+  return { days, today: u1.size, week: u7.size, month: u30.size };
+}
+
+function topPages(period){
+  const keys = new Set(lastDays(period).map(d => d.key));
+  const m = new Map();
+  visitsDocs.forEach(v => {
+    if(!keys.has(v.date) || !v.pages) return;
+    Object.keys(v.pages).forEach(k => m.set(k, (m.get(k) || 0) + (Number(v.pages[k]) || 0)));
+  });
+  return Array.from(m, ([k, value]) => ({ label: pageLabel(k), value })).sort((a, b) => b.value - a.value).slice(0, 10);
+}
+function hBars(rows){
+  if(!rows.length) return '<div class="an-note">لا توجد زيارات مسجّلة في هذه الفترة بعد.</div>';
+  const max = Math.max.apply(null, rows.map(r => r.value)) || 1;
+  return rows.map((r, i) =>
+    '<div class="an-hrow"><span class="an-hrank">' + (i + 1) + '</span><span class="an-hlabel" title="' + esc(r.label) + '">' + esc(r.label) + '</span>' +
+    '<span class="an-htrack"><span class="an-hfill" style="width:' + Math.max(3, Math.round(r.value / max * 100)) + '%"></span></span>' +
+    '<span class="an-hval">' + r.value + '</span></div>').join('');
+}
+
+function loadVisits(){
+  const start = lastDays(30)[0].key;
+  visitsState = 'loading';
+  db.collection('visits').where('date', '>=', start).get()
+    .then(snap => { visitsDocs = snap.docs.map(d => d.data()); visitsState = 'ok'; renderStats(); })
+    .catch(err => { console.error('visits', err); visitsState = 'error'; renderStats(); });
+}
+
+function renderStats(){
   const root = $('#analyticsBody');
   if(!root) return;
-  const now = Date.now();
 
-  /* المستخدمون حسب الأيام (آخر 14 يومًا) من users.createdAt */
-  const days = [];
-  for(let i = 13; i >= 0; i--){
-    const t = now - i * 86400000;
-    days.push({ key: dayKey(t), label: new Date(t).toLocaleDateString('ar', { month: 'short', day: 'numeric' }), short: String(new Date(t).getDate()), value: 0 });
-  }
-  let noDate = 0;
-  usersDocs.forEach(u => {
-    const t = tms(u.createdAt);
-    if(t === null){ noDate++; return; }
-    const d = days.find(x => x.key === dayKey(t));
-    if(d) d.value++;
-  });
-  const newLast14 = days.reduce((s, d) => s + d.value, 0);
-  const banned = usersDocs.filter(u => u.banned).length;
+  const pendingCount = summariesData.filter(s => s.status === 'pending').length;
+  const totalReports = postsData.reduce((sum, p) => sum + (p.reportCount || 0), 0);
+  const topPostsCount = postsData.filter(p => !p.parentId && !p.deleted).length;
 
-  /* النشاط المسجّل: منشورات المنتدى + الملفات المرسلة + عناصر «الدراسة لاحقًا» */
-  const activity = [];
-  postsData.forEach(p => { const t = tms(p.createdAt); if(t !== null && p.uid) activity.push({ uid: p.uid, t }); });
-  summariesData.forEach(s => { const t = tms(s.createdAt); if(t !== null && s.submitterUid) activity.push({ uid: s.submitterUid, t }); });
-  (savedDocs || []).forEach(s => { const t = tms(s.createdAt); if(t !== null && s.uid) activity.push({ uid: s.uid, t }); });
-  const activeIn = n => new Set(activity.filter(a => now - a.t <= n * 86400000).map(a => a.uid)).size;
+  const v = computeVisits();
+  const users30 = countByDay(usersDocs, u => tms(u.createdAt), lastDays(30));
+  const posts30 = countByDay(postsData.filter(p => !p.deleted), p => tms(p.createdAt), lastDays(30));
 
-  /* أوقات النشاط حسب ساعة اليوم (توقيت متصفح الأدمن) — تشمل تاريخ إنشاء الحسابات */
-  const hours = Array.from({ length: 24 }, (_, h) => ({ label: h + ':00', short: String(h), value: 0 }));
-  activity.forEach(a => { hours[new Date(a.t).getHours()].value++; });
-  usersDocs.forEach(u => { const t = tms(u.createdAt); if(t !== null) hours[new Date(t).getHours()].value++; });
-  const hoursTotal = hours.reduce((s, h) => s + h.value, 0);
+  const visitorsCards = visitsState === 'ok'
+    ? statCard(v.today, 'زوار اليوم') + statCard(v.week, 'زوار الأسبوع') + statCard(v.month, 'زوار الشهر')
+    : '';
+  const generalCards =
+    statCard(usersCount, 'عدد المستخدمين') +
+    statCard(topPostsCount, 'عدد المنشورات') +
+    statCard(pendingCount, 'ملفات بانتظار المراجعة') +
+    statCard(totalReports, 'إجمالي البلاغات');
 
-  /* «الدراسة لاحقًا» */
-  let savedHtml;
-  if(savedError){
-    savedHtml = anCard('🔖 الأكثر حفظًا في «الدراسة لاحقًا»', '',
-      'غير متاح: قواعد Firestore الحالية لا تسمح للأدمن بقراءة savedLessons، ولم أعدّل القواعد كما طلبت.', true);
-  } else if(savedDocs === null){
-    savedHtml = anCard('🔖 الأكثر حفظًا في «الدراسة لاحقًا»', '<div class="an-note">جارٍ التحميل…</div>');
+  let visitsBlock;
+  if(visitsState === 'loading'){
+    visitsBlock = anCard('👁️ الزوار', '<div class="an-note">جارٍ التحميل…</div>');
+  } else if(visitsState === 'error'){
+    visitsBlock = anCard('👁️ الزوار', '',
+      'تعذّر قراءة مجموعة visits. أضف قاعدة visits إلى Firestore Rules كما في الشرح ثم أعد تحميل الصفحة.');
   } else {
-    const titleOf = s => s.title || s.lessonTitle;
-    const isTopic = s => s.kind === 'topic';
-    const isEx = s => !isTopic(s) && /تمارين|فقرات/.test(titleOf(s) || '');
-    const topics = savedDocs.filter(isTopic);
-    const exercises = savedDocs.filter(isEx);
-    const lessons = savedDocs.filter(s => !isTopic(s) && !isEx(s));
-    const note = 'يعتمد على عدد مرات الحفظ وليس المشاهدة (بحد أقصى 1000 عنصر محفوظ).';
-    savedHtml =
-      anCard('📚 أكثر الدروس حفظًا', hBars(topCounts(lessons, titleOf, 8)), note) +
-      anCard('✏️ أكثر التمارين حفظًا', hBars(topCounts(exercises, titleOf, 8)), note) +
-      anCard('📄 أكثر مواضيع البكالوريا حفظًا', hBars(topCounts(topics, titleOf, 8)), note);
+    const periodBtns = [[1, 'اليوم'], [7, 'الأسبوع'], [30, 'الشهر']].map(p =>
+      '<button type="button" class="an-period' + (rankPeriod === p[0] ? ' active' : '') + '" data-rank-period="' + p[0] + '">' + p[1] + '</button>').join('');
+    visitsBlock =
+      anCard('📈 الزوار يوميًا (آخر 30 يومًا)', lineChart(v.days, 'gVisits'),
+        'كل زائر يُحسب مرة واحدة في اليوم. التسجيل يبدأ من تاريخ رفع التحديث فقط.') +
+      anCard('🔥 أكثر الصفحات زيارة <span class="an-periods">' + periodBtns + '</span>', hBars(topPages(rankPeriod)),
+        'عدد مرات فتح كل صفحة (تُحتسب مرة واحدة لكل زائر في الجلسة).');
   }
-
-  /* الملفات المرسلة */
-  const statusRows = [
-    { label: '⏳ بانتظار المراجعة', value: summariesData.filter(s => s.status === 'pending').length },
-    { label: '✅ منشور', value: summariesData.filter(s => s.status === 'approved').length },
-    { label: '❌ مرفوض', value: summariesData.filter(s => s.status === 'rejected').length }
-  ].filter(r => r.value);
-
-  /* المنتدى */
-  const tops = postsData.filter(p => !p.parentId && !p.deleted);
-  const replies = postsData.filter(p => p.parentId && !p.deleted);
-  const topPosters = topCounts(postsData.filter(p => !p.deleted), p => p.name, 5);
-
-  const kpis =
-    statCard(usersCount, 'إجمالي المستخدمين') +
-    statCard(newLast14, 'مستخدمون جدد (14 يومًا)') +
-    statCard(activeIn(7), 'نشطون آخر 7 أيام') +
-    statCard(activeIn(30), 'نشطون آخر 30 يومًا') +
-    statCard(banned, 'حسابات موقوفة');
-
-  const growth = anCard('👥 المستخدمون الجدد حسب الأيام (آخر 14 يومًا)', colChart(days),
-    'من تاريخ إنشاء الحساب في users.' + (noDate ? ' ' + noDate + ' حساب بلا تاريخ لم يُحتسب.' : ''));
-
-  const activeNote = anCard('🟢 تعريف «النشط»', '',
-    'المستخدم الذي نشر في المنتدى أو أرسل ملفًا أو حفظ عنصرًا في «الدراسة لاحقًا» خلال الفترة. ' +
-    'التصفح فقط غير مسجَّل في البيانات الحالية، فالعدد أقل من العدد الحقيقي للزوار. ' +
-    '(منشورات المنتدى المحمّلة: آخر 500.)');
-
-  const hoursCard = anCard('🕒 أوقات النشاط (حسب ساعة اليوم)',
-    hoursTotal ? colChart(hours) : '<div class="an-note">لا توجد بيانات كافية بعد.</div>',
-    'من إنشاء الحسابات والمنشورات والملفات المرسلة وعناصر «الدراسة لاحقًا»، بتوقيت هذا المتصفح.');
-
-  const forumCard = anCard('💬 المنتدى',
-    '<ul class="an-list"><li>مواضيع: ' + tops.length + '</li><li>ردود: ' + replies.length + '</li></ul>' +
-    '<div style="margin-top:10px">' + hBars(topPosters, 'لا توجد مشاركات بعد.') + '</div>',
-    'الأكثر مشاركة (منشورات + ردود).');
-
-  const filesCard = anCard('📥 الملفات المرسلة',
-    hBars(statusRows, 'لا توجد ملفات مرسلة بعد.') +
-    '<div style="margin-top:12px">' + hBars(topCounts(summariesData, s => s.branchLabel, 6), 'لا توجد بيانات شعب في الملفات.') + '</div>' +
-    '<div style="margin-top:12px">' + hBars(topCounts(summariesData, s => s.subject, 6), '') + '</div>',
-    'الشعب والمواد هنا خاصة بالملفات المرسلة وليست بتوزيع المستخدمين.');
-
-  const unavailable = anCard('⚠️ غير متاح بالبيانات الحالية', 
-    '<ul class="an-list">' +
-    '<li>الصفحات الأكثر زيارة وعدد الزيارات</li>' +
-    '<li>أكثر الدروس والتمارين فتحًا (المتاح فقط: الأكثر حفظًا)</li>' +
-    '<li>أكثر ملفات المكتبة فتحًا</li>' +
-    '<li>توزيع المستخدمين حسب الشعبة (تُحفظ في متصفح الطالب فقط، وليس في Firebase)</li>' +
-    '<li>الأجهزة المستخدمة</li>' +
-    '</ul>',
-    'هذه الأرقام غير مسجَّلة في أي مكان حاليًا، وتسجيلها يتطلب نظام تتبع جديدًا وقواعد جديدة، لذلك لم أخترع بيانات لها.', true);
 
   root.innerHTML =
-    '<h2 class="admin-section-title">نظرة على المستخدمين</h2>' +
-    '<div class="admin-stats-grid">' + kpis + '</div>' +
-    '<div class="an-grid">' + growth + hoursCard + activeNote + '</div>' +
-    '<h2 class="admin-section-title">المحتوى</h2>' +
-    '<div class="an-grid">' + savedHtml + '</div>' +
-    '<h2 class="admin-section-title">النشاط والملفات</h2>' +
-    '<div class="an-grid">' + forumCard + filesCard + '</div>' +
-    '<div class="an-grid">' + unavailable + '</div>';
+    '<h2 class="admin-section-title">نظرة عامة</h2>' +
+    '<div class="admin-stats-grid">' + visitorsCards + generalCards + '</div>' +
+    '<div class="an-grid">' + visitsBlock + '</div>' +
+    '<div class="an-grid">' +
+      anCard('👥 حسابات جديدة يوميًا (' + sumValues(users30) + ' خلال 30 يومًا)', lineChart(users30, 'gUsers')) +
+      anCard('💬 نشاط المنتدى يوميًا (' + sumValues(posts30) + ' خلال 30 يومًا)', lineChart(posts30, 'gPosts'), 'منشورات وردود (آخر 500 عنصر محمَّل).') +
+    '</div>';
 }
+const renderAnalytics = renderStats;
 
 /* ═══════════ الأحداث العامة (تفويض نقر واحد) ═══════════ */
 document.addEventListener('click', async (e) => {
+  const periodBtn = e.target.closest('[data-rank-period]');
+  if(periodBtn){ rankPeriod = parseInt(periodBtn.dataset.rankPeriod, 10) || 7; renderStats(); return; }
+
   const delPost = e.target.closest('[data-del-post]');
   if(delPost){ deleteForumPost(delPost.dataset.delPost); return; }
 
@@ -484,14 +521,13 @@ let listenersStarted = false;
 function initListeners(){
   if(listenersStarted) return;
   listenersStarted = true;
-  loadSavedForAnalytics();
+  loadVisits();
 
   db.collection('forumPosts').orderBy('createdAt', 'desc').limit(500)
     .onSnapshot(snap => {
       postsData = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       renderForum();
       renderStats();
-      renderAnalytics();
     }, err => toast('تعذّر تحميل بيانات المنتدى: ' + err.message, 'err'));
 
   db.collection('summaries').orderBy('createdAt', 'desc').limit(500)

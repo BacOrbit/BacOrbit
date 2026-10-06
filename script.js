@@ -1001,8 +1001,58 @@
     return !!document.querySelector('script[src*="firebase-firestore-compat"]');
   }
 
+
+  /* ---------------------------------------------------------
+     8ج-3. تسجيل الزيارات للوحة الإدارة (بدون أي نظام موازٍ)
+     ------------------------------------------------------------
+     وثيقة واحدة لكل زائر في اليوم: visits/{yyyy-mm-dd}_{uid}
+     { date, uid, updatedAt, pages: { اسم_الصفحة: عدد المرات } }.
+     تُحسب الصفحة مرة واحدة لكل جلسة (sessionStorage) حتى لا تتضخم
+     الأرقام بإعادة التحميل. لا تُسجَّل صفحة admin.html. */
+  function bacVisitPageKey() {
+    var seg = location.pathname.split('/').filter(Boolean).pop() || 'index';
+    try { seg = decodeURIComponent(seg); } catch (e) {}
+    seg = seg.replace(/\.html$/, '');
+    if (seg === 'BacOrbit') seg = 'index';
+    return seg.replace(/[^\w\u0600-\u06FF\-]/g, '_') || 'index';
+  }
+
+  function bacRecordVisit(db, uid, firebaseNS) {
+    try {
+      if (!db || !uid) return;
+      var key = bacVisitPageKey();
+      var mark = 'bacorbit_visit_' + key;
+      try { if (sessionStorage.getItem(mark)) return; sessionStorage.setItem(mark, '1'); } catch (e) {}
+      var now = new Date();
+      var date = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+      var FV = firebaseNS.firestore.FieldValue;
+      var pages = {}; pages[key] = FV.increment(1);
+      db.collection('visits').doc(date + '_' + uid)
+        .set({ date: date, uid: uid, updatedAt: FV.serverTimestamp(), pages: pages }, { merge: true })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  /* الصفحات التي تُدير Firebase بنفسها (المنتدى...): ننتظر جاهزية الاتصال ثم نسجّل */
+  function bacTrackOwnFirebasePage() {
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      try {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length &&
+            firebase.auth().currentUser) {
+          clearInterval(timer);
+          bacRecordVisit(firebase.firestore(), firebase.auth().currentUser.uid, firebase);
+          return;
+        }
+      } catch (e) {}
+      if (tries > 40) clearInterval(timer);
+    }, 500);
+  }
+
   function initBacCloudFeatures() {
-    if (pageManagesOwnFirebase()) return;
+    if (/admin\.html$/.test(location.pathname)) return;
+    if (pageManagesOwnFirebase()) { bacTrackOwnFirebasePage(); return; }
 
     loadScriptTag(siblingUrl('firebase-shared.js'))
       .then(function () {
@@ -1015,6 +1065,7 @@
       .then(function () { return window.BacFirebase.ready(); })
       .then(function (ctx) {
         if (ctx && ctx.me && ctx.me.banned) return;
+        bacRecordVisit(ctx && ctx.db, ctx && ctx.me && ctx.me.uid, ctx && ctx.firebase);
         if (window.BacNotifications) window.BacNotifications.init(ctx);
         if (window.BacStudyLater) window.BacStudyLater.init(ctx);
       })
