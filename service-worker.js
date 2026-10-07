@@ -62,3 +62,19 @@ self.addEventListener('fetch', function (event) {
         })
     );
 });
+
+/* فتح الرابط المطلوب عند الضغط على تنبيه الجهاز (ردود المنتدى / تذكيرات الدراسة) */
+self.addEventListener('notificationclick', function (event) {
+    event.notification.close();
+    var url = (event.notification.data && event.notification.data.url) || './index.html';
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+            for (var i = 0; i < list.length; i++) {
+                if ('focus' in list[i]) {
+                    return list[i].focus().then(function (c) { if (c && 'navigate' in c) return c.navigate(url); });
+                }
+            }
+            return self.clients.openWindow(url);
+        })
+    );
+});

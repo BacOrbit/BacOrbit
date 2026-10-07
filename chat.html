@@ -305,6 +305,7 @@ function initNotifToggle(){
   if(!notifBtn) return;
   try{ notifEnabled = localStorage.getItem(NOTIF_PREF_KEY)==='1'; }
   catch(e){ notifEnabled=false; }
+  if(notifEnabled && !(('Notification' in window) && Notification.permission==='granted')) notifEnabled=false;
   notifSeenIds=loadNotifSeen();
   try{ notifBaselineDone = localStorage.getItem(NOTIF_BASELINE_KEY)==='1'; }
   catch(e){ notifBaselineDone=false; }
@@ -315,7 +316,18 @@ function initNotifToggle(){
   notifBtn.addEventListener('click', ()=>{
     notifEnabled=!notifEnabled;
     try{ localStorage.setItem(NOTIF_PREF_KEY,notifEnabled?'1':'0'); }catch(e){}
-    toast(notifEnabled ? 'تم تفعيل إشعارات الردود 🔔' : 'تم إيقاف إشعارات الردود 🔕');
+    if(notifEnabled && window.BacNotifications && window.BacNotifications.enableDevice){
+      window.BacNotifications.enableDevice().then(ok=>{
+        if(!ok){ notifEnabled=false; try{ localStorage.setItem(NOTIF_PREF_KEY,'0'); }catch(e){}
+          toast('لم يُمنح إذن التنبيهات من المتصفح — ستبقى الإشعارات داخل الموقع فقط','err'); }
+        else toast('تم تفعيل تنبيهات الجهاز 🔔');
+        updateNotifBtnUI();
+        if(window.BacNotifications.refresh) window.BacNotifications.refresh();
+      });
+      return;
+    }
+    if(!notifEnabled && window.BacNotifications && window.BacNotifications.disableDevice) window.BacNotifications.disableDevice();
+    toast(notifEnabled ? 'تم تفعيل إشعارات الردود 🔔' : 'تم إيقاف تنبيهات الجهاز 🔕');
     updateNotifBtnUI();
     if(window.BacNotifications && window.BacNotifications.refresh) window.BacNotifications.refresh();
   });
@@ -384,7 +396,8 @@ const FB={
           uid: parent.uid,
           type: 'forum_reply',
           title: '🔔 '+me.name+' رد على موضوعك في المنتدى',
-          body: (d.text ? d.text.slice(0,100) : 'أرفق مرفقاً'),
+          body: (d.text ? d.text.slice(0,300) : 'أرفق مرفقاً'),
+          postExcerpt: (parent.text || '').slice(0,80),
           link: 'chat.html#post-'+pid,
           fromUid: me.uid,
           fromName: me.name,
