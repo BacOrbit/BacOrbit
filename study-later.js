@@ -267,8 +267,33 @@ var busy = {};
 
 /* إزالة إشعار التذكير الخاص بعنصر محفوظ (المعرّف الثابت الجديد + القديم sl_<id>_<n>) */
 function removeReminderNotif(id) {
-  ['sl_' + id, 'sl_' + id + '_0', 'sl_' + id + '_1', 'sl_' + id + '_2'].forEach(function (nid) {
-    ctxRef.db.collection('notifications').doc(nid).delete().catch(function () {});
+  return Promise.all(['sl_' + id, 'sl_' + id + '_0', 'sl_' + id + '_1', 'sl_' + id + '_2'].map(function (nid) {
+    return ctxRef.db.collection('notifications').doc(nid).delete().catch(function () {});
+  }));
+}
+
+/* تسجيل study_reminder في نفس مجموعة notifications (معرّف ثابت sl_<id> فلا تكرار).
+   fromUid مضاف لأن قواعد الإشعارات الحالية قد تشترطه عند الإنشاء. */
+function writeStudyNotification(id, title, link, newTab) {
+  return ctxRef.db.collection('notifications').doc('sl_' + id).set({
+    uid: ctxRef.me.uid,
+    fromUid: ctxRef.me.uid,
+    type: 'study_reminder',
+    title: '📚 تذكير بالدراسة',
+    body: 'لم تنسَ متابعة: ' + title,
+    link: link || '',
+    newTab: !!newTab,
+    savedId: id,
+    read: false,
+    createdAt: serverTs()
+  });
+}
+/* لا يرفض أبدًا: فشل الإشعار لا يُبطل الحفظ نفسه */
+function recordSaveNotification(id, title, link, newTab, savedRef) {
+  return writeStudyNotification(id, title, link, newTab).then(function () {
+    return savedRef.update({ notifSaved: true });
+  }).catch(function (err) {
+    console.error('[BacOrbit][الدراسة لاحقًا] تعذّر تسجيل الإشعار (تحقّق من قواعد notifications)', err);
   });
 }
 
@@ -290,12 +315,15 @@ function toggleTopic(opt, id) {
     uid: ctxRef.me.uid, kind: 'topic',
     title: heroTitle() + ' — ' + opt.name,
     targetUrl: opt.absUrl, pagePath: pagePath(),
-    reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+    reminderCount: 0, notifSaved: false, createdAt: serverTs(), lastRemindedAt: null
   };
-  removeReminderNotif(id); /* حفظ جديد = تذكير جديد بدل بقاء أثر قديم */
-  return ref.set(data).then(function () {
+  markSessionShown(id); /* أول تذكير يكون في زيارة لاحقة وليس فور الحفظ */
+  return removeReminderNotif(id).then(function () {
+    return ref.set(data);
+  }).then(function () {
     saved.set(id, data); refreshButton();
     toast('تم حفظ «' + opt.name + '» للدراسة لاحقًا 🔖');
+    return recordSaveNotification(id, data.title, data.targetUrl, true, ref);
   }).catch(function (err) { toast(explainError(err)); throw err; })
     .finally(function () { busy[id] = false; });
 }
@@ -335,12 +363,15 @@ function toggleLesson() {
     pageUrl: resume, pagePath: pagePath(),
     scrollY: window.scrollY || 0,
     unitKey: t.unit ? t.unit.key : null,
-    reminderCount: 0, createdAt: serverTs(), lastRemindedAt: null
+    reminderCount: 0, notifSaved: false, createdAt: serverTs(), lastRemindedAt: null
   };
-  removeReminderNotif(t.id); /* حفظ جديد = تذكير جديد بدل بقاء أثر قديم */
-  return ref.set(data).then(function () {
+  markSessionShown(t.id); /* أول تذكير يكون في زيارة لاحقة وليس فور الحفظ */
+  return removeReminderNotif(t.id).then(function () {
+    return ref.set(data);
+  }).then(function () {
     saved.set(t.id, data); refreshButton();
     toast('تم الحفظ للدراسة لاحقًا 🔖');
+    return recordSaveNotification(t.id, data.title, data.pageUrl, false, ref);
   }).catch(function (err) { toast(explainError(err)); })
     .finally(function () { busy[t.id] = false; });
 }
@@ -496,23 +527,11 @@ function runRemindersOnce(docs) {
       console.error('[BacOrbit][الدراسة لاحقًا] تعذّر تحديث عدّاد التذكير', err);
     });
 
-    /* إشعار السجل: مرة واحدة فقط لكل صفحة (عند أول تذكير) بمعرّف ثابت */
-    if (it.count === 0) {
-      var title = d.title || d.lessonTitle || 'المحتوى المحفوظ';
+    /* إشعار السجل: يُنشأ عند الحفظ؛ هنا فقط للوثائق التي لم يُسجَّل لها إشعار بعد */
+    if (!d.notifSaved) {
       var isTopic = d.kind === 'topic';
-      ctxRef.db.collection('notifications').doc('sl_' + doc.id).set({
-        uid: ctxRef.me.uid,
-        type: 'study_reminder',
-        title: '📚 تذكير بالدراسة',
-        body: 'لم تنسَ متابعة: ' + title,
-        link: isTopic ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || ''),
-        newTab: isTopic,
-        savedId: doc.id,
-        read: false,
-        createdAt: serverTs()
-      }).catch(function (err) {
-        console.error('[BacOrbit][تذكير الدراسة لاحقًا] تعذّر إنشاء الإشعار (تحقّق من قواعد notifications)', err);
-      });
+      recordSaveNotification(doc.id, d.title || d.lessonTitle || 'المحتوى المحفوظ',
+        isTopic ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || ''), isTopic, doc.ref);
     }
   });
 

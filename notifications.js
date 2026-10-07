@@ -231,7 +231,8 @@ function init(ctx) {
       /* لافتة تذكير «الدراسة لاحقًا» (ثانيتان فقط، أقصاه 3 مرات لكل
          تذكير) — لا تشمل إشعارات ردود المنتدى (forum_reply) إطلاقًا. */
       var reminder = items.find(function (n) {
-        return n.type === 'study_reminder' && !n.read && !bannerHandledThisLoad[n.id];
+        /* لافتة واحدة فقط: study-later.js يعرض لافتته بعدّاده الخاص، فلا نكررها هنا */
+        return n.type === 'study_reminder' && !n.read && !bannerHandledThisLoad[n.id] && !window.BacStudyLater;
       });
       if (reminder) {
         var counts = loadBannerCounts();
