@@ -136,11 +136,6 @@
     <p>ينصح بقراءة الفقرات بعناية وفهم الأفكار بدل الحفظ المباشر</p>
 </section>
 
-<div class="pf-wrap">
-    <div class="pf-units" id="pfUnits"></div>
-    <button type="button" class="pf-back-btn" id="pfBackBtn">⬅ العودة إلى الوحدات</button>
-</div>
-
 <main class="lessons" id="pfLessons"></main>
 
 <a href="../index.html" class="back">⬅ العودة إلى الصفحة الرئيسية</a>
@@ -153,106 +148,34 @@
 (function () {
 'use strict';
 
-/* بيانات الوحدات: المفتاح، الاسم الظاهر، وقائمة أسماء الصور.
-   ⚠️ ضع صور كل مشروع داخل مجلد "P_french/" (بجانب هذا الملف مباشرة،
-   بنفس مستوى مجلد "P_english/") وبنفس الأسماء المذكورة أدناه بالضبط
-   (حسّاسة لحالة الأحرف). لإضافة صفحة/فقرة جديدة لأي مشروع، فقط أضف
-   اسم الصورة التالية إلى مصفوفة "files" الخاصة به. */
-var UNITS = [
-    {
-        key: 'histoire',
-        name: '📜 Projet 1 : Le texte d\'histoire',
-        files: ['histoire (1).png', 'histoire (2).png']
-    },
-    {
-        key: 'debat',
-        name: '💬 Projet 2 : Le débat d\'idées',
-        files: ['debat (1).png', 'debat (2).png']
-    },
-    {
-        key: 'appel',
-        name: '📢 Projet 3 : L\'appel',
-        files: ['appel (1).png', 'appel (2).png']
-    }
-];
+/* الصور تُعرض مباشرة بلا بطاقات وسيطة، بنفس أسماء الملفات الفعلية داخل مجلد P_french/ */
+var FILES = ['compte rendu.png', 'compte rendu (2).png', 'compte rendu (3).png', 'compte rendu (4).png'];
 
-var unitsWrap = document.getElementById('pfUnits');
-var backBtn = document.getElementById('pfBackBtn');
 var lessonsEl = document.getElementById('pfLessons');
-var cards = [];
 
-function buildCards() {
-    UNITS.forEach(function (u) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'pf-unit-card';
-        btn.textContent = u.name;
-        btn.dataset.key = u.key;
-        btn.addEventListener('click', function () { selectUnit(u); });
-        unitsWrap.appendChild(btn);
-        cards.push(btn);
-    });
-}
-
-function renderImages(u) {
-    lessonsEl.innerHTML = '';
-    var plainName = u.name.replace(/^\S+\s/, '');
-    u.files.forEach(function (fileName, idx) {
+function renderImages() {
+    FILES.forEach(function (fileName, idx) {
         var div = document.createElement('div');
         div.className = 'lesson';
 
         var img = document.createElement('img');
         img.src = 'P_french/' + fileName;
-        img.alt = plainName + ' - فقرة ' + (idx + 1);
+        img.alt = 'فقرات جاهزة - اللغة الفرنسية - ' + (idx + 1);
         img.loading = (idx === 0) ? 'eager' : 'lazy';
 
         div.appendChild(img);
         lessonsEl.appendChild(div);
     });
-    /* إعادة تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة حديثًا */
+    /* تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة */
     if (typeof window.bacEnhanceLessonImages === 'function') {
         window.bacEnhanceLessonImages();
     }
 }
 
-function toggleZoomBar(show) {
-    var bar = document.getElementById('bacLessonZoomBar');
-    if (bar) bar.style.display = show ? 'flex' : 'none';
-}
-
-function selectUnit(u) {
-    cards.forEach(function (c) {
-        if (c.dataset.key === u.key) {
-            c.classList.add('active');
-            c.classList.remove('pf-hidden');
-        } else {
-            c.classList.add('pf-hidden');
-        }
-    });
-    backBtn.style.display = 'inline-flex';
-    renderImages(u);
-    toggleZoomBar(true);
-}
-
-function goBack() {
-    cards.forEach(function (c) {
-        c.classList.remove('active', 'pf-hidden');
-    });
-    backBtn.style.display = 'none';
-    lessonsEl.innerHTML = '';
-    toggleZoomBar(false);
-}
-
-function init() {
-    buildCards();
-    backBtn.addEventListener('click', goBack);
-    toggleZoomBar(false);
-}
-
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', renderImages);
 } else {
-    init();
+    renderImages();
 }
 
 })();

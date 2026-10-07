@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المواضيع المتنوعة - العلوم الطبيعية - BacOrbit</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js"></script>
+</head>
+
+<body>
+
+<div class="top-bar" id="topBar">
+
+    <div class="nav-menu-wrap">
+        <button id="navMenuBtn" class="nav-menu-btn" type="button" aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="navMenuPanel">
+            <span class="nav-menu-icon">
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+                <span class="nav-menu-bar"></span>
+            </span>
+        </button>
+
+        <div class="nav-menu-panel" id="navMenuPanel" role="menu" aria-hidden="true">
+            <a href="../index.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🏠</span>الصفحة الرئيسية</a>
+            <a href="../play.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧠</span>المكتسبات القبلية</a>
+            <a href="../chat.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">📚</span>المنتدى</a>
+            <a href="../guidance.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">💡</span>نصائح وتوجيهات</a>
+            <a href="../calculator.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🧮</span>حساب المعدل</a>
+            <a href="https://www.facebook.com/profile.php?id=61593220613025" class="nav-menu-item" role="menuitem" target="_blank" rel="noopener noreferrer"><span class="nav-menu-item-icon">🎧</span>الدعم</a>
+            <a href="../privacy.html" class="nav-menu-item" role="menuitem"><span class="nav-menu-item-icon">🛡️</span>السياسة والخصوصية</a>
+        </div>
+    </div>
+
+    <button id="themeToggle" class="theme-switch" aria-label="تبديل الوضع الداكن والفاتح" title="تبديل الوضع الداكن والفاتح">
+        <span class="theme-switch-track">
+            <span class="theme-switch-icon sun">☀️</span>
+            <span class="theme-switch-icon moon">🌙</span>
+        </span>
+        <span class="theme-switch-thumb"></span>
+    </button>
+
+</div>
+
+<header class="site-header">
+    <div class="logo">BacOrbit</div>
+</header>
+
+<section class="hero">
+<h1 id="tmTitle">المواضيع المتنوعة</h1>
+<p id="tmSub">اختر الفصل</p>
+</section>
+
+<section class="subjects" id="tmGrid"></section>
+
+<a class="back" id="tmBack" href="../index.html">العودة للرئيسية</a>
+
+<footer>
+© 2026 BacOrbit
+</footer>
+
+<script>
+/* ══ صفحة «المواضيع المتنوعة» — صفحة واحدة مشتركة بين الشعب الأربع ══
+   العرض الأول:  T_science.html?b=<شعبة>            ← بطاقات الفصول الثلاثة
+   العرض الثاني: T_science.html?b=<شعبة>&c=<1|2|3>  ← بطاقات ملفات الفصل المختار
+   أسماء المجلدات S1 / S2 / S3 تُستخدم داخل المسارات فقط ولا تظهر في الواجهة.
+   تُرسم البطاقات متزامنًا أثناء تحميل الصفحة، ليعمل معها تمييز المواضيع المزارة
+   و«الدراسة لاحقًا» تمامًا كباقي صفحات المواضيع. */
+(function () {
+'use strict';
+
+/* عدد الملفات الفعلي لكل شعبة/فصل (مأخوذ من لقطات مجلدات T_science).
+   المسار: T_math/S{n}/{مجلد الشعبة}/({i}).pdf */
+var BRANCHES = {
+    math: { label: 'شعبة الرياضيات',        back: '1_math.html',    counts: { 1: 14, 2: 13, 3: 12 } },
+    scie: { label: 'شعبة العلوم التجريبية', back: '1_science.html', counts: { 1: 44, 2: 72, 3: 46 } }
+};
+
+var CHAPTERS = {
+    1: { name: 'الفصل الأول',  dir: 'S1' },
+    2: { name: 'الفصل الثاني', dir: 'S2' },
+    3: { name: 'الفصل الثالث', dir: 'S3' }
+};
+
+var DL_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+var params = new URLSearchParams(location.search);
+var b = params.get('b');
+var c = params.get('c');
+
+var grid = document.getElementById('tmGrid');
+var titleEl = document.getElementById('tmTitle');
+var subEl = document.getElementById('tmSub');
+var backEl = document.getElementById('tmBack');
+
+document.title = 'المواضيع المتنوعة - العلوم الطبيعية - BacOrbit';
+
+if (!Object.prototype.hasOwnProperty.call(BRANCHES, b)) {
+    subEl.textContent = 'تعذّر تحديد الشعبة. ارجع إلى الصفحة الرئيسية واختر شعبتك.';
+    return;
+}
+
+var branch = BRANCHES[b];
+
+if (c && Object.prototype.hasOwnProperty.call(CHAPTERS, c)) {
+    /* ── العرض الثاني: ملفات الفصل ── */
+    var chapter = CHAPTERS[c];
+    var total = branch.counts[c];
+
+    titleEl.textContent = 'المواضيع المتنوعة — ' + chapter.name;
+    subEl.textContent = branch.label + ' · اختر الموضوع الذي تريد مراجعته';
+    backEl.setAttribute('href', 'T_science.html?b=' + b);
+    backEl.textContent = 'العودة إلى الفصول';
+
+    var html = '';
+    for (var i = 1; i <= total; i++) {
+        var file = '(' + i + ').pdf';
+        var path = 'T_science/' + chapter.dir + '/' + b + '/' + file;
+        html +=
+            '<div class="card topic-card" onclick="window.open(\'' + path + '\', \'_blank\')">' +
+                '<h2>📄 الموضوع ' + i + '</h2>' +
+                '<button class="topic-download-btn" type="button" onclick="downloadTopic(event, \'' + path + '\', \'' + file + '\')" aria-label="تنزيل الموضوع ' + i + '">' +
+                    DL_SVG + '<span>تنزيل الموضوع</span>' +
+                '</button>' +
+            '</div>';
+    }
+    grid.innerHTML = html;
+} else {
+    /* ── العرض الأول: بطاقات الفصول الثلاثة ── */
+    subEl.textContent = branch.label + ' · اختر الفصل';
+    backEl.setAttribute('href', branch.back);
+    backEl.textContent = 'العودة إلى المادة';
+
+    [1, 2, 3].forEach(function (n) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = '<h2>📘 ' + CHAPTERS[n].name + '</h2>';
+        card.addEventListener('click', function () {
+            window.location.href = 'T_science.html?b=' + b + '&c=' + n;
+        });
+        grid.appendChild(card);
+    });
+}
+
+})();
+</script>
+
+</body>
+</html>
