@@ -788,6 +788,10 @@
       const dt = Math.min(48, lastTs ? ts - lastTs : 16.7);
       lastTs = ts;
       const k = dt / 16.7;
+      /* تخفيف سرعة حركة الأدوات قليلًا (1 = السرعة السابقة) */
+      const SPEED = 0.7;
+      const ks = k * SPEED;
+      const tsS = ts * SPEED;
       ctx.clearRect(0, 0, W, H);
 
       smoothMouse.x += (mouse.x - smoothMouse.x) * 0.06;
@@ -797,10 +801,10 @@
       for (let i = 0; i < tools.length; i++) {
         const t = tools[i];
         /* سباحة هادئة: انجراف ثابت + تمايل جيبي بطيء */
-        t.x += (t.vx + Math.cos(ts * 0.0004 + t.ph) * 0.05) * k;
-        t.y += (t.vy + Math.sin(ts * 0.0005 + t.ph) * 0.07) * k;
-        if (t.sway) { t.rot = t.base + Math.sin(ts * 0.0005 + t.ph) * 0.35; }
-        else { t.rot += t.vr * k; }
+        t.x += (t.vx + Math.cos(tsS * 0.0004 + t.ph) * 0.05) * ks;
+        t.y += (t.vy + Math.sin(tsS * 0.0005 + t.ph) * 0.07) * ks;
+        if (t.sway) { t.rot = t.base + Math.sin(tsS * 0.0005 + t.ph) * 0.35; }
+        else { t.rot += t.vr * ks; }
 
         const m = t.s * 2.4;
         if (t.x < -m) t.x = W + m; else if (t.x > W + m) t.x = -m;
@@ -1776,21 +1780,51 @@
     });
   }
 
+  var BRANCH_TOP_PAGE_RE = /\/Branches\/1_(science|math|technical|economy|info)\.html$/;
+
+  /* بيانات الشعبة الحالية إن كانت الصفحة هي صفحة شعبة (نفس القيم المستخدمة في بطاقات الرئيسية) */
+  var BAC_BRANCH_PAGES = {
+    science:   { key: 'science',   name: 'علوم تجريبية',            url: 'Branches/1_science.html' },
+    math:      { key: 'math',      name: 'رياضيات',                 url: 'Branches/1_math.html' },
+    technical: { key: 'technical', name: 'الهندسة (تقني رياضي)',     url: 'Branches/1_technical.html' },
+    economy:   { key: 'economy',   name: 'تسيير واقتصاد',            url: 'Branches/1_economy.html' }
+  };
+  function bacCurrentBranchPage() {
+    var m = BRANCH_TOP_PAGE_RE.exec(location.pathname);
+    return (m && BAC_BRANCH_PAGES[m[1]]) || null;
+  }
+
   function initCountdownBranchAction() {
     var mount = document.getElementById('bacCountdownBranchAction');
     if (!mount) return;
 
     var saved = bacLoadSavedBranch();
-    if (!saved) { mount.innerHTML = ''; return; }
+    var current = bacCurrentBranchPage();
 
-    mount.innerHTML = '<button type="button" class="bac-change-branch-link" id="bacChangeBranchLink">↺ تغيير الشعبة</button>';
-    on(document.getElementById('bacChangeBranchLink'), 'click', function () {
-      bacClearSavedBranch();
-      window.location.href = bacHomeHrefFromCurrentPage();
-    });
+    if (saved) {
+      mount.innerHTML = '<div class="bac-branch-actions"><button type="button" class="bac-change-branch-link" id="bacChangeBranchLink">↺ تغيير الشعبة</button></div>';
+      on(document.getElementById('bacChangeBranchLink'), 'click', function () {
+        bacClearSavedBranch();
+        window.location.href = bacHomeHrefFromCurrentPage();
+      });
+      return;
+    }
+
+    /* لا شعبة محفوظة: إن كنا داخل صفحة شعبة (مثلًا بعد الضغط على «ليس الآن») نعرض زر الحفظ */
+    if (current) {
+      mount.innerHTML = '<div class="bac-branch-actions"><button type="button" class="bac-change-branch-link bac-save-branch-link" id="bacSaveBranchLink">💾 حفظ الشعبة</button></div>';
+      on(document.getElementById('bacSaveBranchLink'), 'click', function () {
+        bacSaveBranch({ key: current.key, name: current.name, url: current.url });
+        bacMarkBranchPromptShown();
+        showToast('تم حفظ شعبتك ✅');
+        initCountdownBranchAction(); /* يتحول الزر إلى «تغيير الشعبة» */
+      });
+      return;
+    }
+
+    mount.innerHTML = '';
   }
 
-  var BRANCH_TOP_PAGE_RE = /\/Branches\/1_(science|math|technical|economy|info)\.html$/;
 
   /* ---------------------------------------------------------
      حاوية موحّدة لأزرار الشريط العلوي: ☰ ثم (تنزيل الموقع في الرئيسية) ثم 🔔.
@@ -1832,7 +1866,9 @@
     if (/(^|\/)index\.html$/.test(path) || /\/$/.test(path) || /admin\.html$/.test(path)) return;
 
     var C = 2 * Math.PI * 26;
-    var WHEEL_MAX = 700, TOUCH_MAX = 260;
+    var WHEEL_MAX = 1500, TOUCH_MAX = 560;   /* كانت 700 / 260: الآن أقل حساسية */
+    var DWELL_MS = 450;                       /* لا يبدأ الامتلاء إلا بعد البقاء لحظة عند أسفل الصفحة */
+    var bottomSince = 0;
     var progress = 0, navigating = false, idleTimer = null, decayRaf = null, touchY = null;
 
     var ring = document.createElement('div');
@@ -1867,6 +1903,7 @@
     }
     function reset() {
       if (navigating) return;
+      bottomSince = 0;
       clearTimeout(idleTimer);
       if (decayRaf) { cancelAnimationFrame(decayRaf); decayRaf = null; }
       progress = 0;
@@ -1890,6 +1927,10 @@
     }
     function add(amount) {
       if (blocked()) return;
+      /* تجاهل زخم التمرير الذي أوصل المستخدم للنهاية للتوّ */
+      var now = Date.now();
+      if (!bottomSince) { bottomSince = now; return; }
+      if (now - bottomSince < DWELL_MS) return;
       if (decayRaf) { cancelAnimationFrame(decayRaf); decayRaf = null; }
       progress = Math.min(1, progress + amount);
       render();
@@ -1906,8 +1947,11 @@
     }, { passive: true });
 
     on(window, 'scroll', function () {
-      if (progress > 0 && !atBottom()) reset();
+      if (!atBottom()) { bottomSince = 0; if (progress > 0) reset(); }
+      else if (!bottomSince) bottomSince = Date.now();
     }, { passive: true });
+    /* نقرة/لمسة على الدائرة تنقل مباشرة (طريقة سهلة بديلة عن مواصلة التمرير) */
+    on(ring, 'click', function () { if (!navigating && progress > 0.02) { progress = 1; render(); go(); } });
 
     on(window, 'touchstart', function (e) {
       touchY = e.touches && e.touches.length ? e.touches[0].clientY : null;

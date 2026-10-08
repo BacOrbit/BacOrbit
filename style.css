@@ -2454,21 +2454,35 @@ button.bac-side-download,
     min-height: 1px;
 }
 
+.bac-branch-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .bac-change-branch-link {
     background: none;
-    border: none;
+    border: 1px solid var(--empty-border);
     color: var(--footer-text);
-    font-size: 12.5px;
+    font-size: 11.5px;
     font-weight: bold;
     cursor: pointer;
     font-family: inherit;
-    padding: 6px 10px;
-    border-radius: 8px;
-    transition: color 0.2s ease, background-color 0.2s ease;
+    padding: 4px 11px;
+    line-height: 1.5;
+    border-radius: 999px;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 .bac-change-branch-link:hover {
     color: var(--accent);
+    border-color: var(--accent);
     background: var(--accent-glow);
+}
+.bac-save-branch-link {
+    color: var(--accent);
+    border-color: var(--accent-soft);
 }
 
 /* ══ نافذة "هل تريد حفظ شعبتك؟" ══ */
@@ -2553,7 +2567,7 @@ body::before {
     pointer-events: none;
     transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.bac-home-ring.show { opacity: 1; transform: translateY(0) scale(1); }
+.bac-home-ring.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; cursor: pointer; }
 .bac-home-ring-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
 .bac-home-ring-track { fill: none; stroke: var(--empty-border); stroke-width: 4; }
 .bac-home-ring-bar { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.08s linear; }
