@@ -38,6 +38,9 @@ html {
     --gold-dark: #c9a227;
     --bg-particle-dot: rgba(26, 255, 102, 0.5);
     --bg-particle-line: rgba(26, 255, 102, 0.4);
+    --bg-grid: rgba(26, 255, 102, 0.045);
+    --bg-glow-a: rgba(26, 255, 102, 0.08);
+    --bg-glow-b: rgba(26, 255, 102, 0.05);
 }
 
 html[data-theme="light"] {
@@ -62,6 +65,9 @@ html[data-theme="light"] {
     --gold-dark: #b5860f;
     --bg-particle-dot: rgba(196, 148, 25, 0.8);
     --bg-particle-line: rgba(196, 148, 25, 0.45);
+    --bg-grid: rgba(196, 148, 25, 0.075);
+    --bg-glow-a: rgba(255, 138, 31, 0.09);
+    --bg-glow-b: rgba(255, 201, 77, 0.10);
 }
 
 html, body {
@@ -2509,3 +2515,50 @@ button.bac-side-download,
     .bac-countdown-title { font-size: 16.5px; }
     .bac-countdown-section { margin: 60px auto 20px; padding-top: 30px; }
 }
+
+
+/* ---------- 21. خلفية الموقع: ورق كراس مربّعات + توهّج هادئ ---------- */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        radial-gradient(ellipse 60% 45% at 88% 0%, var(--bg-glow-a), transparent 70%),
+        radial-gradient(ellipse 55% 40% at 4% 100%, var(--bg-glow-b), transparent 70%),
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: auto, auto, 34px 34px, 34px 34px;
+}
+
+/* ---------- 22. دائرة العودة (التمرير للأسفل بعد نهاية الصفحة) ---------- */
+.bac-home-ring {
+    position: fixed;
+    left: 50%;
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    width: 64px;
+    height: 64px;
+    margin-left: -32px;
+    z-index: 4600;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--empty-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(20px) scale(0.6);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bac-home-ring.show { opacity: 1; transform: translateY(0) scale(1); }
+.bac-home-ring-svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.bac-home-ring-track { fill: none; stroke: var(--empty-border); stroke-width: 4; }
+.bac-home-ring-bar { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.08s linear; }
+.bac-home-ring-icon { position: relative; display: flex; }
+.bac-home-ring-icon svg { width: 26px; height: 26px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bac-home-ring.done { animation: bacRingDone 0.3s ease forwards; box-shadow: 0 0 26px var(--accent-glow); }
+.bac-home-ring.done .bac-home-ring-icon svg { fill: var(--accent-glow); }
+@keyframes bacRingDone { 0% { transform: scale(1); } 60% { transform: scale(1.18); } 100% { transform: scale(1.08); } }

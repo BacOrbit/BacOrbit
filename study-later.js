@@ -317,7 +317,6 @@ function toggleTopic(opt, id) {
     targetUrl: opt.absUrl, pagePath: pagePath(),
     reminderCount: 0, notifSaved: false, createdAt: serverTs(), lastRemindedAt: null
   };
-  markSessionShown(id); /* أول تذكير يكون في زيارة لاحقة وليس فور الحفظ */
   return removeReminderNotif(id).then(function () {
     return ref.set(data);
   }).then(function () {
@@ -365,7 +364,6 @@ function toggleLesson() {
     unitKey: t.unit ? t.unit.key : null,
     reminderCount: 0, notifSaved: false, createdAt: serverTs(), lastRemindedAt: null
   };
-  markSessionShown(t.id); /* أول تذكير يكون في زيارة لاحقة وليس فور الحفظ */
   return removeReminderNotif(t.id).then(function () {
     return ref.set(data);
   }).then(function () {

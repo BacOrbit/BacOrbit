@@ -151,7 +151,9 @@ function init(ctx) {
      تبقى لوحة القائمة خارجها لأنها موضوعة absolute بالنسبة إلى .nav-menu-wrap. */
   var navBtn = document.getElementById('navMenuBtn');
   if (navBtn && navBtn.parentNode) {
-    var navActions = navBtn.parentNode.querySelector('.bac-nav-actions');
+    var navActions = navBtn.parentNode.classList.contains('bac-nav-actions')
+      ? navBtn.parentNode
+      : navBtn.parentNode.querySelector('.bac-nav-actions');
     if (!navActions) {
       navActions = document.createElement('div');
       navActions.className = 'bac-nav-actions';
@@ -191,11 +193,66 @@ function init(ctx) {
   /* فتح إشعار: يُصبح مقروءًا، ثم الانتقال إلى رابطه إن وُجد — نفس
      السلوك المستخدم سواء فُتح من اللوحة أو من اللافتة، بلا ازدواجية. */
   function openNotification(n) {
-    if (!n.read) {
+    if (!n.read && !n.virtual) {
       ctx.db.collection('notifications').doc(n.id).update({ read: true }).catch(function () {});
     }
     closePanel();
-    if (n.link) window.location.href = n.link;
+    if (!n.link) return;
+    if (n.newTab) window.open(n.link, '_blank');
+    else window.location.href = n.link;
+  }
+
+  /* مصدران للسجل: مجموعة notifications (الحقيقية) + مجموعة savedLessons
+     (عناصر الدراسة لاحقًا). السبب: كتابة إشعار الحفظ في notifications قد تُرفض
+     من Security Rules فتُبتلع بصمت، بينما الحفظ نفسه في savedLessons ينجح؛
+     لذلك يُعرض كل عنصر محفوظ في السجل دائمًا حتى لو تعذّر إنشاء إشعاره. */
+  var realItems = [];
+  var savedItems = [];
+
+  function renderPanel() {
+    var seen = {};
+    realItems.forEach(function (n) { if (n.savedId) seen[n.savedId] = true; });
+
+    var virtual = savedItems.filter(function (d) { return !seen[d.id]; }).map(function (d) {
+      var isTopic = d.kind === 'topic';
+      return {
+        id: 'saved_' + d.id,
+        virtual: true,
+        read: true,
+        type: 'study_reminder',
+        title: '📚 تذكير بالدراسة',
+        body: 'لم تنسَ متابعة: ' + (d.title || d.lessonTitle || 'المحتوى المحفوظ'),
+        link: isTopic ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || ''),
+        newTab: isTopic,
+        createdAt: d.createdAt
+      };
+    });
+
+    var items = realItems.concat(virtual)
+      .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); })
+      .slice(0, 30);
+
+    var unread = realItems.filter(function (n) { return !n.read; }).length;
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    badge.classList.toggle('show', unread > 0);
+
+    var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
+    if (!items.length) {
+      panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
+    } else {
+      panel.innerHTML = head;
+      items.forEach(function (n) {
+        var el = document.createElement('div');
+        el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
+        el.innerHTML =
+          '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
+          (n.body ? esc(n.body) : '') +
+          '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
+        el.addEventListener('click', function () { openNotification(n); });
+        panel.appendChild(el);
+      });
+    }
+    return items;
   }
 
   ctx.db.collection('notifications')
@@ -204,35 +261,14 @@ function init(ctx) {
     .onSnapshot(function (qs) {
       /* الترتيب على العميل: الجمع بين where(uid) وorderBy(createdAt) كان يتطلب
          فهرسًا مركّبًا في Firestore، وبدونه يفشل الاستماع بصمت فلا يظهر أي إشعار. */
-      var items = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
-        .sort(function (a, b) { return ts(b.createdAt) - ts(a.createdAt); })
-        .slice(0, 30);
-      var unread = items.filter(function (n) { return !n.read; }).length;
-      badge.textContent = unread > 9 ? '9+' : String(unread);
-      badge.classList.toggle('show', unread > 0);
-
-      var head = '<div class="bac-notif-head">🔔 الإشعارات</div>';
-      if (!items.length) {
-        panel.innerHTML = head + '<div class="bac-notif-empty">لا توجد إشعارات بعد</div>';
-      } else {
-        panel.innerHTML = head;
-        items.forEach(function (n) {
-          var el = document.createElement('div');
-          el.className = 'bac-notif-item' + (n.read ? '' : ' unread');
-          el.innerHTML =
-            '<strong>' + esc(n.title || 'إشعار') + '</strong>' +
-            (n.body ? esc(n.body) : '') +
-            '<small>' + fmtDate(ts(n.createdAt)) + '</small>';
-          el.addEventListener('click', function () { openNotification(n); });
-          panel.appendChild(el);
-        });
-      }
+      realItems = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var items = renderPanel();
 
       /* لافتة تذكير «الدراسة لاحقًا» (ثانيتان فقط، أقصاه 3 مرات لكل
          تذكير) — لا تشمل إشعارات ردود المنتدى (forum_reply) إطلاقًا. */
       var reminder = items.find(function (n) {
         /* لافتة واحدة فقط: study-later.js يعرض لافتته بعدّاده الخاص، فلا نكررها هنا */
-        return n.type === 'study_reminder' && !n.read && !bannerHandledThisLoad[n.id] && !window.BacStudyLater;
+        return !n.virtual && n.type === 'study_reminder' && !n.read && !bannerHandledThisLoad[n.id] && !window.BacStudyLater;
       });
       if (reminder) {
         var counts = loadBannerCounts();
@@ -246,6 +282,15 @@ function init(ctx) {
       }
     }, function (err) {
       console.error('[BacOrbit][الإشعارات] تعذّر تحميل الإشعارات (على الأغلب Security Rules)', err);
+    });
+
+  ctx.db.collection('savedLessons')
+    .where('uid', '==', ctx.me.uid)
+    .onSnapshot(function (qs) {
+      savedItems = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      renderPanel();
+    }, function (err) {
+      console.error('[BacOrbit][الإشعارات] تعذّر قراءة العناصر المحفوظة', err);
     });
 }
 

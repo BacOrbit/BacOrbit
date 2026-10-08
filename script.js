@@ -598,7 +598,8 @@
     const styles = getComputedStyle(document.documentElement);
     const dot = (styles.getPropertyValue('--bg-particle-dot') || styles.getPropertyValue('--accent') || '#1aff66').trim();
     const line = (styles.getPropertyValue('--bg-particle-line') || styles.getPropertyValue('--accent-soft') || 'rgba(26,255,102,0.4)').trim();
-    return { dot: dot, line: line };
+    const accent = (styles.getPropertyValue('--accent') || '#1aff66').trim();
+    return { dot: dot, line: line, accent: accent };
   }
 
   function isLightTheme() {
@@ -607,10 +608,13 @@
 
   function getVisualParams() {
     return isLightTheme()
-      ? { dotAlpha: 0.72, lineAlpha: 0.38, mouseForce: 0.42, glow: 7 }
-      : { dotAlpha: 0.35, lineAlpha: 0.18, mouseForce: 0.50, glow: 0 };
+      ? { alpha: 0.62, fillAlpha: 0.12, mouseForce: 0.42 }
+      : { alpha: 0.62, fillAlpha: 0.07, mouseForce: 0.50 };
   }
 
+  /* الخلفية التفاعلية: أدوات مدرسية (أقلام، كتاب، فرجار، مسطرة، مثلث) تسبح ببطء
+     بدل النقاط. ألوانها وخطوطها تُقرأ من متغيرات الثيم فتتبدّل مع الوضع الداكن/الفاتح.
+     الكتاب يقلب صفحته عند الضغط عليه (في المساحات الفارغة غير التفاعلية). */
   function initInteractiveBackground() {
     if (document.getElementById('bacBgCanvas')) return;
     if (typeof window.matchMedia !== 'function') return;
@@ -629,30 +633,139 @@
 
     let W = 0, H = 0;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
-    let particles = [];
+    let tools = [];
     let colors = readAccentColors();
-    let visualParams = getVisualParams();
+    let vp = getVisualParams();
     const mouse = { x: -9999, y: -9999, active: false };
     const smoothMouse = { x: -9999, y: -9999 };
     let running = false;
     let rafId = null;
+    let lastTs = 0;
+    const FLIP_MS = 800;
 
-    function particleTarget() {
-      const area = W * H;
-      const light = isLightTheme();
-      const base = Math.round(area / (light ? 21000 : 24000));
-      const max = hasFinePointer ? (light ? 95 : 85) : (light ? 55 : 50);
-      return Math.max(14, Math.min(base, max));
+    /* ---- رسم الأدوات (إحداثيات محلية مركزها (0,0)) ---- */
+    function paint() {
+      ctx.globalAlpha = vp.fillAlpha;
+      ctx.fillStyle = colors.accent;
+      ctx.fill();
+      ctx.globalAlpha = vp.alpha;
+      ctx.stroke();
     }
 
-    function makeParticle() {
-      const light = isLightTheme();
+    function drawPencil(s) {
+      const L = s * 1.15, w = s * 0.16, xt = L * 0.45;
+      ctx.beginPath(); ctx.rect(-L, -w, xt + L, w * 2); paint();
+      ctx.beginPath(); ctx.rect(-L - w * 1.1, -w, w * 1.1, w * 2); paint();
+      ctx.beginPath(); ctx.moveTo(-L + w * 1.1, -w); ctx.lineTo(-L + w * 1.1, w); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xt, -w); ctx.lineTo(L, 0); ctx.lineTo(xt, w); ctx.closePath(); paint();
+      ctx.beginPath(); ctx.moveTo(L * 0.8, -w * 0.36); ctx.lineTo(L, 0); ctx.lineTo(L * 0.8, w * 0.36); ctx.closePath();
+      ctx.globalAlpha = vp.alpha; ctx.fillStyle = colors.dot; ctx.fill();
+      ctx.globalAlpha = vp.alpha * 0.55;
+      ctx.beginPath(); ctx.moveTo(-L + w * 1.5, 0); ctx.lineTo(xt - w * 0.5, 0); ctx.stroke();
+    }
+
+    function bookLines(side, w, h, seed, scaleLen) {
+      ctx.globalAlpha = vp.alpha * 0.5;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const y = -h * 0.58 + i * h * 0.3;
+        const len = 0.45 + 0.4 * (((seed + i * 3) % 4) / 3);
+        const x0 = side * w * 0.14, x1 = side * w * (0.14 + len * 0.72 * scaleLen);
+        ctx.moveTo(x0, y); ctx.lineTo(x1, y);
+      }
+      ctx.stroke();
+    }
+
+    function pagePoly(side, w, h) {
+      ctx.beginPath();
+      ctx.moveTo(0, -h);
+      ctx.lineTo(side * w, -h * 0.9);
+      ctx.lineTo(side * w, h * 0.95);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+    }
+
+    function drawBook(s, t) {
+      const w = s * 0.82, h = s * 0.92;
+      ctx.beginPath();
+      ctx.moveTo(0, h * 1.1); ctx.lineTo(-w * 1.07, h * 1.03); ctx.lineTo(-w * 1.07, -h * 0.82);
+      ctx.moveTo(0, h * 1.1); ctx.lineTo(w * 1.07, h * 1.03); ctx.lineTo(w * 1.07, -h * 0.82);
+      ctx.globalAlpha = vp.alpha; ctx.stroke();
+      pagePoly(-1, w, h); paint();
+      pagePoly(1, w, h); paint();
+      bookLines(-1, w, h, t.page + 1, 1);
+      bookLines(1, w, h, t.page, 1);
+      if (t.flipping) {
+        const p = t.flipP;
+        const e = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+        const th = e * Math.PI, c = Math.cos(th), sn = Math.sin(th);
+        if (Math.abs(c) > 0.02) {
+          ctx.save();
+          ctx.scale(c, 1 - 0.07 * sn);
+          pagePoly(1, w, h);
+          ctx.globalAlpha = vp.fillAlpha * 2.4; ctx.fillStyle = colors.accent; ctx.fill();
+          ctx.globalAlpha = vp.alpha; ctx.stroke();
+          bookLines(1, w, h, c > 0 ? t.page : t.page + 1, 1);
+          ctx.restore();
+        }
+      }
+    }
+
+    function drawCompass(s) {
+      const hy = -s * 0.95, ly = s * 0.95, sp = s * 0.5;
+      ctx.globalAlpha = vp.alpha; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(-sp, ly); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(sp, ly - s * 0.2); ctx.stroke();
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-sp - s * 0.03, ly - s * 0.1); ctx.lineTo(-sp, ly + s * 0.12); ctx.lineTo(-sp + s * 0.03, ly - s * 0.1); ctx.closePath(); paint();
+      ctx.beginPath(); ctx.moveTo(sp - s * 0.06, ly - s * 0.32); ctx.lineTo(sp + s * 0.06, ly - s * 0.32); ctx.lineTo(sp, ly - s * 0.08); ctx.closePath(); paint();
+      ctx.beginPath(); ctx.arc(0, hy, s * 0.1, 0, Math.PI * 2); paint();
+      ctx.beginPath(); ctx.moveTo(0, hy - s * 0.1); ctx.lineTo(0, hy - s * 0.32); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, hy - s * 0.4, s * 0.08, 0, Math.PI * 2); ctx.stroke();
+      const yc = hy + (ly - hy) * 0.55;
+      ctx.globalAlpha = vp.alpha * 0.7;
+      ctx.beginPath(); ctx.moveTo(-sp * 0.55, yc); ctx.quadraticCurveTo(0, yc + s * 0.22, sp * 0.55, yc - s * 0.04); ctx.stroke();
+      ctx.lineWidth = 1.5;
+    }
+
+    function drawRuler(s) {
+      const L = s * 1.25, h = s * 0.28;
+      ctx.beginPath(); ctx.rect(-L, -h, L * 2, h * 2); paint();
+      ctx.globalAlpha = vp.alpha * 0.85;
+      ctx.beginPath();
+      for (let i = 0; i <= 14; i++) {
+        const x = -L + i * (2 * L / 14);
+        ctx.moveTo(x, -h); ctx.lineTo(x, -h + (i % 5 === 0 ? h * 0.95 : h * 0.5));
+      }
+      ctx.stroke();
+    }
+
+    function drawTriangle(s) {
+      const a = s * 0.7;
+      ctx.beginPath(); ctx.moveTo(-a, -a); ctx.lineTo(-a, a); ctx.lineTo(a, a); ctx.closePath(); paint();
+      ctx.globalAlpha = vp.alpha * 0.8;
+      ctx.beginPath(); ctx.moveTo(-a * 0.62, a * 0.62); ctx.lineTo(-a * 0.62, -a * 0.28); ctx.lineTo(a * 0.28, a * 0.62); ctx.closePath(); ctx.stroke();
+    }
+
+    const DRAW = { pencil: drawPencil, book: drawBook, compass: drawCompass, ruler: drawRuler, triangle: drawTriangle };
+    const TYPES = ['pencil', 'book', 'compass', 'book', 'pencil', 'ruler', 'triangle', 'pencil', 'book', 'compass', 'ruler', 'pencil', 'triangle', 'book', 'compass', 'pencil'];
+
+    function toolTarget() {
+      const base = Math.round(W * H / 70000);
+      return Math.max(7, Math.min(base, hasFinePointer ? 16 : 9));
+    }
+
+    function makeTool(i) {
+      const type = TYPES[i % TYPES.length];
+      const sway = type === 'book' || type === 'compass';
       return {
-        x: Math.random() * W,
-        y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 0.16,
-        vy: (Math.random() - 0.5) * 0.16,
-        r: light ? (Math.random() * 1.6 + 0.9) : (Math.random() * 1.3 + 0.6)
+        type: type, sway: sway,
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+        rot: Math.random() * Math.PI * 2, base: (Math.random() - 0.5) * 0.6,
+        vr: (Math.random() - 0.5) * 0.0028,
+        s: 20 + Math.random() * 12, ph: Math.random() * Math.PI * 2,
+        flipping: false, flipP: 0, page: Math.floor(Math.random() * 5)
       };
     }
 
@@ -665,70 +778,58 @@
       canvas.style.height = H + 'px';
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-      const target = particleTarget();
-      if (particles.length < target) {
-        while (particles.length < target) particles.push(makeParticle());
-      } else if (particles.length > target) {
-        particles.length = target;
-      }
+      const target = toolTarget();
+      while (tools.length < target) tools.push(makeTool(tools.length));
+      if (tools.length > target) tools.length = target;
     }
 
-    function step() {
+    function step(ts) {
       if (!running) { rafId = null; return; }
+      const dt = Math.min(48, lastTs ? ts - lastTs : 16.7);
+      lastTs = ts;
+      const k = dt / 16.7;
       ctx.clearRect(0, 0, W, H);
 
       smoothMouse.x += (mouse.x - smoothMouse.x) * 0.06;
       smoothMouse.y += (mouse.y - smoothMouse.y) * 0.06;
-
-      const linkDist = Math.min(140, Math.max(90, W / 9));
       const mouseRadius = 130;
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
+      for (let i = 0; i < tools.length; i++) {
+        const t = tools[i];
+        /* سباحة هادئة: انجراف ثابت + تمايل جيبي بطيء */
+        t.x += (t.vx + Math.cos(ts * 0.0004 + t.ph) * 0.05) * k;
+        t.y += (t.vy + Math.sin(ts * 0.0005 + t.ph) * 0.07) * k;
+        if (t.sway) { t.rot = t.base + Math.sin(ts * 0.0005 + t.ph) * 0.35; }
+        else { t.rot += t.vr * k; }
 
-        if (p.x < -10) p.x = W + 10; else if (p.x > W + 10) p.x = -10;
-        if (p.y < -10) p.y = H + 10; else if (p.y > H + 10) p.y = -10;
+        const m = t.s * 2.4;
+        if (t.x < -m) t.x = W + m; else if (t.x > W + m) t.x = -m;
+        if (t.y < -m) t.y = H + m; else if (t.y > H + m) t.y = -m;
 
-        if (hasFinePointer && mouse.active) {
-          const dx = p.x - smoothMouse.x, dy = p.y - smoothMouse.y;
+        if (hasFinePointer && mouse.active && t.type !== 'book') {
+          const dx = t.x - smoothMouse.x, dy = t.y - smoothMouse.y;
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < mouseRadius && d > 0.01) {
-            const force = (1 - d / mouseRadius) * visualParams.mouseForce;
-            p.x += (dx / d) * force;
-            p.y += (dy / d) * force;
+            const force = (1 - d / mouseRadius) * vp.mouseForce * k;
+            t.x += (dx / d) * force;
+            t.y += (dy / d) * force;
           }
         }
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = colors.dot;
-        ctx.globalAlpha = visualParams.dotAlpha;
-        if (visualParams.glow) {
-          ctx.shadowBlur = visualParams.glow;
-          ctx.shadowColor = colors.dot;
+        if (t.flipping) {
+          t.flipP += dt / FLIP_MS;
+          if (t.flipP >= 1) { t.flipping = false; t.flipP = 0; t.page++; }
         }
-        ctx.fill();
-        if (visualParams.glow) ctx.shadowBlur = 0;
-      }
-      ctx.globalAlpha = 1;
 
-      ctx.strokeStyle = colors.line;
-      ctx.lineWidth = 1;
-      for (let a = 0; a < particles.length; a++) {
-        for (let b = a + 1; b < particles.length; b++) {
-          const pa = particles[a], pb = particles[b];
-          const ddx = pa.x - pb.x, ddy = pa.y - pb.y;
-          const dist = Math.sqrt(ddx * ddx + ddy * ddy);
-          if (dist < linkDist) {
-            ctx.globalAlpha = (1 - dist / linkDist) * visualParams.lineAlpha;
-            ctx.beginPath();
-            ctx.moveTo(pa.x, pa.y);
-            ctx.lineTo(pb.x, pb.y);
-            ctx.stroke();
-          }
-        }
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.rotate(t.rot);
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = colors.dot;
+        DRAW[t.type](t.s, t);
+        ctx.restore();
       }
       ctx.globalAlpha = 1;
 
@@ -736,7 +837,7 @@
     }
 
     function start() {
-      if (!rafId) { running = true; rafId = window.requestAnimationFrame(step); }
+      if (!rafId) { running = true; lastTs = 0; rafId = window.requestAnimationFrame(step); }
     }
     function stop() {
       running = false;
@@ -760,6 +861,21 @@
       on(document, 'mouseleave', function () { mouse.active = false; });
     }
 
+    /* الضغط على كتاب في الخلفية يقلب صفحته (يُتجاهل إن كان الضغط على عنصر تفاعلي) */
+    on(document, 'pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return;
+      const tg = e.target;
+      if (tg && tg.closest && tg.closest('a,button,input,textarea,select,label,summary,iframe,video,img,[onclick],[role="button"],[role="menuitem"],.card,.mini-card,.lesson,.post,.new-post,.nav-menu-panel,.bac-notif-panel,.bac-timer-widget,.pdf-reader-overlay,.bac-image-viewer-overlay')) return;
+      let best = null, bestD = Infinity;
+      for (let i = 0; i < tools.length; i++) {
+        const t = tools[i];
+        if (t.type !== 'book' || t.flipping) continue;
+        const d = Math.hypot(e.clientX - t.x, e.clientY - t.y);
+        if (d < t.s * 1.15 && d < bestD) { best = t; bestD = d; }
+      }
+      if (best) { best.flipping = true; best.flipP = 0; }
+    }, { passive: true });
+
     on(document, 'visibilitychange', function () {
       if (document.hidden) stop(); else start();
     });
@@ -767,8 +883,7 @@
     if (typeof MutationObserver === 'function') {
       const themeObserver = new MutationObserver(function () {
         colors = readAccentColors();
-        visualParams = getVisualParams();
-        resize();
+        vp = getVisualParams();
       });
       themeObserver.observe(document.documentElement, {
         attributes: true,
@@ -1677,34 +1792,142 @@
 
   var BRANCH_TOP_PAGE_RE = /\/Branches\/1_(science|math|technical|economy|info)\.html$/;
 
-  function initSmartBackLinks() {
-    if (BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
+  /* ---------------------------------------------------------
+     حاوية موحّدة لأزرار الشريط العلوي: ☰ ثم (تنزيل الموقع في الرئيسية) ثم 🔔.
+     تُنشأ مبكرًا وبشكل متزامن لتكون مرساة ثابتة لا يتغيّر مكانها مهما تأخّر
+     تحميل الإشعارات (notifications.js تعيد استخدامها بدل إنشاء حاوية جديدة). */
+  function ensureNavActions() {
+    var navBtn = document.getElementById('navMenuBtn');
+    if (!navBtn || !navBtn.parentNode) return;
+    var holder = navBtn.parentNode;
+    var actions = holder.classList.contains('bac-nav-actions') ? holder : holder.querySelector('.bac-nav-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'bac-nav-actions';
+      holder.insertBefore(actions, holder.firstChild);
+      actions.appendChild(navBtn);
+    }
+    var pwa = document.getElementById('pwaInstallBtn');
+    if (pwa && pwa.parentNode !== actions) actions.appendChild(pwa);
+  }
 
-    var saved = bacLoadSavedBranch();
-    if (!saved) return;
-
-    var target = bacResolveBranchUrl(saved.url);
-    qsa('a.back').forEach(function (link) {
-      var href = link.getAttribute('href') || '';
-      if (/(^|\/)index\.html$/.test(href)) {
-        link.setAttribute('href', target);
-      }
+  /* ---------------------------------------------------------
+     إزالة أزرار «العودة إلى الصفحة الرئيسية» واستبدالها بدائرة التمرير أدناه.
+     (أزرار العودة الأخرى مثل «العودة إلى الفصول» تبقى كما هي.) */
+  function removeHomeBackButtons() {
+    qsa('a.back').forEach(function (a) {
+      if (a.closest('.auth-gate')) return;
+      var href = a.getAttribute('href') || '';
+      if (/(^|\/)index\.html$/.test(href)) a.remove();
     });
   }
 
-  function initBranchPageChangeButton() {
-    if (!BRANCH_TOP_PAGE_RE.test(location.pathname)) return;
+  /* ---------------------------------------------------------
+     دائرة «المنزل»: عند الوصول لنهاية الصفحة ومواصلة التمرير للأسفل تظهر دائرة
+     بأيقونة منزل وتمتلئ تدريجيًا؛ عند اكتمالها يعود المستخدم لشعبته المحفوظة
+     أو للصفحة الرئيسية إن لم يحفظ شعبة. */
+  function initOverscrollHome() {
+    if (document.getElementById('bacHomeRing')) return;
+    var path = location.pathname;
+    if (/(^|\/)index\.html$/.test(path) || /\/$/.test(path) || /admin\.html$/.test(path)) return;
 
-    var link = document.querySelector('a.back');
-    if (!link) return;
+    var C = 2 * Math.PI * 26;
+    var WHEEL_MAX = 700, TOUCH_MAX = 260;
+    var progress = 0, navigating = false, idleTimer = null, decayRaf = null, touchY = null;
 
-    link.textContent = '🔄 تغيير الشعبة';
-    link.setAttribute('href', '../index.html');
+    var ring = document.createElement('div');
+    ring.id = 'bacHomeRing';
+    ring.className = 'bac-home-ring';
+    ring.setAttribute('aria-hidden', 'true');
+    ring.innerHTML =
+      '<svg class="bac-home-ring-svg" viewBox="0 0 64 64"><circle class="bac-home-ring-track" cx="32" cy="32" r="26"/>' +
+      '<circle class="bac-home-ring-bar" cx="32" cy="32" r="26" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '"/></svg>' +
+      '<span class="bac-home-ring-icon"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span>';
+    document.body.appendChild(ring);
+    var bar = ring.querySelector('.bac-home-ring-bar');
 
-    on(link, 'click', function (e) {
-      e.preventDefault();
-      bacClearSavedBranch();
-      window.location.href = '../index.html';
+    function disabled() {
+      return BRANCH_TOP_PAGE_RE.test(location.pathname) && !!bacLoadSavedBranch();
+    }
+    function blocked() {
+      return navigating || disabled() || document.body.style.overflow === 'hidden';
+    }
+    function atBottom() {
+      var d = document.documentElement;
+      return (window.scrollY || d.scrollTop || 0) + window.innerHeight >= d.scrollHeight - 3;
+    }
+    function target() {
+      var saved = bacLoadSavedBranch();
+      if (saved && !BRANCH_TOP_PAGE_RE.test(location.pathname)) return bacResolveBranchUrl(saved.url);
+      return bacHomeHrefFromCurrentPage();
+    }
+    function render() {
+      ring.classList.toggle('show', progress > 0.02);
+      bar.style.strokeDashoffset = String(C * (1 - progress));
+    }
+    function reset() {
+      if (navigating) return;
+      clearTimeout(idleTimer);
+      if (decayRaf) { cancelAnimationFrame(decayRaf); decayRaf = null; }
+      progress = 0;
+      render();
+    }
+    function decay() {
+      if (navigating) return;
+      progress -= 0.03;
+      if (progress <= 0) { progress = 0; render(); decayRaf = null; return; }
+      render();
+      decayRaf = requestAnimationFrame(decay);
+    }
+    function scheduleDecay() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () { decayRaf = requestAnimationFrame(decay); }, 500);
+    }
+    function go() {
+      navigating = true;
+      ring.classList.add('done');
+      setTimeout(function () { location.href = target(); }, 300);
+    }
+    function add(amount) {
+      if (blocked()) return;
+      if (decayRaf) { cancelAnimationFrame(decayRaf); decayRaf = null; }
+      progress = Math.min(1, progress + amount);
+      render();
+      if (progress >= 1) { go(); return; }
+      scheduleDecay();
+    }
+
+    on(window, 'wheel', function (e) {
+      if (e.ctrlKey) return;
+      if (e.deltaY < 0) { if (progress > 0) reset(); return; }
+      if (!atBottom()) return;
+      var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      add(dy / WHEEL_MAX);
+    }, { passive: true });
+
+    on(window, 'scroll', function () {
+      if (progress > 0 && !atBottom()) reset();
+    }, { passive: true });
+
+    on(window, 'touchstart', function (e) {
+      touchY = e.touches && e.touches.length ? e.touches[0].clientY : null;
+    }, { passive: true });
+    on(window, 'touchmove', function (e) {
+      if (!e.touches || !e.touches.length) return;
+      var y = e.touches[0].clientY;
+      if (touchY !== null) {
+        var dy = touchY - y;
+        if (dy > 0 && atBottom()) add(dy / TOUCH_MAX);
+        else if (dy < 0 && progress > 0) reset();
+      }
+      touchY = y;
+    }, { passive: true });
+    on(window, 'touchend', function () { touchY = null; if (progress > 0) scheduleDecay(); }, { passive: true });
+
+    on(window, 'pageshow', function () {
+      navigating = false;
+      ring.classList.remove('done');
+      reset();
     });
   }
 
@@ -1722,6 +1945,7 @@
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
     safeRun(rebuildNavMenu, 'توحيد قائمة التنقل الجانبية');
+    safeRun(ensureNavActions, 'حاوية أزرار الشريط العلوي');
     safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
     safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
@@ -1729,8 +1953,8 @@
     safeRun(initBacCountdown, 'العدّاد التنازلي لبكالوريا 2027');
     safeRun(initBranchSelectionCards, 'حفظ اختيار الشعبة');
     safeRun(initCountdownBranchAction, 'رابط تغيير الشعبة أسفل العدّاد');
-    safeRun(initSmartBackLinks, 'أزرار العودة الذكية للشعبة المحفوظة');
-    safeRun(initBranchPageChangeButton, 'زر تغيير الشعبة في صفحات اختيار المادة');
+    safeRun(removeHomeBackButtons, 'إزالة أزرار العودة إلى الرئيسية');
+    safeRun(initOverscrollHome, 'دائرة العودة عند التمرير للأسفل');
   }
 
   if (document.readyState === 'loading') {
