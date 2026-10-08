@@ -146,7 +146,6 @@ function init(ctx) {
   btn.setAttribute('aria-label', 'الإشعارات');
   btn.title = 'الإشعارات';
   btn.innerHTML = '🔔<span class="bac-notif-badge" id="bacNotifBadge">0</span>';
-
   /* حاوية موحّدة لأزرار الشريط العلوي: تجمع ☰ و 🔔 و ⏱️ في صف واحد.
      تبقى لوحة القائمة خارجها لأنها موضوعة absolute بالنسبة إلى .nav-menu-wrap. */
   var navBtn = document.getElementById('navMenuBtn');
