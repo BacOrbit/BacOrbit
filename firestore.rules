@@ -2,84 +2,116 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() { return request.auth != null; }
+    function signedIn() { return request.auth != null; }
     function isAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function onlyChanged(fields) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    function notBanned() {
+      return !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.banned == true);
     }
 
-    /* ── admins/{uid} ── مصدر الصلاحية الحقيقي. لا يُنشأ ولا يُعدَّل
-       إلا يدويًا من Firebase Console (انظر ADMIN_SETUP_README.md). */
+    // ───────── admins: قراءة الحساب لنفسه فقط، ولا كتابة من أي عميل ─────────
     match /admins/{uid} {
-      allow read: if isSignedIn();
+      allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
 
-    /* ── users/{uid} ── حساب كل تلميذ (مجهول الهوية). */
+    // ───────── users ─────────
     match /users/{uid} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(uid);
-      allow update: if isAdmin() || (isOwner(uid) && onlyChanged(['name']));
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.banned == false;
+      // الحظر بعد 3 بلاغات يتم من المتصفح (قيد قائم): الحقول المسموحة فقط وبقيمة banned = true
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['banned','bannedAt','bannedFor'])
+        && request.resource.data.banned == true;
       allow delete: if false;
     }
 
-    /* ── forumPosts/{postId} ── منشورات وردود المنتدى. */
+    // ───────── forumPosts (منشورات وردود) ─────────
     match /forumPosts/{postId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update: if isSignedIn() && (
-        (resource.data.uid == request.auth.uid && onlyChanged(['deleted'])) ||
-        onlyChanged(['reportCount', 'reports', 'removed']) ||
-        isAdmin()
+      allow read: if signedIn();
+
+      allow create: if signedIn() && notBanned()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.deleted == false
+        && request.resource.data.removed == false
+        && request.resource.data.reportCount == 0;
+
+      allow update: if isAdmin()
+        // (1) صاحب المحتوى: حذف منطقي فقط
+        || (signedIn() && resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted'])
+            && request.resource.data.deleted == true)
+        // (2) غير صاحبه: بلاغ واحد فقط، مرة واحدة لكل حساب
+        || (signedIn() && resource.data.uid != request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount','reports','removed'])
+            && request.resource.data.reportCount == resource.data.reportCount + 1
+            && !(request.auth.uid in resource.data.reports)
+            && (request.auth.uid in request.resource.data.reports)
+            && request.resource.data.reports.size() == resource.data.reports.size() + 1
+            && request.resource.data.removed == (request.resource.data.reportCount >= 3));
+
+      // حذف فعلي: الأدمن، أو صاحب الرد (الردود فقط، أي parentId غير null). لا أحد يحذف ردود غيره.
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid && resource.data.parentId != null);
+    }
+
+    // ───────── notifications ─────────
+    match /notifications/{nid} {
+      // يقرأ المستخدم إشعاراته فقط
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if signedIn() && (
+        // إشعار رد في المنتدى: يُنشئه كاتب الرد فقط، لصاحب الموضوع الفعلي، ومعرّفه ثابت fr_<replyId> (يمنع التكرار والتزوير)
+        (request.resource.data.type == 'forum_reply'
+          && nid == 'fr_' + request.resource.data.replyId
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.uid != request.auth.uid
+          && request.resource.data.read == false
+          && get(/databases/$(database)/documents/forumPosts/$(request.resource.data.replyId)).data.uid == request.auth.uid
+          && get(/databases/$(database)/documents/forumPosts/$(request.resource.data.replyId)).data.parentId == request.resource.data.postId
+          && get(/databases/$(database)/documents/forumPosts/$(request.resource.data.postId)).data.uid == request.resource.data.uid)
+        // تذكير «الدراسة لاحقًا»: للمستخدم نفسه فقط
+        || (request.resource.data.type == 'study_reminder'
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.fromUid == request.auth.uid)
       );
-      allow delete: if isAdmin();
-    }
 
-    /* ── summaries/{id} ── الملخصات والملفات المرسلة من submit-summary.js
-       و add-files.js على حد سواء (نفس المجموعة، نفس دورة المراجعة). */
-    match /summaries/{id} {
-      allow read: if isSignedIn() &&
-        (resource.data.status == 'approved' ||
-         resource.data.submitterUid == request.auth.uid ||
-         isAdmin());
-      allow create: if isSignedIn() &&
-        request.resource.data.submitterUid == request.auth.uid &&
-        request.resource.data.status == 'pending';
-      allow update: if isAdmin(); /* القبول/الرفض حصرًا من الإدارة */
-      allow delete: if isAdmin() ||
-        (isSignedIn() && resource.data.submitterUid == request.auth.uid && resource.data.status == 'pending');
-    }
-
-    /* ── savedLessons/{id} ── ميزة "الدراسة لاحقًا". كل وثيقة تخص
-       مستخدمًا واحدًا فقط، ومعرّفها المتفق عليه هو uid + '__' + مسار
-       الصفحة (انظر study-later.js) — لا نسخ مكررة لنفس الدرس. */
-    match /savedLessons/{id} {
-      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update: if isSignedIn() &&
-        resource.data.uid == request.auth.uid &&
-        request.resource.data.uid == request.auth.uid;
-    }
-
-    /* ── notifications/{id} ── إشعارات "الدراسة لاحقًا" (يُنشئها
-       المستخدم لنفسه فقط) وإشعارات ردود المنتدى (ينشئها من ردّ
-       لمستخدم آخر هو صاحب الموضوع، وليس لنفسه). لا حذف من العميل. */
-    match /notifications/{id} {
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow update: if isSignedIn() &&
-        resource.data.uid == request.auth.uid &&
-        onlyChanged(['read']);
-      allow create: if isSignedIn() && (
-        (request.resource.data.type == 'study_reminder' &&
-         request.resource.data.uid == request.auth.uid) ||
-        (request.resource.data.type == 'forum_reply' &&
-         request.resource.data.fromUid == request.auth.uid &&
-         request.resource.data.uid != request.auth.uid)
+      // المستلم: تعليم كمقروء فقط (وتحديث تذكيراته الخاصة)
+      allow update: if signedIn() && resource.data.uid == request.auth.uid && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        || (resource.data.type == 'study_reminder' && request.resource.data.uid == request.auth.uid)
       );
+
+      // الحذف: المستلم، أو كاتب الرد (لإزالة إشعار رد حذفه)، أو الأدمن
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid
+                                      || resource.data.fromUid == request.auth.uid
+                                      || isAdmin());
+    }
+
+    // ───────── savedLessons (الدراسة لاحقًا) ─────────
+    match /savedLessons/{sid} {
+      allow get: if signedIn() && (resource == null || resource.data.uid == request.auth.uid);
+      allow list: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ───────── summaries (الملخصات والملفات) ─────────
+    match /summaries/{sid} {
+      allow read: if signedIn() && (isAdmin()
+                                    || resource.data.submitterUid == request.auth.uid
+                                    || resource.data.status == 'approved');
+      allow create: if signedIn() && request.resource.data.submitterUid == request.auth.uid
+                       && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    // ───────── visits (الإحصائيات) ─────────
+    match /visits/{vid} {
+      allow read: if isAdmin();
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
+                               && vid == request.resource.data.date + '_' + request.auth.uid;
       allow delete: if false;
     }
   }

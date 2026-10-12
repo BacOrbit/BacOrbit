@@ -383,35 +383,57 @@ const FB={
   createPost(d){ return this.db.collection('forumPosts').add(this.base(Object.assign({parentId:null},d))); },
   createReply(pid,d){
     return this.db.collection('forumPosts').add(this.base(Object.assign({parentId:pid},d))).then(ref=>{
-      /* إشعار صاحب الموضوع الأصلي بالرد الجديد (إن لم يكن هو نفسه من ردّ).
-         معرّف الإشعار ثابت (fr_<معرف الرد>) فلا يمكن أن يتكرر أبداً حتى
-         لو أُعيد تنفيذ هذا الكود لأي سبب. لا يُستخدم Cloud Function هنا
-         (خارج نطاق البنية الحالية للمشروع)، فهذا إنشاء من طرف العميل
-         (Client) نفسه، محمي بقواعد Firestore الجديدة (انظر firestore.rules). */
-      this.db.collection('forumPosts').doc(pid).get().then(parentSnap=>{
-        if(!parentSnap.exists) return;
-        const parent=parentSnap.data();
-        if(!parent.uid || parent.uid===me.uid) return; /* لا تُشعر نفسك */
-        this.db.collection('notifications').doc('fr_'+ref.id).set({
-          uid: parent.uid,
-          type: 'forum_reply',
-          title: '🔔 '+me.name+' رد على موضوعك في المنتدى',
-          body: (d.text ? d.text.slice(0,300) : 'أرفق مرفقاً'),
-          postExcerpt: (parent.text || '').slice(0,80),
-          link: 'chat.html#post-'+pid,
-          fromUid: me.uid,
-          fromName: me.name,
-          postId: pid,
-          replyId: ref.id,
-          read: false,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(()=>{});
-      }).catch(()=>{});
+      /* إشعار صاحب الموضوع الأصلي (إن لم يكن هو نفسه من ردّ). المعرّف ثابت (fr_<معرف الرد>)
+         فلا يتكرر الإشعار أبداً. لا ينتظر الإرسال حتى لا يعطّل نشر الرد. */
+      this.notifyReply(pid,ref.id,d);
       return ref;
+    });
+  },
+  notifyReply(pid,replyId,d){
+    return this.db.collection('forumPosts').doc(pid).get().then(parentSnap=>{
+      if(!parentSnap.exists) return;
+      const parent=parentSnap.data();
+      if(!parent.uid || parent.uid===me.uid) return; /* لا تُشعر نفسك */
+      return this.db.collection('notifications').doc('fr_'+replyId).set({
+        uid: parent.uid,
+        type: 'forum_reply',
+        title: '🔔 '+me.name+' رد على موضوعك في المنتدى',
+        body: (d.text ? d.text.slice(0,300) : 'أرفق مرفقاً'),
+        postExcerpt: (parent.text || '').slice(0,80),
+        link: new URL('chat.html#post-'+pid, location.href).href, /* رابط مطلق يعمل من أي صفحة */
+        fromUid: me.uid,
+        fromName: me.name,
+        postId: pid,
+        replyId: replyId,
+        read: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }).catch(err=>{
+      /* كان الخطأ يُبتلع بصمت سابقاً؛ الآن يظهر في الـ Console لتسهيل التشخيص (غالباً Security Rules) */
+      console.error('[BacOrbit][المنتدى] تعذّر إنشاء إشعار الرد — تحقق من قواعد Firestore لمجموعة notifications', err);
     });
   },
   async delete(id){
     const ref=this.db.collection('forumPosts').doc(id);
+    const snap=await ref.get();
+    if(!snap.exists) throw new Error('المحتوى غير موجود');
+    const cur=snap.data();
+    if(cur.uid!==me.uid) throw new Error('لا يمكنك حذف محتوى الآخرين');
+
+    if(cur.parentId){
+      /* ردّ: حذف فعلي من Firestore. إن رفضته القواعد (لم تُنشر القواعد الجديدة بعد) نرجع للحذف المنطقي
+         deleted:true، والواجهة تُخفي الردود المحذوفة في الحالتين. */
+      try{ await ref.delete(); }
+      catch(err){
+        if(err && err.code==='permission-denied'){ await ref.update({deleted:true}); }
+        else throw err;
+      }
+      /* حذف إشعار هذا الرد من سجل صاحب الموضوع (محاولة بلا إلزام) */
+      this.db.collection('notifications').doc('fr_'+id).delete().catch(()=>{});
+      return;
+    }
+
+    /* موضوع رئيسي: حذف منطقي كما كان (تبقى ردوده مرتبطة به) */
     await firebase.firestore().runTransaction(async tx=>{
       const s=await tx.get(ref);
       if(!s.exists) throw new Error('المحتوى غير موجود');
@@ -567,7 +589,8 @@ function buildPost(p){
   h+=attachmentsHTML(p.attachments);
   h+=actionsHTML(p,mine,false);
   h+=replyFormHTML(p.id);
-  const replies=postsData.filter(r=>r.parentId===p.id).sort((a,b)=>ts(a.createdAt)-ts(b.createdAt));
+  /* الردود المحذوفة لا تُعرض */
+  const replies=postsData.filter(r=>r.parentId===p.id && !r.deleted).sort((a,b)=>ts(a.createdAt)-ts(b.createdAt));
   if(replies.length) h+='<div class="replies"><div class="replies-title">💬 الردود ('+replies.length+')</div>'
     +replies.map(replyHTML).join('')+'</div>';
   art.innerHTML=h;

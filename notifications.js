@@ -57,6 +57,13 @@ function saveBannerCounts(map) {
    نفس تحميل الصفحة الواحد، حتى لو أطلق onSnapshot أكثر من مرة. */
 var bannerHandledThisLoad = {};
 
+/* الروابط النسبية القديمة (مثل chat.html#post-x) كانت تنكسر عند فتحها من صفحات داخل Branches/ —
+   نحوّلها هنا إلى مسار صحيح. الروابط المطلقة تبقى كما هي. */
+function resolveLink(link) {
+  if (!link || /^[a-z][a-z0-9+.-]*:/i.test(link) || link.charAt(0) === '/') return link;
+  return (location.pathname.indexOf('/Branches/') !== -1 ? '../' : '') + link;
+}
+
 function ensureStyles() {
   if (document.getElementById('bacNotifStyles')) return;
   var style = document.createElement('style');
@@ -197,8 +204,9 @@ function init(ctx) {
     }
     closePanel();
     if (!n.link) return;
-    if (n.newTab) window.open(n.link, '_blank');
-    else window.location.href = n.link;
+    var target = resolveLink(n.link);
+    if (n.newTab) window.open(target, '_blank');
+    else window.location.href = target;
   }
 
   /* مصدران للسجل: مجموعة notifications (الحقيقية) + مجموعة savedLessons
