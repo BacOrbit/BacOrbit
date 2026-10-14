@@ -313,6 +313,7 @@ function loadCover(cardEl) {
         return page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
             coverWrap.innerHTML = "";
             coverWrap.appendChild(canvas);
+            try { loadingTask.destroy(); } catch (e) {}
         });
     }).catch(function (err) {
         /* تعذّر توليد الغلاف (مسار الملف خاطئ أو الملف غير مرفوع بعد) —
@@ -366,6 +367,7 @@ function ensureReader() {
 }
 
 var currentReaderBook = null;
+var readerTask = null;
 var readerRequestId = 0; /* يُستخدم لإبطال أي عملية عرض قديمة عند فتح كتاب آخر أو الإغلاق قبل اكتمال التحميل */
 
 function setReaderStatus(container, html, isError) {
@@ -387,6 +389,7 @@ function renderBookIntoReader(book, container, myRequestId) {
     setReaderStatus(container, '<div class="pdf-status-spinner"></div>جارٍ تحميل الكتاب…');
 
     var loadingTask = window.pdfjsLib.getDocument({ url: book.pdf, rangeChunkSize: 262144 });
+    readerTask = loadingTask;
 
     loadingTask.promise.then(function (pdf) {
         if (myRequestId !== readerRequestId) return; /* المستخدم أغلق العارض أو فتح كتابًا آخر أثناء التحميل */
@@ -458,9 +461,14 @@ function renderBookIntoReader(book, container, myRequestId) {
     });
 }
 
+function destroyReaderTask() {
+    if (readerTask) { try { readerTask.destroy(); } catch (e) {} readerTask = null; }
+}
+
 function openReader(book) {
     ensureReader();
     currentReaderBook = book;
+    destroyReaderTask();
     readerRequestId++;
     var myRequestId = readerRequestId;
 
@@ -486,6 +494,7 @@ function closeReader() {
     if (document.fullscreenElement) document.exitFullscreen();
     overlay.classList.remove("open");
     overlay.setAttribute("aria-hidden", "true");
+    destroyReaderTask();
     readerRequestId++; /* يُبطل أي عملية رسم صفحات لا تزال قيد التنفيذ */
     var frame = document.getElementById("pdfReaderFrame");
     if (frame) frame.innerHTML = "";

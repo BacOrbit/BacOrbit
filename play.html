@@ -282,6 +282,7 @@ let mode = "main";
 let score = 0;
 let currentQid = null;
 let locked = false;
+let answerTimer = null;
 
 const quizCard = document.getElementById("quizCard");
 const congratsScreen = document.getElementById("congratsScreen");
@@ -387,6 +388,7 @@ progressInner.style.width = totalWrong > 0 ? Math.max(0, Math.round((doneCount /
    مرحلة مراجعة الأخطاء إن وجدت، وإلا يعرض شاشة الإنجاز مباشرة. */
 
 function skipCurrentStage(){
+clearTimeout(answerTimer);
 pendingAfterStageComplete = null;
 stageCompleteScreen.style.display = "none";
 congratsScreen.style.display = "none";
@@ -487,7 +489,7 @@ wrongIds.add(qid);
 
 scoreValEl.textContent = score;
 
-setTimeout(() => {
+answerTimer = setTimeout(() => {
 if(mode === "main") posInQueue++;
 loadNext();
 }, 1500);

@@ -634,7 +634,7 @@ function showBanned(){
 function addFiles(files,key){
   const d=getDraft(key);
   for(const f of files){
-    if(f.size>MAX_FILE){ toast('الملف "'+f.name+'err'); continue; }
+    if(f.size>MAX_FILE){ toast('الملف "'+f.name+'" أكبر من الحد المسموح (15MB)','err'); continue; }
     const isImg=f.type&&f.type.startsWith('image/');
     d.attachments.push({id:'a_'+Math.random().toString(36).slice(2,8),file:f,name:f.name,
       size:f.size,kind:isImg?'image':'file',previewUrl:isImg?URL.createObjectURL(f):null});
