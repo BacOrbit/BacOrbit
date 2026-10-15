@@ -228,7 +228,7 @@ function init(ctx) {
         read: true,
         type: 'study_reminder',
         title: '📚 تذكير بالدراسة',
-        body: 'لم تنسَ متابعة: ' + (d.title || d.lessonTitle || 'المحتوى المحفوظ'),
+        body: 'ما تنساش تكمل: ' + (d.title || d.lessonTitle || 'المحتوى المحفوظ'),
         link: isTopic ? (d.targetUrl || '') : (d.pageUrl || d.lessonUrl || ''),
         newTab: isTopic,
         createdAt: d.createdAt
