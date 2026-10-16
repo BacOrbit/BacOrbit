@@ -608,8 +608,8 @@
 
   function getVisualParams() {
     return isLightTheme()
-      ? { alpha: 0.62, fillAlpha: 0.12, mouseForce: 0.42 }
-      : { alpha: 0.62, fillAlpha: 0.07, mouseForce: 0.50 };
+      ? { alpha: 0.30, fillAlpha: 0.05, mouseForce: 0 }
+      : { alpha: 0.28, fillAlpha: 0.03, mouseForce: 0 };
   }
 
   /* الخلفية التفاعلية: أدوات مدرسية (أقلام، كتاب، فرجار، مسطرة، مثلث) تسبح ببطء
@@ -752,7 +752,7 @@
 
     function toolTarget() {
       const base = Math.round(W * H / 70000);
-      return Math.max(7, Math.min(base, hasFinePointer ? 16 : 9));
+      return Math.max(4, Math.min(base, hasFinePointer ? 7 : 5));
     }
 
     function makeTool(i) {
@@ -761,9 +761,9 @@
       return {
         type: type, sway: sway,
         x: Math.random() * W, y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+        vx: (Math.random() - 0.5) * 0.12, vy: (Math.random() - 0.5) * 0.12,
         rot: Math.random() * Math.PI * 2, base: (Math.random() - 0.5) * 0.6,
-        vr: (Math.random() - 0.5) * 0.0028,
+        vr: (Math.random() - 0.5) * 0.0012,
         s: 20 + Math.random() * 12, ph: Math.random() * Math.PI * 2,
         flipping: false, flipP: 0, page: Math.floor(Math.random() * 5)
       };
@@ -785,11 +785,12 @@
 
     function step(ts) {
       if (!running) { rafId = null; return; }
+      if (lastTs && ts - lastTs < 30) { rafId = window.requestAnimationFrame(step); return; }
       const dt = Math.min(48, lastTs ? ts - lastTs : 16.7);
       lastTs = ts;
       const k = dt / 16.7;
       /* تخفيف سرعة حركة الأدوات قليلًا (1 = السرعة السابقة) */
-      const SPEED = 0.7;
+      const SPEED = 0.3;
       const ks = k * SPEED;
       const tsS = ts * SPEED;
       ctx.clearRect(0, 0, W, H);
@@ -803,7 +804,7 @@
         /* سباحة هادئة: انجراف ثابت + تمايل جيبي بطيء */
         t.x += (t.vx + Math.cos(tsS * 0.0004 + t.ph) * 0.05) * ks;
         t.y += (t.vy + Math.sin(tsS * 0.0005 + t.ph) * 0.07) * ks;
-        if (t.sway) { t.rot = t.base + Math.sin(tsS * 0.0005 + t.ph) * 0.35; }
+        if (t.sway) { t.rot = t.base + Math.sin(tsS * 0.0005 + t.ph) * 0.15; }
         else { t.rot += t.vr * ks; }
 
         const m = t.s * 2.4;
@@ -1976,98 +1977,6 @@
   }
 
   /* ---------------------------------------------------------
-     8و. جملة تحفيزية تحت العنوان الرئيسي (دروس / مواضيع / سلاسل تمارين)
-     ------------------------------------------------------------
-     تُطبَّق على صفحات Branches التي يبدأ اسمها بـ L_ (دروس) أو S_ (مواضيع
-     البكالوريا) أو I_ (سلاسل التمارين) أو T_ (المواضيع المتنوعة). تُستبدل
-     فقرة الوصف داخل .hero بجملة واحدة تُختار عشوائيًا عند كل تحميل للصفحة
-     (لا تتغيّر أثناء البقاء فيها)، مع تفادي تكرار آخر جملة ظهرت في نفس الصفحة.
-     العنوان <h1> لا يُمَسّ، والفقرة تحافظ على تنسيق .hero p الحالي. */
-  var BAC_MOTIVATION_LINES = [
-    '🎯 مستقبلك يُبنى بما تفعله اليوم، لا بما تتمناه غدًا.',
-    '📚 ادرس الآن، لتفتخر بنفسك لاحقًا.',
-    '🚀 كل دقيقة دراسة تقرّبك من حلمك.',
-    '💪 لا تنتظر الحماس، ابدأ وسيأتي الحماس.',
-    '🌱 تعب اليوم هو راحة الغد.',
-    '🛤️ لا تقارن بدايتك بنهاية الآخرين.',
-    '🏆 النجاح لا يحتاج إلى العبقرية بقدر ما يحتاج إلى الاستمرار.',
-    '✨ خطوة صغيرة كل يوم تصنع فرقًا كبيرًا.',
-    '🔥 أنت أقوى من رغبتك في الاستسلام.',
-    '🌈 لا تجعل يومًا سيئًا يفسد هدفًا عظيمًا.',
-    '✍️ كل تمرين تحلّه هو خطوة نحو التفوق.',
-    '⏳ مستقبلك يستحق ساعة إضافية من الاجتهاد.',
-    '🧠 لا تخف من صعوبة الدرس، بل خف من تركه دون محاولة.',
-    '🔄 الفشل ليس النهاية، بل فرصة لتتعلم من جديد.',
-    '🚫 النجاح يبدأ عندما تتوقف عن اختلاق الأعذار.',
-    '📈 لا تحتاج إلى أن تكون الأفضل اليوم، بل أن تكون أفضل من الأمس.',
-    '💎 أحلامك كبيرة؟ اجعل اجتهادك أكبر.',
-    '🌾 ما تزرعه في دفترك اليوم ستحصده في نتائجك غدًا.',
-    '🛡️ لا تستسلم في منتصف الطريق الذي اخترته بنفسك.',
-    '🌙 كل ليلة تسهر فيها من أجل هدفك تقرّبك منه.',
-    '🧑‍🎓 لا أحد يستطيع أن يدرس بدلًا منك أو يحقق حلمك نيابة عنك.',
-    '⚡ اجعل هدفك أقوى من كسلك.',
-    '❤️‍🔥 عندما تشعر بالتعب، تذكّر لماذا بدأت.',
-    '📖 كل صفحة تنهيها هي انتصار صغير.',
-    '🧭 لا تبحث عن الطريق الأسهل، بل عن الطريقة الأفضل.',
-    '🥇 النجاح ليس ضربة حظ، بل نتيجة محاولات متكررة.',
-    '⏰ لا تؤجل ما يمكن أن يغيّر مستقبلك.',
-    '🌟 امنح أحلامك الوقت الذي تستحقه.',
-    '🙋‍♂️ لا تخجل من السؤال، فالفهم أقوى من الحفظ الأعمى.',
-    '📝 كل خطأ تكتشفه اليوم يمنع خطأً غدًا.',
-    '🎓 أنت لا تدرس من أجل علامة فقط، بل من أجل مستقبل تصنعه بنفسك.',
-    '🚶‍♂️ ابدأ بما تستطيع، وستصل إلى ما تريد.',
-    '📵 لا تجعل هاتفك يسرق منك أحلامك.',
-    '🔒 الانضباط يوصلك إلى أماكن لا يستطيع الحماس وحده بلوغها.',
-    '🐢 حتى أبطأ تقدم يظل أفضل من الوقوف في مكانك.',
-    '☀️ لا تنتظر اللحظة المثالية، اصنعها بالعمل.',
-    '📅 كل يوم تؤجل فيه هدفك هو يوم تبتعد فيه عنه.',
-    '🧩 ثق بقدرتك على التعلم، حتى عندما لا تفهم من المحاولة الأولى.',
-    '🪞 المنافس الحقيقي هو أنت بالأمس.',
-    '📊 لا تدع درجاتك الحالية تحدد سقف طموحاتك.',
-    '🌳 النجاح يحتاج إلى الصبر بقدر حاجته إلى الذكاء.',
-    '💰 اجعل كل ساعة دراسة استثمارًا في نفسك.',
-    '🦁 عندما يستسلم الآخرون، اجعل صبرك نقطة قوتك.',
-    '💡 لا يوجد فهم مستحيل لمن يمنح نفسه الوقت الكافي.',
-    '👣 طريق الألف ميل يبدأ بدرس واحد.',
-    '🎬 لا تنتظر أن تشعر بالاستعداد، فالبداية هي التي تصنعه.',
-    '⌛ تذكّر أن لحظة ندم على التقصير أصعب من لحظة تعب أثناء الاجتهاد.',
-    '🤫 اجتهد بصمت، ودع نتائجك تتحدث عنك.',
-    '🌻 قد لا ترى نتيجة جهدك اليوم، لكن ذلك لا يعني أنه بلا قيمة.',
-    '🎉 يوم إعلان النتائج، ستتمنى لو أنك اجتهدت أكثر؛ اجتهد الآن حتى لا تندم لاحقًا.'
-  ];
-
-  function initMotivationLine() {
-    var file = location.pathname.split('/').filter(Boolean).pop() || '';
-    try { file = decodeURIComponent(file); } catch (e) {}
-    if (!/^[LSIT]_.+\.html$/.test(file)) return;
-
-    var hero = document.querySelector('.hero');
-    if (!hero) return;
-
-    /* صفحات T_*: إن تعذّر تحديد الشعبة تبقى رسالة الخطأ الأصلية كما هي */
-    if (file.charAt(0) === 'T' && !document.querySelector('#tmGrid .card')) return;
-
-    var n = BAC_MOTIVATION_LINES.length;
-    var storeKey = 'bacorbit_motivation_last:' + file;
-    var last = -1;
-    try {
-      var raw = parseInt(localStorage.getItem(storeKey), 10);
-      if (!isNaN(raw)) last = raw;
-    } catch (e) {}
-
-    var idx = Math.floor(Math.random() * n);
-    if (n > 1 && idx === last) idx = (idx + 1 + Math.floor(Math.random() * (n - 1))) % n;
-    try { localStorage.setItem(storeKey, String(idx)); } catch (e) {}
-
-    var p = hero.querySelector('p');
-    if (!p) {
-      p = document.createElement('p');
-      hero.appendChild(p);
-    }
-    p.textContent = BAC_MOTIVATION_LINES[idx];
-  }
-
-  /* ---------------------------------------------------------
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
@@ -2085,13 +1994,11 @@
     safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
     safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
-    safeRun(initClickEffects, 'تأثير النقر');
     safeRun(initBacCountdown, 'العدّاد التنازلي لبكالوريا 2027');
     safeRun(initBranchSelectionCards, 'حفظ اختيار الشعبة');
     safeRun(initCountdownBranchAction, 'رابط تغيير الشعبة أسفل العدّاد');
     safeRun(removeHomeBackButtons, 'إزالة أزرار العودة إلى الرئيسية');
     safeRun(initOverscrollHome, 'دائرة العودة عند التمرير للأسفل');
-    safeRun(initMotivationLine, 'الجملة التحفيزية تحت العنوان');
   }
 
   if (document.readyState === 'loading') {

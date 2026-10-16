@@ -205,8 +205,17 @@ function init(ctx) {
     closePanel();
     if (!n.link) return;
     var target = resolveLink(n.link);
-    if (n.newTab) window.open(target, '_blank');
-    else window.location.href = target;
+    if (n.newTab) { window.open(target, '_blank'); return; }
+    /* رابط داخل الصفحة الحالية (مثل #post-xxx داخل المنتدى): لا إعادة تحميل، فقط تحريك الـ hash */
+    try {
+      var u = new URL(target, location.href);
+      if (u.origin === location.origin && u.pathname === location.pathname && u.hash) {
+        if (location.hash === u.hash) window.dispatchEvent(new Event('hashchange'));
+        else location.hash = u.hash;
+        return;
+      }
+    } catch (e) { /* ننتقل بالطريقة العادية */ }
+    window.location.href = target;
   }
 
   /* مصدران للسجل: مجموعة notifications (الحقيقية) + مجموعة savedLessons

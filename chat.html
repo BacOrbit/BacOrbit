@@ -77,14 +77,6 @@ try{ var t=localStorage.getItem('bacorbit_theme'); if(t==='light') document.docu
   </div>
 
   <div class="top-bar-right-group">
-    <button id="notifToggleBtn" class="notif-toggle-btn" type="button" aria-label="تفعيل أو إيقاف إشعارات الردود على رسائلك" aria-pressed="false" title="إشعارات الردود على رسائلك">
-      <svg class="notif-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-      <span class="notif-dot" id="notifDot"></span>
-    </button>
-
     <button class="theme-switch" id="themeSwitch" aria-label="تبديل الوضع الليلي/النهاري">
       <span class="theme-switch-track">
         <span class="theme-switch-icon sun">☀️</span>
@@ -273,70 +265,6 @@ window.addEventListener('scroll',()=>{
   window.addEventListener('resize',()=>{ clearTimeout(navResizeTimer); navResizeTimer=setTimeout(closeNav,120); });
 })();
 
-/* ═══════════ 2ج) إشعارات الردود على رسائلي الشخصية ═══════════
-   زر جرس في الشريط العلوي يفعّل/يوقف إشعارات المتصفح (Notification API).
-   عند التفعيل، وكل مرة تصل ردود جديدة (عبر DB.listen)، يتم إشعار المستخدم
-   فقط بالردود الجديدة على مواضيعه الشخصية (وليس ردوده هو نفسه).
-   يعمل فقط أثناء فتح الصفحة في المتصفح (بدون Service Worker/Push خادمي). */
-const NOTIF_PREF_KEY='bacorbit_notif_enabled';
-const NOTIF_SEEN_KEY='bacorbit_notif_seen_ids';
-const NOTIF_BASELINE_KEY='bacorbit_notif_baseline_done';
-let notifEnabled=false;
-let notifSeenIds=new Set();
-let notifBaselineDone=false;
-const notifBtn=document.getElementById('notifToggleBtn');
-
-function loadNotifSeen(){
-  try{ const raw=localStorage.getItem(NOTIF_SEEN_KEY); const arr=raw?JSON.parse(raw):[];
-       return new Set(Array.isArray(arr)?arr:[]); }
-  catch(e){ return new Set(); }
-}
-function saveNotifSeen(){
-  try{ localStorage.setItem(NOTIF_SEEN_KEY, JSON.stringify(Array.from(notifSeenIds).slice(-500))); }
-  catch(e){ /* لا مشكلة إن تعذّر الحفظ */ }
-}
-function updateNotifBtnUI(){
-  if(!notifBtn) return;
-  notifBtn.classList.toggle('on',notifEnabled);
-  notifBtn.setAttribute('aria-pressed', notifEnabled?'true':'false');
-  notifBtn.title = notifEnabled ? 'إشعارات الردود مفعّلة — اضغط للإيقاف' : 'إشعارات الردود على رسائلك';
-}
-function initNotifToggle(){
-  if(!notifBtn) return;
-  try{ notifEnabled = localStorage.getItem(NOTIF_PREF_KEY)==='1'; }
-  catch(e){ notifEnabled=false; }
-  if(notifEnabled && !(('Notification' in window) && Notification.permission==='granted')) notifEnabled=false;
-  notifSeenIds=loadNotifSeen();
-  try{ notifBaselineDone = localStorage.getItem(NOTIF_BASELINE_KEY)==='1'; }
-  catch(e){ notifBaselineDone=false; }
-  updateNotifBtnUI();
-
-  /* التفعيل يعني فقط ظهور إشعارات الردود داخل سجل الجرس 🔔 (نقطة حمراء)،
-     دون أي لافتة أو نافذة منبثقة ودون طلب إذن المتصفح. */
-  notifBtn.addEventListener('click', ()=>{
-    notifEnabled=!notifEnabled;
-    try{ localStorage.setItem(NOTIF_PREF_KEY,notifEnabled?'1':'0'); }catch(e){}
-    if(notifEnabled && window.BacNotifications && window.BacNotifications.enableDevice){
-      window.BacNotifications.enableDevice().then(ok=>{
-        if(!ok){ notifEnabled=false; try{ localStorage.setItem(NOTIF_PREF_KEY,'0'); }catch(e){}
-          toast('لم يُمنح إذن التنبيهات من المتصفح — ستبقى الإشعارات داخل الموقع فقط','err'); }
-        else toast('تم تفعيل تنبيهات الجهاز 🔔');
-        updateNotifBtnUI();
-        if(window.BacNotifications.refresh) window.BacNotifications.refresh();
-      });
-      return;
-    }
-    if(!notifEnabled && window.BacNotifications && window.BacNotifications.disableDevice) window.BacNotifications.disableDevice();
-    toast(notifEnabled ? 'تم تفعيل إشعارات الردود 🔔' : 'تم إيقاف تنبيهات الجهاز 🔕');
-    updateNotifBtnUI();
-    if(window.BacNotifications && window.BacNotifications.refresh) window.BacNotifications.refresh();
-  });
-}
-/* إشعارات الردود تُسجَّل الآن فقط في سجل الجرس 🔔 (notifications.js) بمعرّف ثابت
-   لكل رد fr_<replyId> يمنع التكرار، دون أي لافتة/Popup. تُترك الدالة فارغة
-   حتى لا يتغيّر موضع استدعائها في DB.listen. */
-function checkNewReplyNotifications(list){ /* لا شيء عمدًا */ }
-
 /* ═══════════ 3) محوّل Firebase ═══════════ */
 const FB={
   db:null,auth:null,storage:null,
@@ -390,9 +318,13 @@ const FB={
     });
   },
   notifyReply(pid,replyId,d){
-    return this.db.collection('forumPosts').doc(pid).get().then(parentSnap=>{
-      if(!parentSnap.exists) return;
-      const parent=parentSnap.data();
+    /* الموضوع الأصلي محمَّل محليًا غالبًا (postsData)؛ نقرأه من Firestore فقط إن لم يكن موجودًا */
+    const local=postsData.find(p=>p.id===pid);
+    const parentP=(local && local.uid)
+      ? Promise.resolve(local)
+      : this.db.collection('forumPosts').doc(pid).get().then(s=>s.exists?s.data():null);
+    return parentP.then(parent=>{
+      if(!parent) return;
       if(!parent.uid || parent.uid===me.uid) return; /* لا تُشعر نفسك */
       return this.db.collection('notifications').doc('fr_'+replyId).set({
         uid: parent.uid,
@@ -754,21 +686,22 @@ async function boot(){
 
     updateUserBar();
     $('#forumApp').style.display='block';
-    initNotifToggle();
 
     if(MODE==='firebase' && window.BacNotifications){
       window.BacNotifications.init({ db: FB.db, me: me, firebase: firebase });
     }
     /* الانتقال مباشرة إلى مكان الرد عند فتح رابط إشعار المنتدى (#post-xxx) */
     let hashScrolled=false;
-    function scrollToHashPost(){
-      if(hashScrolled) return;
+    function scrollToHashPost(force){
+      if(hashScrolled && !force) return;
       const h=location.hash;
       if(h && h.indexOf('#post-')===0){
-        const el=document.querySelector(h);
+        const el=document.getElementById(h.slice(1));
         if(el){ hashScrolled=true; el.scrollIntoView({behavior:'smooth',block:'center'}); }
       }
     }
+    /* الضغط على إشعار والمستخدم داخل المنتدى أصلًا: لا يُعاد تحميل الصفحة، فننتقل للموضوع عند تغيّر الـ hash */
+    window.addEventListener('hashchange',()=>scrollToHashPost(true));
 
     /* مراقبة حالة الحساب لحظياً — إذا أصبح banned يُطرد فوراً */
     DB.listenUser(d=>{
@@ -777,7 +710,7 @@ async function boot(){
       const was=me.banned; me.banned=!!d.banned;
       if(me.banned&&!was) showBanned();
     });
-    DB.listen(list=>{ postsData=list; renderForum(); checkNewReplyNotifications(list); scrollToHashPost(); });
+    DB.listen(list=>{ postsData=list; renderForum(); scrollToHashPost(); });
   }catch(e){
     console.error(e);
     $('#forumLoading').innerHTML='<div class="forum-error">تعذّر الدخول إلى المنتدى: '
