@@ -1977,6 +1977,20 @@
   }
 
   /* ---------------------------------------------------------
+     لافتات أسئلة الفيزياء التفاعلية: تُحمَّل فقط في صفحات محددة
+     (دروس الفيزياء، سلاسل تمارين الفيزياء، المواضيع المتنوعة للفيزياء — الفصل الأول)
+     --------------------------------------------------------- */
+  function initPhysicsBanners() {
+    var p = location.pathname;
+    var onTarget = /\/(L_physic|I_physic)\.html$/.test(p) ||
+      (/\/T_physic\.html$/.test(p) && new URLSearchParams(location.search).get('c') === '1');
+    if (!onTarget) return;
+    loadScriptTag(siblingUrl('physics-banners.js')).catch(function (e) {
+      console.warn('[BacOrbit] تعذّر تحميل physics-banners.js', e);
+    });
+  }
+
+  /* ---------------------------------------------------------
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
@@ -1992,6 +2006,7 @@
     safeRun(rebuildNavMenu, 'توحيد قائمة التنقل الجانبية');
     safeRun(ensureNavActions, 'حاوية أزرار الشريط العلوي');
     safeRun(initBacCloudFeatures, 'الإشعارات والدراسة لاحقًا');
+    safeRun(initPhysicsBanners, 'لافتات أسئلة الفيزياء');
     safeRun(initStudyTimer, 'مؤقت الدراسة');
     safeRun(initInteractiveBackground, 'الخلفية التفاعلية');
     safeRun(initBacCountdown, 'العدّاد التنازلي لبكالوريا 2027');
