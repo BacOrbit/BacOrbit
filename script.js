@@ -2173,8 +2173,9 @@
      --------------------------------------------------------- */
   function initPhysicsBanners() {
     var p = location.pathname;
-    var onTarget = /\/(L_physic|I_physic)\.html$/.test(p) ||
-      (/\/T_physic\.html$/.test(p) && new URLSearchParams(location.search).get('c') === '1');
+    /* الفيزياء والعلوم الطبيعية: الدروس (L_) وسلاسل التمارين (I_) وفقط الفصل الأول من المواضيع المتنوعة (T_) */
+    var onTarget = /\/(L_physic|I_physic|L_science2?|I_science)\.html$/.test(p) ||
+      (/\/T_(physic|science)\.html$/.test(p) && new URLSearchParams(location.search).get('c') === '1');
     if (!onTarget) return;
     loadScriptTag(siblingUrl('physics-banners.js')).catch(function (e) {
       console.warn('[BacOrbit] تعذّر تحميل physics-banners.js', e);
@@ -2242,13 +2243,20 @@
   var BAC_MOTIVATION_KEY = 'bacorbit_motivation_last_v1';
 
   function initMotivationalLine() {
-    if (!/\/(L|I|S|T)_[^\/]*\.html$/.test(location.pathname)) return;
+    /* كل صفحات الموقع ما عدا الرئيسية (index.html) ولوحة الإدارة؛ القارئ طبقة منبثقة لا صفحة، فلا يتأثر */
+    var path = location.pathname;
+    if (/(^|\/)index\.html$/.test(path) || /\/$/.test(path) || /admin\.html$/.test(path)) return;
+    var h1 = qs('.hero h1');
+    if (!h1) return;
     var p = qs('.hero p');
-    if (!p || !qs('.hero h1')) return;
+    if (!p) {
+      p = document.createElement('p');
+      h1.insertAdjacentElement('afterend', p);
+    }
     /* لا نستبدل رسائل الخطأ (مثل تعذّر تحديد الشعبة في صفحات T_) */
     if (/تعذّر/.test(p.textContent)) return;
 
-    var pageKey = location.pathname.split('/').pop();
+    var pageKey = location.pathname.split('/').pop() || 'page';
     var last = {};
     try { last = JSON.parse(localStorage.getItem(BAC_MOTIVATION_KEY)) || {}; } catch (e) { last = {}; }
     if (!last || typeof last !== 'object') last = {};
