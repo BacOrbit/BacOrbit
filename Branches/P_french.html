@@ -149,7 +149,7 @@
 'use strict';
 
 /* الصور تُعرض مباشرة بلا بطاقات وسيطة، بنفس أسماء الملفات الفعلية داخل مجلد P_french/ */
-var FILES = ['compte rendu.png', 'compte rendu (2).png', 'compte rendu (3).png', 'compte rendu (4).png'];
+var FILES = ['compte rendu cover.png', 'compte rendu.png', 'compte rendu (2).png', 'compte rendu (3).png', 'compte rendu (4).png'];
 
 var lessonsEl = document.getElementById('pfLessons');
 
@@ -160,7 +160,7 @@ function renderImages() {
 
         var img = document.createElement('img');
         img.src = 'P_french/' + fileName;
-        img.alt = 'فقرات جاهزة - اللغة الفرنسية - ' + (idx + 1);
+        img.alt = idx === 0 ? 'غلاف فقرات جاهزة - اللغة الفرنسية - Le compte rendu' : 'فقرات جاهزة - اللغة الفرنسية - ' + idx;
         img.loading = (idx === 0) ? 'eager' : 'lazy';
 
         div.appendChild(img);
@@ -172,10 +172,24 @@ function renderImages() {
     }
 }
 
+/* فتح القارئ مباشرة عند الدخول؛ وعند إغلاقه نعود للصفحة التي اختار منها المستخدم.
+   إن تعذّر القارئ نعرض الصور بالطريقة القديمة كاحتياط. */
+function openFrenchReader() {
+    var h = document.querySelector('.hero h1');
+    var title = (h ? h.textContent.replace(/^[^\u0600-\u06FFA-Za-z0-9]+/, '').trim() : 'فقرات جاهزة - اللغة الفرنسية');
+    var sources = FILES.map(function (f, i) {
+        return { src: 'P_french/' + f, alt: i === 0 ? 'غلاف فقرات جاهزة - اللغة الفرنسية - Le compte rendu' : 'فقرات جاهزة - اللغة الفرنسية - ' + i };
+    });
+    window.bacOpenReader({
+        type: 'images', title: title, sources: sources, start: 0, fileName: title + '.pdf',
+        history: false, onClose: window.bacReturnToSource
+    }).then(function (ok) { if (ok === false) renderImages(); }, renderImages);
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', renderImages);
+    document.addEventListener('DOMContentLoaded', openFrenchReader);
 } else {
-    renderImages();
+    openFrenchReader();
 }
 
 })();

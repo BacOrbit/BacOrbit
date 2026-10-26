@@ -52,6 +52,47 @@
   }
 
   /* ---------------------------------------------------------
+     0ج. تتبّع الصفحة السابقة داخل الموقع (مستقل عن document.referrer)
+     --------------------------------------------------------- */
+  var NAV_CUR_KEY = 'bacorbit_nav_cur';
+  var NAV_PREV_KEY = 'bacorbit_nav_prev';
+  var NAV_SCROLL_PREFIX = 'bacorbit_nav_scroll:';
+  var NAV_RESTORE_KEY = 'bacorbit_nav_restore';
+  var bacReturning = false;
+
+  function navPageId() { return location.pathname + location.search; }
+
+  (function trackNav() {
+    try {
+      var cur = navPageId();
+      var last = sessionStorage.getItem(NAV_CUR_KEY);
+      if (last && last !== cur) sessionStorage.setItem(NAV_PREV_KEY, last);
+      sessionStorage.setItem(NAV_CUR_KEY, cur);
+
+      /* هل وصلنا إلى هذه الصفحة عائدين من قارئ؟ */
+      if (sessionStorage.getItem(NAV_RESTORE_KEY) === cur) {
+        bacReturning = true;
+        sessionStorage.removeItem(NAV_RESTORE_KEY);
+      }
+
+      window.addEventListener('pagehide', function () {
+        try { sessionStorage.setItem(NAV_SCROLL_PREFIX + cur, String(window.scrollY || 0)); } catch (e) {}
+      });
+    } catch (e) {}
+  })();
+
+  function restoreReturnScroll() {
+    if (!bacReturning) return;
+    var y = 0;
+    try { y = parseInt(sessionStorage.getItem(NAV_SCROLL_PREFIX + navPageId()), 10) || 0; } catch (e) {}
+    if (!y) return;
+    try { history.scrollRestoration = 'manual'; } catch (e) {}
+    window.scrollTo(0, y);
+    window.requestAnimationFrame(function () { window.scrollTo(0, y); });
+    on(window, 'load', function () { window.scrollTo(0, y); });
+  }
+
+  /* ---------------------------------------------------------
      0ب. ضمان ظهور أيقونة BacOrbit (favicon) في كل صفحة
      --------------------------------------------------------- */
   var SITE_ROOT = 'https://bacorbit.github.io/BacOrbit/';
@@ -113,6 +154,17 @@
   }
   applyStoredTheme();
   safeRun(ensureFavicon, 'أيقونة الموقع (favicon)');
+
+  /* صفحات الدروس (L_*): يُفتح القارئ مباشرة، فنخفي قائمة الصور القديمة من البداية
+     حتى لا تظهر لحظة قبل القارئ. تُزال الفئة تلقائيًا إن تعذّر فتح القارئ. */
+  safeRun(function () {
+    if (!/\/L_[^\/]*\.html$/.test(location.pathname)) return;
+    document.documentElement.classList.add('bac-auto-reader');
+    var st = document.createElement('style');
+    st.id = 'bacAutoReaderStyle';
+    st.textContent = '.bac-auto-reader .lessons,.bac-auto-reader .download-all-section,.bac-auto-reader #bacLessonZoomBar{display:none!important}';
+    document.head.appendChild(st);
+  }, 'إخفاء واجهة الدروس القديمة');
 
   function initThemeToggle() {
     const btn = document.getElementById('themeToggle');
@@ -406,6 +458,138 @@
     ensureImageViewer().open(src, name);
   }
 
+  /* ---------------------------------------------------------
+     6أ. القارئ الموحّد (reader.js) — يُحمَّل عند أول استعمال فقط
+     --------------------------------------------------------- */
+  function stripLead(t) { return String(t || '').replace(/^[^\u0600-\u06FFA-Za-z0-9]+/, '').replace(/\s+/g, ' ').trim(); }
+
+  window.bacOpenReader = function (opts) {
+    return loadScriptTag(siblingUrl('reader.js')).then(function () {
+      return window.BacReader.open(opts);
+    }).catch(function (err) {
+      console.warn('[BacOrbit] تعذّر تشغيل القارئ', err);
+      if (opts && opts.type === 'pdf' && opts.src) window.open(opts.src, '_blank');
+      return false;
+    });
+  };
+
+  /* العودة إلى الصفحة التي اختار منها المستخدم المحتوى (الرجوع في السجل).
+     إن دخل الصفحة مباشرة (بلا صفحة سابقة من الموقع) نعيده لشعبته المحفوظة أو للرئيسية. */
+  window.bacReturnToSource = function () {
+    var prev = null;
+    try { prev = sessionStorage.getItem(NAV_PREV_KEY); } catch (e) {}
+
+    var fromSite = false;
+    try {
+      fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+    } catch (e) {}
+
+    /* 1) الأفضل: الرجوع في السجل (يحفظ التمرير والبطاقات المفتوحة تلقائيًا) */
+    if ((fromSite || prev) && history.length > 1) { history.back(); return; }
+
+    /* 2) تبويب جديد بلا سجل: نفتح الصفحة السابقة ونعيد موضع التمرير */
+    if (prev) {
+      try { sessionStorage.setItem(NAV_RESTORE_KEY, prev); } catch (e) {}
+      location.href = prev;
+      return;
+    }
+
+    /* 3) لا توجد صفحة سابقة إطلاقًا: الشعبة المحفوظة أو الرئيسية */
+    var saved = bacLoadSavedBranch();
+    location.href = (saved && saved.url) ? bacResolveBranchUrl(saved.url) : bacHomeHrefFromCurrentPage();
+  };
+
+  function lessonReaderTitle() {
+    var h = qs('.hero h1');
+    var t = stripLead(h ? h.textContent : document.title);
+    var u = qs('[id$="Units"] .active');
+    return u ? t + ' — ' + stripLead(u.textContent) : t;
+  }
+
+  function openLessonReader(start, auto) {
+    var items = qsa('.lessons .lesson img').map(function (img) { return { src: img.src, alt: img.alt || '' }; });
+    if (!items.length) return null;
+    var title = lessonReaderTitle();
+    var opts = { type: 'images', title: title, sources: items, start: start || 0, fileName: title + '.pdf' };
+    if (auto) { opts.history = false; opts.onClose = window.bacReturnToSource; }
+    return window.bacOpenReader(opts);
+  }
+
+  /* صفحات الدروس (L_*): فتح القارئ مباشرة عند الدخول، وعند إغلاقه نعود لصفحة الشعبة. */
+  function initLessonAutoReader() {
+    var root = document.documentElement;
+    if (!root.classList.contains('bac-auto-reader')) return;
+    function reveal() { root.classList.remove('bac-auto-reader'); }
+    var p = openLessonReader(0, true);
+    if (!p) { reveal(); return; }
+    p.then(function (ok) { if (ok === false) reveal(); }, reveal);
+  }
+
+  /* صفحات الشعب (بطاقات المواد): عند الرجوع إليها من محتوى فُتح منها نعيد البطاقة
+     المفتوحة وموضع التمرير كما كانا. */
+  function initBranchStateMemory() {
+    var cards = qsa('.subjects > .card').filter(function (c) { return c.querySelector('.subject-content'); });
+    if (!cards.length) return;
+    var KEY = 'bacorbit_subjects_state:' + location.pathname;
+    var savedByClick = false;
+
+    function save() {
+      var open = [];
+      cards.forEach(function (c, i) {
+        var s = c.querySelector('.subject-content');
+        if (s && s.style.display === 'block') open.push(i);
+      });
+      try { sessionStorage.setItem(KEY, JSON.stringify({ open: open, y: window.scrollY || 0 })); } catch (e) {}
+    }
+    /* التقاط النقر قبل أن يُغلق toggleContent البطاقة (النقر يصعد من البطاقة الصغيرة إلى البطاقة الأم) */
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.mini-card')) { savedByClick = true; save(); }
+    }, true);
+    on(window, 'pagehide', function () { if (!savedByClick) save(); });
+
+    var nav = null;
+    try { nav = performance.getEntriesByType('navigation')[0]; } catch (e) {}
+    if ((!nav || nav.type !== 'back_forward') && !bacReturning) return;
+    var st = null;
+    try { st = JSON.parse(sessionStorage.getItem(KEY)); } catch (e) {}
+    if (!st) return;
+    try { history.scrollRestoration = 'manual'; } catch (e) {}
+    (st.open || []).forEach(function (i) {
+      var s = cards[i] && cards[i].querySelector('.subject-content');
+      if (s) s.style.display = 'block';
+    });
+    var y = st.y || 0;
+    window.scrollTo(0, y);
+    window.requestAnimationFrame(function () { window.scrollTo(0, y); });
+    on(window, 'load', function () { window.scrollTo(0, y); });
+  }
+
+  /* بطاقات المواضيع (S_* / T_*): فتح ملف PDF داخل القارئ بدل تبويب جديد.
+     يبقى onclick الأصلي في HTML كما هو (تعتمد عليه «الدراسة لاحقًا»)،
+     ويُعترض النقر في مرحلة الالتقاط فقط عندما يكون الهدف ملف PDF. */
+  function initPdfCardReader() {
+    if (!qs('.topic-card')) return;
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest || t.closest('.topic-download-btn, .topic-visited-badge')) return;
+      var card = t.closest('.topic-card');
+      if (!card) return;
+      var m = (card.getAttribute('onclick') || '').match(/window\.open\(\s*(['"])(.+?)\1/);
+      if (!m || !/\.pdf$/i.test(m[2])) return;
+      e.stopPropagation();
+      e.preventDefault();
+      var h = qs('.hero h1'), c = card.querySelector('h2');
+      var title = [stripLead(h && h.textContent), stripLead(c && c.textContent)].filter(Boolean).join(' — ');
+      window.bacOpenReader({ type: 'pdf', src: m[2], title: title, fileName: title + '.pdf' });
+    }, true);
+  }
+
+  function preloadReader() {
+    if (!qs('.topic-card') && !qs('.lessons')) return;
+    var go = function () { loadScriptTag(siblingUrl('reader.js')).catch(function () {}); };
+    if (window.requestIdleCallback) window.requestIdleCallback(go, { timeout: 4000 }); else setTimeout(go, 2000);
+  }
+
   function enhanceLessonImages() {
     qsa('.lesson > img').forEach(function (img) {
       if (img.closest('.bac-img-frame')) return;
@@ -430,7 +614,9 @@
 
       on(img, 'click', function (e) {
         e.preventDefault();
-        openImageViewer(img.getAttribute('src'), baseName(img.getAttribute('src')));
+        var all = qsa('.lessons .lesson img');
+        if (all.length) openLessonReader(Math.max(0, all.indexOf(img)));
+        else openImageViewer(img.getAttribute('src'), baseName(img.getAttribute('src')));
       });
 
       on(dlBtn, 'click', function (e) {
@@ -460,6 +646,9 @@
   function initLessonZoomControl() {
     var lessonsEl = document.querySelector('.lessons');
     if (!lessonsEl || document.getElementById('bacLessonZoomBar')) return;
+    /* الصفحات التي تفتح القارئ مباشرة (التمارين I_ والفقرات P_) لا تحتوي صور دروس
+       ثابتة في الصفحة، فلا داعي لعرض شريط حجم الصور القديم قبل القارئ. */
+    if (!lessonsEl.querySelector('.lesson')) return;
 
     var bar = document.createElement('div');
     bar.id = 'bacLessonZoomBar';
@@ -468,7 +657,8 @@
       '<span class="bac-zoom-label">🔍 حجم صور الدروس</span>' +
       '<button type="button" class="bac-zoom-btn" id="bacZoomOut" aria-label="تصغير حجم الصور">−</button>' +
       '<input type="range" id="bacZoomRange" class="bac-zoom-range" min="50" max="100" step="5" value="100" aria-label="التحكم بحجم صور الدروس">' +
-      '<button type="button" class="bac-zoom-btn" id="bacZoomIn" aria-label="تكبير حجم الصور">+</button>';
+      '<button type="button" class="bac-zoom-btn" id="bacZoomIn" aria-label="تكبير حجم الصور">+</button>' +
+      '<button type="button" class="topic-download-btn" id="bacOpenReaderBtn" style="min-width:0;margin:0;padding:8px 14px"><span>📖 فتح القارئ</span></button>';
 
     lessonsEl.parentNode.insertBefore(bar, lessonsEl);
 
@@ -485,6 +675,7 @@
     on(range, 'input', function () { applyZoom(parseInt(range.value, 10)); });
     on(btnOut, 'click', function () { applyZoom(parseInt(range.value, 10) - 10); });
     on(btnIn, 'click', function () { applyZoom(parseInt(range.value, 10) + 10); });
+    on(bar.querySelector('#bacOpenReaderBtn'), 'click', function () { openLessonReader(0); });
   }
 
   /* ---------------------------------------------------------
@@ -1991,16 +2182,104 @@
   }
 
   /* ---------------------------------------------------------
+     8و. جملة تحفيزية تحت العنوان الرئيسي (صفحات الدروس L_ والتمارين I_
+     والمواضيع S_ / T_ فقط). تُختار عشوائيًا مرة واحدة عند تحميل الصفحة
+     (لا تتغير أثناء بقاء المستخدم فيها)، وتُحفظ آخر جملة لكل صفحة في
+     localStorage لتجنّب تكرارها في زيارتين متتاليتين. تستبدل نص الوصف
+     الموجود في .hero p فقط، دون المساس بالعنوان h1 أو تنسيقه. */
+  var BAC_MOTIVATION = [
+    '🎯 مستقبلك يُبنى بما تفعله اليوم، لا بما تتمناه غدًا.',
+    '📚 ادرس الآن، لتفتخر بنفسك لاحقًا.',
+    '🚀 كل دقيقة دراسة تقرّبك من حلمك.',
+    '💪 لا تنتظر الحماس، ابدأ وسيأتي الحماس.',
+    '🌱 تعب اليوم هو راحة الغد.',
+    '🛤️ لا تقارن بدايتك بنهاية الآخرين.',
+    '🏆 النجاح لا يحتاج إلى العبقرية بقدر ما يحتاج إلى الاستمرار.',
+    '✨ خطوة صغيرة كل يوم تصنع فرقًا كبيرًا.',
+    '🔥 أنت أقوى من رغبتك في الاستسلام.',
+    '🌈 لا تجعل يومًا سيئًا يفسد هدفًا عظيمًا.',
+    '✍️ كل تمرين تحلّه هو خطوة نحو التفوق.',
+    '⏳ مستقبلك يستحق ساعة إضافية من الاجتهاد.',
+    '🧠 لا تخف من صعوبة الدرس، بل خف من تركه دون محاولة.',
+    '🔄 الفشل ليس النهاية، بل فرصة لتتعلم من جديد.',
+    '🚫 النجاح يبدأ عندما تتوقف عن اختلاق الأعذار.',
+    '📈 لا تحتاج إلى أن تكون الأفضل اليوم، بل أن تكون أفضل من الأمس.',
+    '💎 أحلامك كبيرة؟ اجعل اجتهادك أكبر.',
+    '🌾 ما تزرعه في دفترك اليوم ستحصده في نتائجك غدًا.',
+    '🛡️ لا تستسلم في منتصف الطريق الذي اخترته بنفسك.',
+    '🌙 كل ليلة تسهر فيها من أجل هدفك تقرّبك منه.',
+    '🧑‍🎓 لا أحد يستطيع أن يدرس بدلًا منك أو يحقق حلمك نيابة عنك.',
+    '⚡ اجعل هدفك أقوى من كسلك.',
+    '❤️‍🔥 عندما تشعر بالتعب، تذكّر لماذا بدأت.',
+    '📖 كل صفحة تنهيها هي انتصار صغير.',
+    '🧭 لا تبحث عن الطريق الأسهل، بل عن الطريقة الأفضل.',
+    '🥇 النجاح ليس ضربة حظ، بل نتيجة محاولات متكررة.',
+    '⏰ لا تؤجل ما يمكن أن يغيّر مستقبلك.',
+    '🌟 امنح أحلامك الوقت الذي تستحقه.',
+    '🙋‍♂️ لا تخجل من السؤال، فالفهم أقوى من الحفظ الأعمى.',
+    '📝 كل خطأ تكتشفه اليوم يمنع خطأً غدًا.',
+    '🎓 أنت لا تدرس من أجل علامة فقط، بل من أجل مستقبل تصنعه بنفسك.',
+    '🚶‍♂️ ابدأ بما تستطيع، وستصل إلى ما تريد.',
+    '📵 لا تجعل هاتفك يسرق منك أحلامك.',
+    '🔒 الانضباط يوصلك إلى أماكن لا يستطيع الحماس وحده بلوغها.',
+    '🐢 حتى أبطأ تقدم يظل أفضل من الوقوف في مكانك.',
+    '☀️ لا تنتظر اللحظة المثالية، اصنعها بالعمل.',
+    '📅 كل يوم تؤجل فيه هدفك هو يوم تبتعد فيه عنه.',
+    '🧩 ثق بقدرتك على التعلم، حتى عندما لا تفهم من المحاولة الأولى.',
+    '🪞 المنافس الحقيقي هو أنت بالأمس.',
+    '📊 لا تدع درجاتك الحالية تحدد سقف طموحاتك.',
+    '🌳 النجاح يحتاج إلى الصبر بقدر حاجته إلى الذكاء.',
+    '💰 اجعل كل ساعة دراسة استثمارًا في نفسك.',
+    '🦁 عندما يستسلم الآخرون، اجعل صبرك نقطة قوتك.',
+    '💡 لا يوجد فهم مستحيل لمن يمنح نفسه الوقت الكافي.',
+    '👣 طريق الألف ميل يبدأ بدرس واحد.',
+    '🎬 لا تنتظر أن تشعر بالاستعداد، فالبداية هي التي تصنعه.',
+    '⌛ تذكّر أن لحظة ندم على التقصير أصعب من لحظة تعب أثناء الاجتهاد.',
+    '🤫 اجتهد بصمت، ودع نتائجك تتحدث عنك.',
+    '🌻 قد لا ترى نتيجة جهدك اليوم، لكن ذلك لا يعني أنه بلا قيمة.',
+    '🎉 يوم إعلان النتائج، ستتمنى لو أنك اجتهدت أكثر؛ اجتهد الآن حتى لا تندم لاحقًا.'
+  ];
+  var BAC_MOTIVATION_KEY = 'bacorbit_motivation_last_v1';
+
+  function initMotivationalLine() {
+    if (!/\/(L|I|S|T)_[^\/]*\.html$/.test(location.pathname)) return;
+    var p = qs('.hero p');
+    if (!p || !qs('.hero h1')) return;
+    /* لا نستبدل رسائل الخطأ (مثل تعذّر تحديد الشعبة في صفحات T_) */
+    if (/تعذّر/.test(p.textContent)) return;
+
+    var pageKey = location.pathname.split('/').pop();
+    var last = {};
+    try { last = JSON.parse(localStorage.getItem(BAC_MOTIVATION_KEY)) || {}; } catch (e) { last = {}; }
+    if (!last || typeof last !== 'object') last = {};
+
+    var n = BAC_MOTIVATION.length;
+    var idx = Math.floor(Math.random() * n);
+    if (n > 1 && idx === last[pageKey]) idx = (idx + 1 + Math.floor(Math.random() * (n - 1))) % n;
+
+    p.textContent = BAC_MOTIVATION[idx];
+
+    last[pageKey] = idx;
+    try { localStorage.setItem(BAC_MOTIVATION_KEY, JSON.stringify(last)); } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------
      9. التهيئة العامة
      --------------------------------------------------------- */
   function init() {
     safeRun(ensureFavicon, 'أيقونة الموقع (favicon)');
     safeRun(initThemeToggle, 'الوضع الداكن/الفاتح');
+    safeRun(initMotivationalLine, 'الجملة التحفيزية تحت العنوان');
     safeRun(initTopBarScroll, 'الشريط العلوي');
     safeRun(ensureImageViewer, 'مكبر الصور الموحّد');
     safeRun(enhanceLessonImages, 'عارض صور الدروس');
     safeRun(initLessonZoomControl, 'شريط التحكم بحجم صور الدروس');
     safeRun(initVisitedTopicsTracking, 'تمييز المواضيع التي تمت زيارتها');
+    safeRun(initPdfCardReader, 'قارئ ملفات PDF للمواضيع');
+    safeRun(preloadReader, 'تحميل القارئ مسبقًا');
+    safeRun(initLessonAutoReader, 'فتح القارئ مباشرة في صفحات الدروس');
+    safeRun(initBranchStateMemory, 'تذكر حالة بطاقات الشعبة عند الرجوع');
+    safeRun(restoreReturnScroll, 'استعادة موضع التمرير عند العودة من القارئ');
     safeRun(ensureToggleContentFallback, 'toggleContent الاحتياطي');
     safeRun(initNavMenu, 'قائمة التنقل');
     safeRun(rebuildNavMenu, 'توحيد قائمة التنقل الجانبية');

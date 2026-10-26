@@ -51,7 +51,7 @@
     background: var(--accent);
     border-color: var(--accent);
     color: #000;
-    cursor: default;
+    cursor: pointer;
     animation: forumCardIn 0.4s ease both;
 }
 
@@ -60,34 +60,8 @@
     box-shadow: 0 8px 24px var(--accent-soft);
 }
 
-.im-unit-card.im-hidden {
-    display: none;
-}
 
-.im-back-btn {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 18px auto 0;
-    padding: 12px 26px;
-    background: transparent;
-    border: 2px solid var(--accent);
-    color: var(--accent);
-    border-radius: 12px;
-    font-size: 14.5px;
-    font-weight: bold;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
-    animation: forumCardIn 0.3s ease both;
-}
 
-.im-back-btn:hover {
-    background: var(--accent-glow);
-    box-shadow: 0 0 16px var(--accent-glow);
-    transform: translateY(-2px);
-}
 </style>
 </head>
 
@@ -136,7 +110,6 @@
 
 <div class="im-wrap">
     <div class="im-units" id="imUnits"></div>
-    <button type="button" class="im-back-btn" id="imBackBtn">⬅ العودة إلى الوحدات</button>
 </div>
 
 <main class="lessons" id="imLessons"></main>
@@ -164,7 +137,6 @@ var UNITS = [
 ];
 
 var unitsWrap = document.getElementById('imUnits');
-var backBtn = document.getElementById('imBackBtn');
 var lessonsEl = document.getElementById('imLessons');
 var cards = [];
 
@@ -175,31 +147,10 @@ function buildCards() {
         btn.className = 'im-unit-card';
         btn.textContent = u.name;
         btn.dataset.key = u.key;
-        btn.addEventListener('click', function () { selectUnit(u); });
+        btn.addEventListener('click', function () { openUnit(u); });
         unitsWrap.appendChild(btn);
         cards.push(btn);
     });
-}
-
-function renderImages(u) {
-    lessonsEl.innerHTML = '';
-    var plainName = u.name.replace(/^\S+\s/, '');
-    for (var i = 1; i <= u.count; i++) {
-        var div = document.createElement('div');
-        div.className = 'lesson';
-
-        var img = document.createElement('img');
-        img.src = 'I_math/' + u.prefix + i + '.jpg';
-        img.alt = plainName + ' - تمرين ' + i;
-        img.loading = (i === 1) ? 'eager' : 'lazy';
-
-        div.appendChild(img);
-        lessonsEl.appendChild(div);
-    }
-    /* إعادة تفعيل عارض/تنزيل صور الدروس المشترك على الصور المُضافة حديثًا */
-    if (typeof window.bacEnhanceLessonImages === 'function') {
-        window.bacEnhanceLessonImages();
-    }
 }
 
 function toggleZoomBar(show) {
@@ -207,32 +158,25 @@ function toggleZoomBar(show) {
     if (bar) bar.style.display = show ? 'flex' : 'none';
 }
 
-function selectUnit(u) {
-    cards.forEach(function (c) {
-        if (c.dataset.key === u.key) {
-            c.classList.add('active');
-            c.classList.remove('im-hidden');
-        } else {
-            c.classList.add('im-hidden');
-        }
-    });
-    backBtn.style.display = 'inline-flex';
-    renderImages(u);
-    toggleZoomBar(true);
+function buildSources(u, plainName) {
+    var list = [];
+    for (var i = 1; i <= u.count; i++) {
+        list.push({ src: 'I_math/' + u.prefix + i + '.jpg', alt: plainName + ' - تمرين ' + i });
+    }
+    return list;
 }
 
-function goBack() {
-    cards.forEach(function (c) {
-        c.classList.remove('active', 'im-hidden');
-    });
-    backBtn.style.display = 'none';
-    lessonsEl.innerHTML = '';
-    toggleZoomBar(false);
+function openUnit(u) {
+    cards.forEach(function (c) { c.classList.toggle('active', c.dataset.key === u.key); });
+    var h = document.querySelector('.hero h1');
+    var pageName = h ? h.textContent.replace(/^[^\u0600-\u06FFA-Za-z0-9]+/, '').trim() : '';
+    var plainName = u.name.replace(/^\S+\s/, '');
+    var title = pageName ? pageName + ' — ' + plainName : plainName;
+    window.bacOpenReader({ type: 'images', title: title, sources: buildSources(u, plainName), start: 0, fileName: title + '.pdf' });
 }
 
 function init() {
     buildCards();
-    backBtn.addEventListener('click', goBack);
     toggleZoomBar(false);
 }
 

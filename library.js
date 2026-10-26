@@ -466,6 +466,10 @@ function destroyReaderTask() {
 }
 
 function openReader(book) {
+    if (typeof window.bacOpenReader === "function") {
+        window.bacOpenReader({ type: "pdf", src: book.pdf, title: book.title, fileName: baseName(book.pdf) });
+        return;
+    }
     ensureReader();
     currentReaderBook = book;
     destroyReaderTask();

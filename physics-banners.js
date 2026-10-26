@@ -15,7 +15,7 @@ window.__bacPhysicsBanners = true;
 var KEY = 'bacorbit_phq_v1';
 var FIRST_DELAY = 30 * 60 * 1000;
 var INTERVAL = 60 * 60 * 1000;
-var AUTO_HIDE = 5000;
+var AUTO_HIDE = 15000;
 var CHECK_EVERY = 5000;
 
 var QA = [
@@ -101,17 +101,18 @@ function ensureStyles() {
     'transform:translateX(130%);opacity:0;transition:transform .55s cubic-bezier(.34,1.4,.64,1),opacity .35s ease}' +
     '.bac-phq.show{transform:translateX(0);opacity:1}' +
     '.bac-phq.leaving{transform:translateX(130%);opacity:0;transition:transform .4s ease-in,opacity .3s ease}' +
-    '.bac-phq-q{font-size:15px;font-weight:bold;line-height:1.8;padding-inline-end:26px}' +
+    '.bac-phq-q{font-size:15px;font-weight:bold;line-height:1.8;padding-inline-end:40px}' +
     '.bac-phq-hint{font-size:11.5px;color:var(--footer-text,#888);margin-top:6px}' +
     '.bac-phq-a{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--empty-border,#333);' +
     'font-size:14px;line-height:1.9;color:var(--text-secondary,#bdbdbd)}' +
     '.bac-phq.open{cursor:default}' +
     '.bac-phq.open .bac-phq-a{display:block;animation:bacPhqIn .35s ease both}' +
     '.bac-phq.open .bac-phq-hint{display:none}' +
-    '.bac-phq-close{display:none;position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;' +
-    'border:1.5px solid var(--accent,#1aff66);background:var(--bg,#0d0d0d);color:var(--accent,#1aff66);' +
-    'font-size:12px;cursor:pointer;padding:0;line-height:1;font-family:inherit}' +
-    '.bac-phq.open .bac-phq-close{display:block}' +
+    '.bac-phq-close{display:flex;align-items:center;justify-content:center;position:absolute;top:8px;left:8px;' +
+    'width:32px;height:32px;border-radius:50%;border:2px solid var(--accent,#1aff66);' +
+    'background:var(--bg,#0d0d0d);color:var(--accent,#1aff66);font-size:14px;font-weight:bold;' +
+    'cursor:pointer;padding:0;line-height:1;font-family:inherit}' +
+    '.bac-phq-close:hover{background:var(--accent-glow,rgba(26,255,102,.4))}' +
     '.bac-phq-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--accent,#1aff66);' +
     'transform-origin:right center;animation:bacPhqBar ' + AUTO_HIDE + 'ms linear forwards}' +
     '.bac-phq.open .bac-phq-bar{display:none}' +
@@ -140,7 +141,7 @@ function showBanner(qa) {
   el.className = 'bac-phq';
   el.setAttribute('role', 'status');
   el.innerHTML =
-    '<button type="button" class="bac-phq-close" aria-label="إغلاق">✕</button>' +
+    '<button type="button" class="bac-phq-close" aria-label="إغلاق اللافتة" title="إغلاق">✕</button>' +
     '<div class="bac-phq-q"></div>' +
     '<div class="bac-phq-hint">اضغط لإظهار الإجابة</div>' +
     '<div class="bac-phq-a"></div>' +
@@ -159,6 +160,7 @@ function showBanner(qa) {
   });
   el.querySelector('.bac-phq-close').addEventListener('click', function (e) {
     e.stopPropagation();
+    clearTimeout(timer);
     removeBanner(el);
   });
 

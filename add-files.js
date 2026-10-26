@@ -24,16 +24,14 @@ const firebaseConfig = {
   measurementId: "G-4J629GND42"
 };
 
-/* بنية الشعب والمواد: مبنية مطابقة تمامًا لأسماء الشعب والمواد
-   الفعلية الموجودة في صفحات Branches/1_*.html الحالية (لم تُخترع أي
-   تسمية جديدة). شعبة الإعلام الآلي غير مفعّلة حاليًا في كامل الموقع
-   (مثل حاسبة المعدل وصفحة 1_info.html) فتبقى كذلك هنا أيضًا. */
+/* بنية الشعب والمواد: المواد المتاحة للرفع هي الرياضيات والفيزياء والعلوم الطبيعية
+   فقط (بنفس تسميات صفحات الشعب)، لكل الشعب المفعّلة. */
+const SUBJECTS = ['الرياضيات', 'الفيزياء', 'العلوم الطبيعية'];
 const BRANCHES = [
-  { key: 'science', name: 'علوم تجريبية', subjects: ['الرياضيات', 'الفيزياء', 'العلوم الطبيعية', 'اللغة العربية', 'اللغة الإنجليزية', 'العلوم الإسلامية', 'التاريخ'] },
-  { key: 'math', name: 'رياضيات', subjects: ['الرياضيات', 'الفيزياء', 'العلوم الطبيعية', 'اللغة العربية', 'اللغة الإنجليزية', 'العلوم الإسلامية', 'التاريخ'] },
-  { key: 'technical', name: 'تقني رياضي', subjects: ['الرياضيات', 'الفيزياء', 'الهندسة المدنية', 'الهندسة الميكانيكية', 'الهندسة الكهربائية', 'هندسة الطرائق', 'اللغة العربية', 'اللغة الإنجليزية', 'العلوم الإسلامية', 'التاريخ'] },
-  { key: 'economy', name: 'تسيير واقتصاد', subjects: ['الرياضيات', 'التسيير المحاسبي والمالي', 'القانون', 'اللغة العربية', 'اللغة الإنجليزية', 'العلوم الإسلامية', 'الاجتماعيات', 'الاقتصاد والمناجمنت'] },
-  { key: 'info', name: 'الإعلام الآلي (قريبًا)', subjects: [], enabled: false }
+  { key: 'science', name: 'علوم تجريبية', subjects: SUBJECTS },
+  { key: 'math', name: 'رياضيات', subjects: SUBJECTS },
+  { key: 'technical', name: 'تقني رياضي', subjects: SUBJECTS },
+  { key: 'economy', name: 'تسيير واقتصاد', subjects: SUBJECTS }
 ];
 
 const $ = s => document.querySelector(s);
@@ -105,7 +103,7 @@ function renderMine(list){
       '</div>' +
       '<div style="color:var(--footer-text);font-size:12px;margin-top:4px">' +
         esc(s.branchLabel || '') + (s.branchLabel && s.subject ? ' • ' : '') + esc(s.subject || '') +
-        (s.category ? ' • ' + esc(s.category) : '') + ' • ' + fmtDate(ts(s.createdAt)) +
+        (s.category ? ' • ' + esc(s.category) : '') + (s.chapter ? ' • ' + esc(s.chapter) : '') + ' • ' + fmtDate(ts(s.createdAt)) +
       '</div>' +
       (s.status === 'rejected' && s.rejectionReason ? '<div class="af-mine-reason">سبب الرفض: ' + esc(s.rejectionReason) + '</div>' : '');
     wrap.appendChild(div);
@@ -117,14 +115,15 @@ async function submitFile(){
   const branch = BRANCHES.find(b => b.key === branchKey);
   const subject = $('#afSubject').value;
   const category = $('#afCategory').value;
-  const title = $('#afTitle').value.trim();
+  const chapter = $('#afChapter').value;
+  const title = [subject, category, chapter].filter(Boolean).join(' — ');
   const note = $('#afNote').value.trim();
   const fileInput = $('#afFile');
   const file = fileInput.files[0];
 
   if (branch && branch.enabled === false){ showMsg('هذه الشعبة غير مفعّلة بعد.', 'err'); return; }
   if (!subject){ showMsg('الرجاء اختيار المادة.', 'err'); return; }
-  if (!title){ showMsg('الرجاء إدخال عنوان للملف.', 'err'); return; }
+  if (!chapter){ showMsg('الرجاء اختيار الفصل.', 'err'); return; }
   if (!file){ showMsg('الرجاء اختيار ملف PDF.', 'err'); return; }
   if (file.type !== 'application/pdf'){ showMsg('يُقبل ملف PDF فقط.', 'err'); return; }
   if (file.size > MAX_FILE){ showMsg('حجم الملف كبير جدًا (الحد الأقصى 20MB).', 'err'); return; }
@@ -146,6 +145,7 @@ async function submitFile(){
       branch: branchKey,
       branchLabel: branch ? branch.name : '',
       category,
+      chapter,
       level: '',
       fileUrl, fileName: file.name, fileSize: file.size,
       submitterUid: me.uid,
@@ -158,7 +158,7 @@ async function submitFile(){
     });
 
     showMsg('تم إرسال ملفك بنجاح ✅ سيراجعه فريق BacOrbit قريبًا.', 'ok');
-    $('#afTitle').value = ''; $('#afNote').value = '';
+    $('#afNote').value = '';
     fileInput.value = ''; $('#afFileName').textContent = 'لم يتم اختيار ملف بعد';
   }catch(err){
     console.error(err);

@@ -2576,3 +2576,85 @@ body::before {
 .bac-home-ring.done { animation: bacRingDone 0.3s ease forwards; box-shadow: 0 0 26px var(--accent-glow); }
 .bac-home-ring.done .bac-home-ring-icon svg { fill: var(--accent-glow); }
 @keyframes bacRingDone { 0% { transform: scale(1); } 60% { transform: scale(1.18); } 100% { transform: scale(1.08); } }
+
+
+/* ---------- 23. تحسين سلاسة الحركة والانتقالات ----------
+   إضافات خفيفة (opacity/transform فقط) لا تغيّر التصميم ولا الألوان، وتعمل
+   في الوضعين الداكن والفاتح. fill-mode: backwards كي لا يُثبَّت transform
+   النهائي فتتعطل حالات :hover. تُعطَّل عند prefers-reduced-motion. */
+
+:root { --bac-ease: cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+button, a { -webkit-tap-highlight-color: transparent; }
+
+.card {
+    transition: transform 0.3s var(--bac-ease), box-shadow 0.3s var(--bac-ease), background-color 0.35s ease, border-color 0.35s ease;
+}
+.mini-card {
+    transition: transform 0.3s var(--bac-ease), box-shadow 0.3s var(--bac-ease), background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+.lesson {
+    transition: transform 0.35s var(--bac-ease), box-shadow 0.35s var(--bac-ease), background-color 0.35s ease, border-color 0.35s ease;
+}
+.option-btn {
+    transition: border-color 0.2s ease, transform 0.25s var(--bac-ease), background-color 0.35s ease, color 0.35s ease;
+}
+.back {
+    transition: transform 0.25s var(--bac-ease), background-color 0.35s ease;
+}
+
+.card:active,
+.mini-card:active,
+.back:active,
+.option-btn:not(:disabled):active,
+.submit-btn:active,
+.restart-btn:active,
+.calc-btn:active { transform: scale(0.98); }
+
+@keyframes bacFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bacFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.hero { animation: bacFadeUp 0.5s var(--bac-ease) backwards; }
+
+.branches > .card,
+.subjects > .card {
+    animation: bacFadeUp 0.45s var(--bac-ease) backwards;
+}
+.branches > .card:nth-child(2), .subjects > .card:nth-child(2) { animation-delay: 0.04s; }
+.branches > .card:nth-child(3), .subjects > .card:nth-child(3) { animation-delay: 0.08s; }
+.branches > .card:nth-child(4), .subjects > .card:nth-child(4) { animation-delay: 0.12s; }
+.branches > .card:nth-child(5), .subjects > .card:nth-child(5) { animation-delay: 0.16s; }
+.branches > .card:nth-child(n+6), .subjects > .card:nth-child(n+6) { animation-delay: 0.2s; }
+
+@keyframes bacSubjectOpen {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.subject-content[style*="display: block"],
+.subject-content.open,
+.subject-content.active {
+    animation: bacSubjectOpen 0.3s var(--bac-ease) backwards;
+}
+
+.quiz-card, .stage-complete, .congrats {
+    animation: bacFadeIn 0.35s ease backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero,
+    .branches > .card,
+    .subjects > .card,
+    .subject-content,
+    .quiz-card,
+    .stage-complete,
+    .congrats {
+        animation: none !important;
+    }
+    html { scroll-behavior: auto; }
+}
