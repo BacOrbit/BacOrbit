@@ -2174,7 +2174,7 @@
   function initPhysicsBanners() {
     var p = location.pathname;
     /* الفيزياء والعلوم الطبيعية: الدروس (L_) وسلاسل التمارين (I_) وفقط الفصل الأول من المواضيع المتنوعة (T_) */
-    var onTarget = /\/(L_physic|I_physic|L_science2?|I_science)\.html$/.test(p) ||
+    var onTarget = /\/(L_physic|I_physic|L_science2?|I_science|S_science2?)\.html$/.test(p) ||
       (/\/T_(physic|science)\.html$/.test(p) && new URLSearchParams(location.search).get('c') === '1');
     if (!onTarget) return;
     loadScriptTag(siblingUrl('physics-banners.js')).catch(function (e) {

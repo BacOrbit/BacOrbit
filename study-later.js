@@ -280,7 +280,7 @@ function writeStudyNotification(id, title, link, newTab) {
     fromUid: ctxRef.me.uid,
     type: 'study_reminder',
     title: '📚 تذكير بالدراسة',
-    body: 'لم تنسَ متابعة: ' + title,
+    body: 'ما تنساش تكمل: ' + title,
     link: link || '',
     newTab: !!newTab,
     savedId: id,
